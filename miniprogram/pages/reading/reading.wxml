@@ -1,0 +1,84 @@
+<!-- pages/reading/reading.wxml -->
+<view class="page">
+  <!-- Loading -->
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <view class="loading-spinner"></view>
+    <text>加载中…</text>
+  </view>
+
+  <block wx:else>
+    <!-- 封面图 -->
+    <view class="cover-wrap">
+      <image
+        class="cover-img"
+        src="{{lesson.imageUrl}}"
+        mode="aspectFill"
+      />
+      <view class="cover-overlay">
+        <text class="lesson-title-overlay">{{lesson.title}}</text>
+      </view>
+    </view>
+
+    <!-- 句子滚动区 -->
+    <scroll-view
+      class="sentence-area"
+      scroll-y
+      scroll-into-view="{{scrollToSentence}}"
+      scroll-with-animation
+    >
+      <view
+        wx:for="{{sentences}}"
+        wx:key="id"
+        id="sentence-{{index}}"
+        class="sentence-row {{index === currentIndex ? 'active' : ''}} {{recordings[index] ? 'recorded' : ''}}"
+        bindtap="onSentenceTap"
+        data-index="{{index}}"
+      >
+        <text class="sentence-num">{{index + 1}}</text>
+        <text class="sentence-text">{{item.text}}</text>
+        <view class="sentence-status">
+          <text wx:if="{{recordings[index]}}">✅</text>
+          <text wx:elif="{{index === currentIndex}}">👉</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 底部操作区 -->
+    <view class="action-bar">
+      <!-- 进度提示 -->
+      <text class="progress-text">{{recordedCount}} / {{sentences.length}} 句已录</text>
+
+      <view class="btn-row">
+        <!-- 听范读 -->
+        <view
+          class="btn-ref {{isPlaying ? 'playing' : ''}}"
+          bindtap="onPlayRef"
+        >
+          <text>{{isPlaying ? '⏹ 停止' : '▶ 听范读'}}</text>
+        </view>
+
+        <!-- 按住跟读 -->
+        <view
+          class="btn-record {{isRecording ? 'recording' : ''}}"
+          bindtouchstart="onRecordStart"
+          bindtouchend="onRecordStop"
+          catch:touchmove="onRecordStop"
+        >
+          <view wx:if="{{isRecording}}" class="record-pulse"></view>
+          <text>{{isRecording ? '🎙 录音中…' : '● 按住跟读'}}</text>
+        </view>
+      </view>
+
+      <!-- 结束并发送（仅显示在有录音后） -->
+      <button
+        wx:if="{{recordedCount > 0}}"
+        class="btn-submit {{submitting ? 'submitting' : ''}}"
+        bindtap="onSubmit"
+        loading="{{submitting}}"
+        disabled="{{submitting}}"
+      >
+        {{allDone ? '✅ 结束并发送' : '📤 提前发送'}}
+      </button>
+    </view>
+  </block>
+</view>

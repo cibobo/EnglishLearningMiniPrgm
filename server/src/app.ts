@@ -1,0 +1,61 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
+import dotenv from 'dotenv';
+
+import authRouter from './routes/auth';
+import classesRouter from './routes/classes';
+import studentsRouter from './routes/students';
+import lessonsRouter from './routes/lessons';
+import recordingsRouter from './routes/recordings';
+import uploadRouter from './routes/upload';
+import dashboardRouter from './routes/dashboard';
+
+dotenv.config();
+
+const app = express();
+
+// ─── Security Middleware ───────────────────────────────────────────────────────
+app.use(helmet());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  credentials: true,
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// ─── Rate Limiting ─────────────────────────────────────────────────────────────
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10,
+  message: { message: '请求过于频繁，请稍后再试' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ─── Routes ───────────────────────────────────────────────────────────────────
+app.get('/api/v1/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.use('/api/v1/auth', loginLimiter, authRouter);
+app.use('/api/v1/classes', classesRouter);
+app.use('/api/v1/students', studentsRouter);
+app.use('/api/v1/lessons', lessonsRouter);
+app.use('/api/v1/recordings', recordingsRouter);
+app.use('/api/v1/upload', uploadRouter);
+app.use('/api/v1/dashboard', dashboardRouter);
+
+// ─── Global Error Handler ──────────────────────────────────────────────────────
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('[Error]', err.message, err.stack);
+  res.status(500).json({ message: '服务器内部错误' });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
+
+export default app;

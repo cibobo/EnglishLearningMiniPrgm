@@ -1,0 +1,118 @@
+/* pages/lessons/lessons.wxss */
+.page {
+  min-height: 100vh;
+  background: #F5F7FA;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #4F46E5, #7C3AED);
+  padding: 48rpx 40rpx 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-left { flex: 1; }
+
+.greeting {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #fff;
+}
+
+.class-name {
+  display: block;
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.75);
+  margin-top: 8rpx;
+}
+
+.logout-btn {
+  padding: 12rpx 28rpx;
+  background: rgba(255,255,255,0.2);
+  border-radius: 40rpx;
+  color: #fff;
+  font-size: 26rpx;
+}
+
+/* Skeleton */
+.skeleton-list { padding: 32rpx; }
+.skeleton-card {
+  height: 200rpx;
+  background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 24rpx;
+  margin-bottom: 24rpx;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Empty */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 0;
+}
+.empty-icon { font-size: 100rpx; margin-bottom: 24rpx; }
+.empty-text { font-size: 34rpx; font-weight: 700; color: #374151; }
+.empty-hint { font-size: 26rpx; color: #9CA3AF; margin-top: 12rpx; }
+
+/* Lesson List */
+.lesson-list {
+  flex: 1;
+  padding: 24rpx 32rpx 40rpx;
+  margin-top: -28rpx;
+}
+
+.lesson-card {
+  background: #fff;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.07);
+  margin-bottom: 24rpx;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  transition: transform 0.1s;
+}
+
+.lesson-card:active { transform: scale(0.98); }
+
+.lesson-image {
+  width: 180rpx;
+  height: 160rpx;
+  flex-shrink: 0;
+  background: #E0E7FF;
+}
+
+.lesson-info {
+  flex: 1;
+  padding: 28rpx 24rpx;
+}
+
+.lesson-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1F2937;
+  line-height: 1.4;
+}
+
+.lesson-meta { margin-top: 12rpx; }
+.sentence-count { font-size: 24rpx; color: #9CA3AF; }
+
+.arrow {
+  font-size: 48rpx;
+  color: #D1D5DB;
+  padding-right: 28rpx;
+  font-weight: 300;
+}

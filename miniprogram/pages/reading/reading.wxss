@@ -1,0 +1,196 @@
+/* pages/reading/reading.wxss */
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #F5F7FA;
+}
+
+/* Loading */
+.loading-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #9CA3AF;
+  font-size: 28rpx;
+  gap: 24rpx;
+}
+
+/* Cover */
+.cover-wrap {
+  position: relative;
+  width: 100%;
+  height: 380rpx;
+  flex-shrink: 0;
+}
+
+.cover-img {
+  width: 100%;
+  height: 100%;
+}
+
+.cover-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.6));
+  padding: 20rpx 32rpx 24rpx;
+}
+
+.lesson-title-overlay {
+  color: #fff;
+  font-size: 34rpx;
+  font-weight: 800;
+  text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.3);
+}
+
+/* Sentence List */
+.sentence-area {
+  flex: 1;
+  height: 0; /* scroll-view needs explicit height in flex */
+  min-height: 300rpx;
+  padding: 16rpx 0;
+}
+
+.sentence-row {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 32rpx;
+  margin: 8rpx 24rpx;
+  border-radius: 20rpx;
+  background: #fff;
+  transition: all 0.2s;
+}
+
+.sentence-row.active {
+  background: linear-gradient(135deg, #EEF2FF, #E0E7FF);
+  border: 2rpx solid #818CF8;
+  transform: scale(1.02);
+}
+
+.sentence-row.recorded {
+  background: #F0FDF4;
+  border: 2rpx solid #86EFAC;
+}
+
+.sentence-num {
+  font-size: 24rpx;
+  color: #9CA3AF;
+  font-weight: 700;
+  width: 48rpx;
+  flex-shrink: 0;
+}
+
+.sentence-text {
+  flex: 1;
+  font-size: 34rpx;
+  color: #1F2937;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.sentence-row.active .sentence-text { color: #3730A3; }
+.sentence-row.recorded .sentence-text { color: #166534; }
+
+.sentence-status {
+  font-size: 36rpx;
+  width: 60rpx;
+  text-align: center;
+}
+
+/* Action Bar */
+.action-bar {
+  background: #fff;
+  border-top: 2rpx solid #F3F4F6;
+  padding: 24rpx 32rpx 48rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.progress-text {
+  text-align: center;
+  font-size: 26rpx;
+  color: #9CA3AF;
+}
+
+.btn-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+/* 听范读 */
+.btn-ref {
+  flex: 1;
+  background: #F3F4F6;
+  color: #374151;
+  border-radius: 50rpx;
+  padding: 28rpx;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.btn-ref.playing {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
+
+/* 按住跟读 */
+.btn-record {
+  flex: 2;
+  background: linear-gradient(135deg, #4F46E5, #7C3AED);
+  color: #fff;
+  border-radius: 50rpx;
+  padding: 28rpx;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8rpx 24rpx rgba(79, 70, 229, 0.35);
+  transition: all 0.1s;
+}
+
+.btn-record.recording {
+  background: linear-gradient(135deg, #DC2626, #EF4444);
+  box-shadow: 0 8rpx 24rpx rgba(220, 38, 38, 0.4);
+  transform: scale(0.97);
+}
+
+/* 录音脉冲动画 */
+.record-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  animation: pulse 1s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+/* 结束并发送 */
+.btn-submit {
+  background: linear-gradient(135deg, #059669, #10B981);
+  color: #fff;
+  border-radius: 50rpx;
+  padding: 32rpx;
+  font-size: 34rpx;
+  font-weight: 800;
+  border: none;
+  box-shadow: 0 8rpx 24rpx rgba(5, 150, 105, 0.35);
+  width: 100%;
+}
+
+.btn-submit.submitting { opacity: 0.7; }

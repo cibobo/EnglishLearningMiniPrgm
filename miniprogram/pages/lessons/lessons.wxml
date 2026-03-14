@@ -1,0 +1,45 @@
+<!-- pages/lessons/lessons.wxml -->
+<view class="page">
+  <!-- 顶部用户栏 -->
+  <view class="header">
+    <view class="header-left">
+      <text class="greeting">你好，{{userInfo.name}} 👋</text>
+      <text class="class-name">{{userInfo.className || '我的课程'}}</text>
+    </view>
+    <view class="logout-btn" bindtap="onLogout">
+      <text>退出</text>
+    </view>
+  </view>
+
+  <!-- 加载中骨架 -->
+  <view wx:if="{{loading}}" class="skeleton-list">
+    <view wx:for="{{[1,2,3]}}" wx:key="index" class="skeleton-card"></view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:elif="{{lessons.length === 0}}" class="empty-state">
+    <text class="empty-icon">📭</text>
+    <text class="empty-text">老师暂未发布课程</text>
+    <text class="empty-hint">请等待老师上传跟读材料</text>
+  </view>
+
+  <!-- 课程列表 -->
+  <scroll-view wx:else scroll-y class="lesson-list" enhanced show-scrollbar="{{false}}">
+    <view
+      wx:for="{{lessons}}"
+      wx:key="id"
+      class="lesson-card"
+      bindtap="onLessonTap"
+      data-id="{{item.id}}"
+    >
+      <image class="lesson-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
+      <view class="lesson-info">
+        <text class="lesson-title">{{item.title}}</text>
+        <view class="lesson-meta">
+          <text class="sentence-count">📝 {{item._count.sentences}} 句</text>
+        </view>
+      </view>
+      <view class="arrow">›</view>
+    </view>
+  </scroll-view>
+</view>

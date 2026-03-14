@@ -1,0 +1,23 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/lessons/lessons",
+    "pages/reading/reading"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#4F46E5",
+    "navigationBarTitleText": "英语跟读",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F5F7FA"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "permission": {
+    "scope.record": {
+      "desc": "用于英语跟读练习，录音仅保存在本地和您的班级老师账户中"
+    }
+  },
+  "requiredPrivateInfos": [],
+  "lazyCodeLoading": "requiredComponents"
+}

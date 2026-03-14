@@ -1,0 +1,48 @@
+<!-- pages/login/login.wxml -->
+<view class="container">
+  <!-- Logo 区域 -->
+  <view class="hero">
+    <view class="logo-circle">
+      <text class="logo-emoji">📚</text>
+    </view>
+    <text class="app-title">英语跟读</text>
+    <text class="app-subtitle">跟着老师，大声读英语！</text>
+  </view>
+
+  <!-- 普通登录 -->
+  <view wx:if="{{!needCode}}" class="login-section">
+    <button
+      class="btn-wechat"
+      loading="{{loading}}"
+      disabled="{{loading}}"
+      bindtap="onLogin"
+    >
+      <text class="btn-icon">💬</text>
+      <text>使用微信一键登录</text>
+    </button>
+    <text wx:if="{{errorMsg}}" class="error-msg">{{errorMsg}}</text>
+  </view>
+
+  <!-- 学生码绑定 -->
+  <view wx:else class="code-section">
+    <text class="code-title">请输入老师给你的学生码</text>
+    <text class="code-hint">首次登录需要绑定账号</text>
+    <view class="input-wrapper">
+      <input
+        class="code-input"
+        placeholder="输入 6 位学生码（如：AB1234）"
+        maxlength="6"
+        value="{{studentCode}}"
+        bindinput="onCodeInput"
+        type="text"
+      />
+    </view>
+    <text wx:if="{{errorMsg}}" class="error-msg">{{errorMsg}}</text>
+    <button
+      class="btn-primary"
+      loading="{{loading}}"
+      disabled="{{loading || studentCode.length !== 6}}"
+      bindtap="onBindAndLogin"
+    >确认绑定</button>
+  </view>
+</view>

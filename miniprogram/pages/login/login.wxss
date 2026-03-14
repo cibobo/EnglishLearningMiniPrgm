@@ -1,0 +1,115 @@
+/* pages/login/login.wxss */
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60rpx 48rpx;
+  background: linear-gradient(160deg, #EEF2FF 0%, #E0E7FF 50%, #C7D2FE 100%);
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 80rpx;
+}
+
+.logo-circle {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4F46E5, #7C3AED);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12rpx 40rpx rgba(79, 70, 229, 0.4);
+  margin-bottom: 32rpx;
+}
+
+.logo-emoji {
+  font-size: 88rpx;
+}
+
+.app-title {
+  font-size: 60rpx;
+  font-weight: 900;
+  color: #3730A3;
+  letter-spacing: 4rpx;
+}
+
+.app-subtitle {
+  font-size: 28rpx;
+  color: #6366F1;
+  margin-top: 16rpx;
+}
+
+/* 登录按钮 */
+.login-section, .code-section {
+  width: 100%;
+}
+
+.btn-wechat {
+  background: linear-gradient(135deg, #07C160, #09BB66);
+  color: #fff;
+  border-radius: 60rpx;
+  font-size: 36rpx;
+  font-weight: 700;
+  padding: 32rpx;
+  width: 100%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  box-shadow: 0 8rpx 30rpx rgba(7, 193, 96, 0.4);
+}
+
+.btn-icon {
+  font-size: 40rpx;
+}
+
+/* 学生码区域 */
+.code-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1F2937;
+  text-align: center;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.code-hint {
+  font-size: 26rpx;
+  color: #9CA3AF;
+  text-align: center;
+  display: block;
+  margin-bottom: 40rpx;
+}
+
+.input-wrapper {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 0 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06);
+}
+
+.code-input {
+  width: 100%;
+  height: 100rpx;
+  font-size: 40rpx;
+  font-weight: 700;
+  letter-spacing: 8rpx;
+  text-align: center;
+  color: #4F46E5;
+}
+
+.error-msg {
+  color: #EF4444;
+  font-size: 26rpx;
+  text-align: center;
+  display: block;
+  margin-bottom: 24rpx;
+}
