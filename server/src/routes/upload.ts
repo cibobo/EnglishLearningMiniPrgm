@@ -71,7 +71,7 @@ router.post('/presign', async (req, res) => {
           Headers: { 'Content-Type': content_type },
           Sign: true,
         },
-        (err, data) => {
+        (err: any, data: any) => {
           if (err) reject(err);
           else resolve(data.Url);
         }

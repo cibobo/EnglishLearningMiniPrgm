@@ -29,8 +29,9 @@ router.get('/', async (req, res) => {
 // 获取课程详情（含句子列表）
 router.get('/:id', async (req, res) => {
   try {
+    const lessonId = req.params.id as string;
     const lesson = await prisma.lesson.findUnique({
-      where: { id: req.params.id },
+      where: { id: lessonId },
       include: {
         sentences: { orderBy: { orderIndex: 'asc' } },
       },
@@ -86,8 +87,9 @@ router.post('/', requireTeacher, async (req, res) => {
 router.put('/:id', requireTeacher, async (req, res) => {
   try {
     const { title, imageUrl, orderIndex } = req.body;
+    const lessonId = req.params.id as string;
     const lesson = await prisma.lesson.update({
-      where: { id: req.params.id },
+      where: { id: lessonId },
       data: { title, imageUrl, orderIndex },
     });
     res.json(lesson);
@@ -99,8 +101,9 @@ router.put('/:id', requireTeacher, async (req, res) => {
 // ─── DELETE /lessons/:id ──────────────────────────────────────────────────────
 router.delete('/:id', requireTeacher, async (req, res) => {
   try {
+    const lessonId = req.params.id as string;
     await prisma.lesson.update({
-      where: { id: req.params.id },
+      where: { id: lessonId },
       data: { deletedAt: new Date() },
     });
     res.json({ message: '课程已删除' });
@@ -114,16 +117,17 @@ router.delete('/:id', requireTeacher, async (req, res) => {
 router.post('/:id/sentences', requireTeacher, async (req, res) => {
   try {
     const { sentences } = req.body;
+    const lessonId = req.params.id as string;
     if (!Array.isArray(sentences) || sentences.length === 0) {
       res.status(400).json({ message: '句子列表不能为空' });
       return;
     }
 
     // 删除旧句子，替换为新的
-    await prisma.sentence.deleteMany({ where: { lessonId: req.params.id } });
+    await prisma.sentence.deleteMany({ where: { lessonId } });
     const created = await prisma.sentence.createMany({
       data: sentences.map((s: { text: string; audioUrl?: string }, i: number) => ({
-        lessonId: req.params.id,
+        lessonId,
         text: s.text,
         audioUrl: s.audioUrl || null,
         orderIndex: i,

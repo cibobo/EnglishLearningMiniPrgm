@@ -1,5 +1,6 @@
 // utils/request.js — 统一网络请求封装
-const BASE_URL = 'https://YOUR_DOMAIN/api/v1'; // 生产环境替换
+// 开发阶段指向本地服务器；上线时替换为线上域名
+const BASE_URL = 'http://127.0.0.1:3000/api/v1'; 
 
 const request = (options) => {
   return new Promise((resolve, reject) => {

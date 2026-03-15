@@ -48,13 +48,13 @@ export const requireStudent = (req: Request, res: Response, next: NextFunction):
 };
 
 export const generateAccessToken = (payload: AuthPayload): string => {
-  return jwt.sign(payload, process.env.JWT_ACCESS_SECRET!, {
+  return jwt.sign({ ...payload }, process.env.JWT_ACCESS_SECRET as string, {
     expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '2h',
-  });
+  } as jwt.SignOptions);
 };
 
 export const generateRefreshToken = (payload: AuthPayload): string => {
-  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET!, {
+  return jwt.sign({ ...payload }, process.env.JWT_REFRESH_SECRET as string, {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
-  });
+  } as jwt.SignOptions);
 };

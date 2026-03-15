@@ -69,8 +69,9 @@ router.get('/', requireTeacher, async (req, res) => {
 // 获取录音私有访问 URL（仅教师）
 router.get('/:id/url', requireTeacher, async (req, res) => {
   try {
+    const recordingId = req.params.id as string;
     const recording = await prisma.recordingSubmission.findUnique({
-      where: { id: req.params.id },
+      where: { id: recordingId },
     });
     if (!recording) {
       res.status(404).json({ message: '录音不存在' });
@@ -92,7 +93,7 @@ router.get('/:id/url', requireTeacher, async (req, res) => {
           Expires: 3600,
           Sign: true,
         },
-        (err, data) => {
+        (err: any, data: any) => {
           if (err) reject(err);
           else resolve(data.Url);
         }
@@ -110,12 +111,13 @@ router.get('/:id/url', requireTeacher, async (req, res) => {
 router.patch('/:id/status', requireTeacher, async (req, res) => {
   try {
     const { status } = req.body;
+    const recordingId = req.params.id as string;
     if (!['pending', 'reviewed'].includes(status)) {
       res.status(400).json({ message: 'status 值无效' });
       return;
     }
     const updated = await prisma.recordingSubmission.update({
-      where: { id: req.params.id },
+      where: { id: recordingId },
       data: { status },
     });
     res.json(updated);

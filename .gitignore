@@ -21,6 +21,8 @@ teacher-web/*.local
 
 # WeChat Miniprogram
 miniprogram/node_modules/
+miniprogram/project.config.json
+miniprogram/project.private.config.json
 
 # TypeScript
 **/*.tsbuildinfo
@@ -34,6 +36,7 @@ ehthumbs.db
 [Dd]esktop.ini
 $RECYCLE.BIN/
 *.lnk
+*.sh
 
 # Editor / IDE
 .vscode/
