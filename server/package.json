@@ -39,6 +39,6 @@
     "jsonwebtoken": "^9.0.3"
   },
   "prisma": {
-    "seed": "ts-node --skip-project --compiler-options '{\"module\":\"commonjs\",\"lib\":[\"ES2020\",\"dom\"]}' prisma/seed.ts"
+    "seed": "ts-node -P tsconfig.seed.json prisma/seed.ts"
   }
 }
