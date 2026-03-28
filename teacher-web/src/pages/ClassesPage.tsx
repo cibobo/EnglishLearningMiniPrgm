@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   Table, Button, Modal, Form, Input, Space, Tag, Tooltip,
-  message, Popconfirm, Typography, Card, List, Image, Divider, Checkbox,
+  message, Popconfirm, Typography, Card, List, Image, Divider, Checkbox, Tabs,
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined,
-  LinkOutlined, EyeOutlined, SoundOutlined,
+  LinkOutlined, EyeOutlined, SoundOutlined, UserAddOutlined,
 } from '@ant-design/icons';
 import api from '../lib/api';
 
@@ -36,14 +36,21 @@ interface LessonDetail extends Lesson {
   sentences: Sentence[];
 }
 
+interface Student {
+  id: string;
+  name: string;
+  studentCode: string;
+}
+
 const ClassesPage: React.FC = () => {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
   const [classModal, setClassModal] = useState(false);
   const [editingClass, setEditingClass] = useState<Class | null>(null);
 
-  // 班级内已分配课程
+  // 班级内已分配课程和学生
   const [classLessons, setClassLessons] = useState<Record<string, Lesson[]>>({});
+  const [classStudents, setClassStudents] = useState<Record<string, Student[]>>({});
 
   // 分配课程弹窗
   const [assignModal, setAssignModal] = useState<{ open: boolean; classId: string | null; className: string }>({
@@ -55,6 +62,10 @@ const ClassesPage: React.FC = () => {
 
   // 课程详情弹窗
   const [detailModal, setDetailModal] = useState<{ open: boolean; lesson: LessonDetail | null }>({ open: false, lesson: null });
+
+  // 快速添加学生弹窗
+  const [addStudentModal, setAddStudentModal] = useState<{ open: boolean; classId: string; className: string }>({ open: false, classId: '', className: '' });
+  const [studentForm] = Form.useForm();
 
   const [classForm] = Form.useForm();
 
@@ -71,6 +82,11 @@ const ClassesPage: React.FC = () => {
   const fetchClassLessons = async (classId: string) => {
     const { data } = await api.get(`/classes/${classId}/lessons`);
     setClassLessons(prev => ({ ...prev, [classId]: data }));
+  };
+
+  const fetchClassStudents = async (classId: string) => {
+    const { data } = await api.get(`/students?classId=${classId}`);
+    setClassStudents(prev => ({ ...prev, [classId]: data }));
   };
 
   // ─── Class CRUD ─────────────────────────────────────────────────────────────
@@ -99,6 +115,45 @@ const ClassesPage: React.FC = () => {
     await api.delete(`/classes/${id}`);
     message.success('班级已删除');
     fetchClasses();
+  };
+
+  // ─── Add Student & Remove Student Quick Actions ──────────────────────────────
+  const openAddStudentModal = (classId: string, className: string) => {
+    studentForm.resetFields();
+    setAddStudentModal({ open: true, classId, className });
+  };
+
+  const handleAddStudent = async () => {
+    const vals = await studentForm.validateFields();
+    try {
+      const { data } = await api.post('/students', { name: vals.name, classId: addStudentModal.classId });
+      setAddStudentModal({ open: false, classId: '', className: '' });
+      fetchClasses();
+      fetchClassStudents(addStudentModal.classId);
+      Modal.success({
+        title: '学生添加成功',
+        content: (
+          <div>
+            <p>学生 <b>{vals.name}</b> 已成功加入班级 <b>{addStudentModal.className}</b>！</p>
+            <p>系统自动生成的学生码为：<Text copyable strong style={{fontSize: 20, color: '#1677ff'}}>{data.studentCode}</Text></p>
+            <p style={{color: '#999', fontSize: 13}}>请将此学生码告知家长，学生首次微信登录时输入此码即可绑定。</p>
+          </div>
+        )
+      });
+    } catch (e: any) {
+      message.error(e.response?.data?.message || '操作失败');
+    }
+  };
+
+  const unlinkStudent = async (student: Student, classId: string) => {
+    try {
+      await api.put(`/students/${student.id}`, { name: student.name, classId: null });
+      message.success('已将学生移出班级');
+      fetchClassStudents(classId);
+      fetchClasses();
+    } catch {
+      message.error('移出学生失败');
+    }
   };
 
   // ─── Assign lessons to class ─────────────────────────────────────────────────
@@ -184,64 +239,83 @@ const ClassesPage: React.FC = () => {
       <Table
         dataSource={classes} columns={columns} rowKey="id" loading={loading}
         expandable={{
-          onExpand: (expanded, record) => { if (expanded) fetchClassLessons(record.id); },
+          onExpand: (expanded, record) => { 
+            if (expanded) {
+              fetchClassLessons(record.id);
+              fetchClassStudents(record.id);
+            } 
+          },
           expandedRowRender: (record) => (
-            <Card
-              size="small"
-              title={<Text strong>已分配课程</Text>}
-              extra={
-                <Button size="small" icon={<LinkOutlined />} type="primary" onClick={() => openAssignModal(record)}>
-                  管理课程分配
-                </Button>
-              }
-              style={{ background: '#fafafa' }}
-            >
-              {(classLessons[record.id] || []).length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#999', padding: '24px 0' }}>
-                  暂无分配课程，点击右上角「管理课程分配」
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-                  {(classLessons[record.id] || []).map((lesson) => (
-                    <Card
-                      key={lesson.id}
-                      hoverable
-                      style={{ width: 200 }}
-                      cover={
-                        <Image
-                          src={lesson.imageUrl}
-                          alt={lesson.title}
-                          height={120}
-                          style={{ objectFit: 'cover' }}
-                          preview={false}
-                          fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='120'%3E%3Crect width='200' height='120' fill='%23f5f5f5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23bbb' font-size='13'%3E暂无图片%3C/text%3E%3C/svg%3E"
-                        />
-                      }
-                      actions={[
-                        <Tooltip title="查看详情" key="view">
-                          <EyeOutlined onClick={() => openLessonDetail(lesson)} />
-                        </Tooltip>,
-                        <Popconfirm
-                          key="remove"
-                          title="从该班级移除此课程？"
-                          onConfirm={() => removeLesson(lesson.id, record.id)}
-                          okText="移除" cancelText="取消"
+            <div style={{ background: '#fafafa', padding: '16px 24px', margin: '-16px -16px -16px 48px', borderRadius: 8 }}>
+              <Tabs defaultActiveKey="lessons" style={{ minHeight: 200 }}>
+                {/* ── 已分配课程 Tab ── */}
+                <Tabs.TabPane tab={<Space><LinkOutlined /> 已分配课程 ({record._count.lessons})</Space>} key="lessons">
+                  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button size="small" type="primary" icon={<LinkOutlined />} onClick={() => openAssignModal(record)}>
+                      管理课程分配
+                    </Button>
+                  </div>
+                  {(classLessons[record.id] || []).length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#999', padding: '24px 0' }}>
+                      暂无分配的课程，请点击上方「管理课程分配」添加
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                      {(classLessons[record.id] || []).map((lesson) => (
+                        <Card
+                          key={lesson.id} hoverable style={{ width: 200 }}
+                          cover={
+                            <Image
+                              src={lesson.imageUrl} alt={lesson.title} height={120} style={{ objectFit: 'cover' }}
+                              preview={false} fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='120'%3E%3Crect width='200' height='120' fill='%23f5f5f5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23bbb' font-size='13'%3E暂无图片%3C/text%3E%3C/svg%3E"
+                            />
+                          }
+                          actions={[
+                            <Tooltip title="查看详情" key="view"><EyeOutlined onClick={() => openLessonDetail(lesson)} /></Tooltip>,
+                            <Popconfirm
+                              key="remove" title="从该班级移除此课程？"
+                              onConfirm={() => removeLesson(lesson.id, record.id)} okText="移除" cancelText="取消"
+                            >
+                              <Tooltip title="移除课程"><DeleteOutlined style={{ color: '#ff4d4f' }} /></Tooltip>
+                            </Popconfirm>,
+                          ]}
                         >
-                          <Tooltip title="移除课程">
-                            <DeleteOutlined style={{ color: '#ff4d4f' }} />
-                          </Tooltip>
-                        </Popconfirm>,
-                      ]}
-                    >
-                      <Card.Meta
-                        title={<Text ellipsis={{ tooltip: lesson.title }}>{lesson.title}</Text>}
-                        description={<Tag color="blue">{lesson._count.sentences} 句</Tag>}
-                      />
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </Card>
+                          <Card.Meta title={<Text ellipsis={{ tooltip: lesson.title }}>{lesson.title}</Text>} description={<Tag color="blue">{lesson._count.sentences} 句</Tag>} />
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </Tabs.TabPane>
+
+                {/* ── 学生名单 Tab ── */}
+                <Tabs.TabPane tab={<Space><UserAddOutlined /> 学生名单 ({record._count.students})</Space>} key="students">
+                  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button size="small" type="primary" icon={<UserAddOutlined />} onClick={() => openAddStudentModal(record.id, record.name)}>
+                      添加学生
+                    </Button>
+                  </div>
+                  <Table
+                    size="small"
+                    dataSource={classStudents[record.id] || []}
+                    rowKey="id"
+                    pagination={false}
+                    locale={{ emptyText: '该班级暂无学生' }}
+                    columns={[
+                      { title: '学生姓名', dataIndex: 'name', key: 'name', render: (v: string) => <Text strong>{v}</Text> },
+                      { title: '学生码', dataIndex: 'studentCode', key: 'code', render: (v: string) => <Text copyable strong style={{ color: '#1677ff' }}>{v}</Text> },
+                      { title: '绑定状态', key: 'bound', render: (_, r: Student) => r.studentCode ? <Tag color="orange">待首次登录</Tag> : <Tag color="green">已绑定</Tag> },
+                      { 
+                        title: '操作', key: 'act', render: (_, r: Student) => (
+                          <Popconfirm title="从班级移除该学生？该学生数据将被保留为【未分班】状态。" onConfirm={() => unlinkStudent(r, record.id)} okText="移除" cancelText="取消">
+                            <Button size="small" danger type="link">移除</Button>
+                          </Popconfirm>
+                        )
+                      }
+                    ]}
+                  />
+                </Tabs.TabPane>
+              </Tabs>
+            </div>
           ),
         }}
       />
@@ -364,6 +438,26 @@ const ClassesPage: React.FC = () => {
             />
           </>
         )}
+      </Modal>
+
+      {/* ── Quick Add Student Modal ───────────────────────────────────────────── */}
+      <Modal
+        title={`添加学生到班级 — ${addStudentModal.className}`}
+        open={addStudentModal.open}
+        onOk={handleAddStudent}
+        onCancel={() => setAddStudentModal({ open: false, classId: '', className: '' })}
+        okText="添加保存" cancelText="取消"
+      >
+        <Form form={studentForm} layout="vertical">
+          <Form.Item name="name" label="学生姓名" rules={[{ required: true, message: '请输入真实姓名' }]}>
+            <Input placeholder="输入学生真实姓名，如：张小明" />
+          </Form.Item>
+        </Form>
+        <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, padding: '12px 16px', marginTop: 4 }}>
+          <Text type="secondary" style={{ fontSize: 13 }}>
+            💡 首期添加支持快速录入。添加成功后系统会为该学生自动生成 6位的专属防伪「学生码」。
+          </Text>
+        </div>
       </Modal>
     </div>
   );
