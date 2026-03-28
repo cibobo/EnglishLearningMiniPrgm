@@ -117,9 +117,13 @@ router.get('/:id/progress', async (req, res) => {
       return;
     }
 
+    // 统计该学生班级分配的课程数（通过关联表）
     const totalLessons = student.classId
-      ? await prisma.lesson.count({
-          where: { classId: student.classId, deletedAt: null },
+      ? await prisma.classLesson.count({
+          where: {
+            classId: student.classId,
+            lesson: { deletedAt: null },
+          },
         })
       : 0;
 

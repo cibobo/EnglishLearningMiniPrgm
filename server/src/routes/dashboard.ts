@@ -19,15 +19,27 @@ router.get('/summary', async (req, res) => {
 
     const [totalClasses, totalStudents, totalLessons, pendingRecordings, weekRecordings] =
       await Promise.all([
+        // 班级总数
         prisma.class.count({ where: { teacherId, deletedAt: null } }),
+        // 学生总数
         prisma.student.count({ where: { classId: { in: classIds }, deletedAt: null } }),
-        prisma.lesson.count({ where: { classId: { in: classIds }, deletedAt: null } }),
-        prisma.recordingSubmission.count({
-          where: { lesson: { classId: { in: classIds } }, status: 'pending' },
-        }),
+        // 课程库总数（属于该教师的所有课程）
+        prisma.lesson.count({ where: { teacherId, deletedAt: null } }),
+        // 待批录音数（通过 classLessons 关联到该教师班级的课程）
         prisma.recordingSubmission.count({
           where: {
-            lesson: { classId: { in: classIds } },
+            status: 'pending',
+            lesson: {
+              classLessons: { some: { classId: { in: classIds } } },
+            },
+          },
+        }),
+        // 本周录音数
+        prisma.recordingSubmission.count({
+          where: {
+            lesson: {
+              classLessons: { some: { classId: { in: classIds } } },
+            },
             submittedAt: {
               gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
             },

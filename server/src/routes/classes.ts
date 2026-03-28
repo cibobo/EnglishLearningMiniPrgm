@@ -98,16 +98,17 @@ router.get('/:id/students', async (req, res) => {
 router.get('/:id/lessons', async (req, res) => {
   try {
     const classLessons = await prisma.classLesson.findMany({
-      where: { classId: req.params.id },
+      where: { classId: req.params.id as string },
       include: {
         lesson: {
-          where: { deletedAt: null },
           include: { _count: { select: { sentences: true } } },
         },
       },
       orderBy: { orderIndex: 'asc' },
     });
-    const lessons = classLessons.filter(cl => cl.lesson).map(cl => cl.lesson);
+    const lessons = classLessons
+      .filter(cl => cl.lesson && !cl.lesson.deletedAt)
+      .map(cl => cl.lesson);
     res.json(lessons);
   } catch {
     res.status(500).json({ message: '服务器错误' });
