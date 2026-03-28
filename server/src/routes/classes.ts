@@ -21,10 +21,12 @@ router.get('/', async (req, res) => {
       _count: { students: c._count.students, lessons: c._count.classLessons },
     }));
     res.json(result);
-  } catch {
+  } catch (err) {
+    console.error('[GET /classes] 错误:', err);
     res.status(500).json({ message: '服务器错误' });
   }
 });
+
 
 // ─── POST /classes ─────────────────────────────────────────────────────────────
 router.post('/', async (req, res) => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Table, Button, Modal, Form, Input, Space, Tag, Tooltip,
-  message, Popconfirm, Typography, Card, List, Image, Divider, Transfer,
+  message, Popconfirm, Typography, Card, List, Image, Divider, Checkbox,
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined,
@@ -172,12 +172,7 @@ const ClassesPage: React.FC = () => {
     },
   ];
 
-  // Transfer data source
-  const transferDataSource = allLessons.map(l => ({
-    key: l.id,
-    title: l.title,
-    description: `${l._count.sentences} 句`,
-  }));
+
 
   return (
     <div>
@@ -269,7 +264,6 @@ const ClassesPage: React.FC = () => {
         </Form>
       </Modal>
 
-      {/* ── Assign Lessons Modal ──────────────────────────────────────────────── */}
       <Modal
         title={`分配课程 — ${assignModal.className}`}
         open={assignModal.open}
@@ -277,28 +271,52 @@ const ClassesPage: React.FC = () => {
         onCancel={() => setAssignModal({ open: false, classId: null, className: '' })}
         okText="确认分配" cancelText="取消"
         confirmLoading={assigning}
-        width={700}
+        width={600}
       >
         <p style={{ color: '#666', marginBottom: 16 }}>
-          从课程库中选择要分配给该班级的课程。左侧为课程库，右侧为已选中。
+          请勾选要分配给该班级的课程。一个课程可以同时分配给多个班级，取消勾选即从班级中移除。
         </p>
-        <Transfer
-          dataSource={transferDataSource}
-          titles={['课程库', '已分配']}
-          targetKeys={selectedLessonIds}
-          onChange={(keys) => setSelectedLessonIds(keys as string[])}
-          render={item => (
-            <span>
-              {item.title}
-              <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>{item.description}</Tag>
-            </span>
-          )}
-          listStyle={{ width: 280, height: 360 }}
-          showSearch
-          filterOption={(input, item) =>
-            (item.title ?? '').toLowerCase().includes(input.toLowerCase())
-          }
-        />
+        {allLessons.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
+            课程库暂无课程，请先在「课程管理」中新建课程
+          </div>
+        ) : (
+          <Checkbox.Group 
+            style={{ width: '100%' }} 
+            value={selectedLessonIds} 
+            onChange={(vals) => setSelectedLessonIds(vals as string[])}
+          >
+            <div style={{ 
+              maxHeight: 400, 
+              overflowY: 'auto', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 12, 
+              paddingRight: 8 
+            }}>
+              {allLessons.map(l => (
+                <div 
+                  key={l.id} 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    padding: '12px 16px', 
+                    border: '1px solid #f0f0f0', 
+                    borderRadius: 6,
+                    background: selectedLessonIds.includes(l.id) ? '#e6f4ff' : '#fff',
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  <Checkbox value={l.id}>
+                    <Typography.Text strong style={{ marginLeft: 8 }}>{l.title}</Typography.Text>
+                  </Checkbox>
+                  <Tag color="cyan">{l._count.sentences} 句</Tag>
+                </div>
+              ))}
+            </div>
+          </Checkbox.Group>
+        )}
       </Modal>
 
       {/* ── Lesson Detail Modal ───────────────────────────────────────────────── */}
