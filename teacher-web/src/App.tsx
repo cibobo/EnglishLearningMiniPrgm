@@ -6,6 +6,7 @@ import { useAuthStore } from './store/authStore';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
 import ClassesPage from './pages/ClassesPage';
+import LessonsPage from './pages/LessonsPage';
 import StudentsPage from './pages/StudentsPage';
 import StudentDetailPage from './pages/StudentDetailPage';
 
@@ -32,6 +33,7 @@ const App: React.FC = () => {
           <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
             <Route index element={<Navigate to="/classes" replace />} />
             <Route path="classes" element={<ClassesPage />} />
+            <Route path="lessons" element={<LessonsPage />} />
             <Route path="students" element={<StudentsPage />} />
             <Route path="students/:id" element={<StudentDetailPage />} />
           </Route>

@@ -1,39 +1,65 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma';
-import { authenticate, requireTeacher, requireStudent } from '../middleware/auth';
+import { authenticate, requireTeacher } from '../middleware/auth';
 
 const router = Router();
 router.use(authenticate);
 
-// ─── GET /lessons?class_id= ───────────────────────────────────────────────────
-// 学生端和教师端都可获取课程列表
+// ─── GET /lessons ─────────────────────────────────────────────────────────────
+// 不传 class_id → 返回教师的全部课程库
+// 传 class_id  → 返回该班级已分配的课程（小程序 & 教师端班级视图用）
 router.get('/', async (req, res) => {
   try {
     const { class_id } = req.query;
-    if (!class_id) {
-      res.status(400).json({ message: '缺少 class_id 参数' });
+
+    if (class_id) {
+      // 小程序/班级视图：按 class_id 筛选
+      const classLessons = await prisma.classLesson.findMany({
+        where: { classId: class_id as string },
+        include: {
+          lesson: {
+            where: { deletedAt: null },
+            include: { _count: { select: { sentences: true } } },
+          },
+        },
+        orderBy: { orderIndex: 'asc' },
+      });
+      // 过滤掉已软删除的课程
+      const lessons = classLessons
+        .filter(cl => cl.lesson)
+        .map(cl => cl.lesson);
+      res.json(lessons);
+      return;
+    }
+
+    // 课程库视图：返回教师本人所有课程
+    if (req.user?.role !== 'teacher') {
+      res.status(403).json({ message: '仅教师可查看课程库' });
       return;
     }
     const lessons = await prisma.lesson.findMany({
-      where: { classId: class_id as string, deletedAt: null },
-      include: { _count: { select: { sentences: true } } },
-      orderBy: { orderIndex: 'asc' },
+      where: { teacherId: req.user.id, deletedAt: null },
+      include: {
+        _count: { select: { sentences: true } },
+        classLessons: { select: { classId: true } }, // 知道被分配给了哪些班级
+      },
+      orderBy: { createdAt: 'desc' },
     });
     res.json(lessons);
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: '服务器错误' });
   }
 });
 
 // ─── GET /lessons/:id ─────────────────────────────────────────────────────────
-// 获取课程详情（含句子列表）
 router.get('/:id', async (req, res) => {
   try {
-    const lessonId = req.params.id as string;
     const lesson = await prisma.lesson.findUnique({
-      where: { id: lessonId },
+      where: { id: req.params.id },
       include: {
         sentences: { orderBy: { orderIndex: 'asc' } },
+        classLessons: { select: { classId: true } },
       },
     });
     if (!lesson || lesson.deletedAt) {
@@ -47,24 +73,20 @@ router.get('/:id', async (req, res) => {
 });
 
 // ─── POST /lessons ────────────────────────────────────────────────────────────
-// 教师创建课程
+// 教师创建课程（进入课程库，不属于任何班级）
 router.post('/', requireTeacher, async (req, res) => {
   try {
-    const { classId, title, imageUrl, sentences } = req.body;
-    if (!classId || !title || !imageUrl) {
-      res.status(400).json({ message: '缺少必要字段：classId、title、imageUrl' });
+    const { title, imageUrl, sentences } = req.body;
+    if (!title || !imageUrl) {
+      res.status(400).json({ message: '缺少必要字段：title、imageUrl' });
       return;
     }
 
-    // 获取当前最大 orderIndex
-    const maxOrder = await prisma.lesson.count({ where: { classId, deletedAt: null } });
-
     const lesson = await prisma.lesson.create({
       data: {
-        classId,
+        teacherId: req.user!.id,
         title,
         imageUrl,
-        orderIndex: maxOrder,
         sentences: sentences
           ? {
               create: sentences.map((s: { text: string; audioUrl?: string }, i: number) => ({
@@ -78,7 +100,8 @@ router.post('/', requireTeacher, async (req, res) => {
       include: { sentences: { orderBy: { orderIndex: 'asc' } } },
     });
     res.status(201).json(lesson);
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: '服务器错误' });
   }
 });
@@ -86,11 +109,10 @@ router.post('/', requireTeacher, async (req, res) => {
 // ─── PUT /lessons/:id ─────────────────────────────────────────────────────────
 router.put('/:id', requireTeacher, async (req, res) => {
   try {
-    const { title, imageUrl, orderIndex } = req.body;
-    const lessonId = req.params.id as string;
+    const { title, imageUrl } = req.body;
     const lesson = await prisma.lesson.update({
-      where: { id: lessonId },
-      data: { title, imageUrl, orderIndex },
+      where: { id: req.params.id },
+      data: { title, imageUrl },
     });
     res.json(lesson);
   } catch {
@@ -101,9 +123,8 @@ router.put('/:id', requireTeacher, async (req, res) => {
 // ─── DELETE /lessons/:id ──────────────────────────────────────────────────────
 router.delete('/:id', requireTeacher, async (req, res) => {
   try {
-    const lessonId = req.params.id as string;
     await prisma.lesson.update({
-      where: { id: lessonId },
+      where: { id: req.params.id },
       data: { deletedAt: new Date() },
     });
     res.json({ message: '课程已删除' });
@@ -113,17 +134,14 @@ router.delete('/:id', requireTeacher, async (req, res) => {
 });
 
 // ─── POST /lessons/:id/sentences ──────────────────────────────────────────────
-// 向课程批量添加/替换句子
 router.post('/:id/sentences', requireTeacher, async (req, res) => {
   try {
     const { sentences } = req.body;
-    const lessonId = req.params.id as string;
+    const lessonId = req.params.id;
     if (!Array.isArray(sentences) || sentences.length === 0) {
       res.status(400).json({ message: '句子列表不能为空' });
       return;
     }
-
-    // 删除旧句子，替换为新的
     await prisma.sentence.deleteMany({ where: { lessonId } });
     const created = await prisma.sentence.createMany({
       data: sentences.map((s: { text: string; audioUrl?: string }, i: number) => ({

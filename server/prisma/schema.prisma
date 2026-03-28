@@ -20,6 +20,7 @@ model Teacher {
   deletedAt    DateTime? @map("deleted_at")
 
   classes Class[]
+  lessons Lesson[]  // 教师拥有的课程库
 
   @@map("teachers")
 }
@@ -32,11 +33,42 @@ model Class {
   createdAt   DateTime  @default(now()) @map("created_at")
   deletedAt   DateTime? @map("deleted_at")
 
-  teacher  Teacher   @relation(fields: [teacherId], references: [id])
-  students Student[]
-  lessons  Lesson[]
+  teacher      Teacher       @relation(fields: [teacherId], references: [id])
+  students     Student[]
+  classLessons ClassLesson[] // 通过关联表访问课程
 
   @@map("classes")
+}
+
+// 课程库（不绑定班级，属于教师）
+model Lesson {
+  id         String    @id @default(uuid())
+  teacherId  String    @map("teacher_id")
+  title      String    @db.VarChar(200)
+  imageUrl   String    @map("image_url") @db.VarChar(500)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  teacher              Teacher              @relation(fields: [teacherId], references: [id])
+  classLessons         ClassLesson[]        // 通过关联表访问班级
+  sentences            Sentence[]
+  recordingSubmissions RecordingSubmission[]
+
+  @@map("lessons")
+}
+
+// 班级-课程 多对多关联表
+model ClassLesson {
+  classId    String   @map("class_id")
+  lessonId   String   @map("lesson_id")
+  orderIndex Int      @default(0) @map("order_index")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  class  Class  @relation(fields: [classId], references: [id])
+  lesson Lesson @relation(fields: [lessonId], references: [id])
+
+  @@id([classId, lessonId])
+  @@map("class_lessons")
 }
 
 model Student {
@@ -52,22 +84,6 @@ model Student {
   recordingSubmissions RecordingSubmission[]
 
   @@map("students")
-}
-
-model Lesson {
-  id          String    @id @default(uuid())
-  classId     String    @map("class_id")
-  title       String    @db.VarChar(200)
-  imageUrl    String    @map("image_url") @db.VarChar(500)
-  orderIndex  Int       @default(0) @map("order_index")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  deletedAt   DateTime? @map("deleted_at")
-
-  class                Class                @relation(fields: [classId], references: [id])
-  sentences            Sentence[]
-  recordingSubmissions RecordingSubmission[]
-
-  @@map("lessons")
 }
 
 model Sentence {

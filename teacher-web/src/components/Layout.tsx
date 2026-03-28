@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout as AntLayout, Menu, Button, Typography, Space, Avatar } from 'antd';
-import { BankOutlined, TeamOutlined, LogoutOutlined, BookOutlined } from '@ant-design/icons';
+import { BankOutlined, TeamOutlined, LogoutOutlined, BookOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 
 const { Sider, Content, Header } = AntLayout;
@@ -14,6 +14,7 @@ const Layout: React.FC = () => {
 
   const menuItems = [
     { key: '/classes', icon: <BankOutlined />, label: '班级管理' },
+    { key: '/lessons', icon: <FileTextOutlined />, label: '课程管理' },
     { key: '/students', icon: <TeamOutlined />, label: '学生管理' },
   ];
 
