@@ -71,14 +71,25 @@ const ClassesPage: React.FC = () => {
   };
 
   // ─── Upload helpers ──────────────────────────────────────────────────────────
-  const uploadToCOS = async (file: File, category: string): Promise<string> => {
+  const uploadFile = async (file: File, category: string): Promise<string> => {
+    // Step 1: 获取上传目标地址
     const { data: presign } = await api.post('/upload/presign', {
       filename: file.name,
       content_type: file.type,
       category,
     });
-    await fetch(presign.presigned_url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-    return presign.public_url;
+
+    // Step 2: 用 multipart/form-data 直传到服务器
+    const formData = new FormData();
+    formData.append(presign.field_name ?? 'file', file);
+    const uploadRes = await fetch(presign.upload_url, {
+      method: presign.method ?? 'POST',
+      headers: { Authorization: `Bearer ${localStorage.getItem('access_token') ?? ''}` },
+      body: formData,
+    });
+    if (!uploadRes.ok) throw new Error('文件上传失败');
+    const { public_url } = await uploadRes.json();
+    return public_url;
   };
 
   // ─── Lesson CRUD ─────────────────────────────────────────────────────────────
@@ -96,13 +107,13 @@ const ClassesPage: React.FC = () => {
     setUploading(true);
     try {
       const imageFile = vals.imageFile.fileList[0].originFileObj as File;
-      const imageUrl = await uploadToCOS(imageFile, 'lesson_image');
+      const imageUrl = await uploadFile(imageFile, 'lesson_image');
 
       const sentencesData: Sentence[] = await Promise.all(
         sentences.map(async (s) => {
           const audioRaw = s.audioUrl as unknown;
           if (audioRaw instanceof File) {
-            const url = await uploadToCOS(audioRaw, 'lesson_audio');
+            const url = await uploadFile(audioRaw, 'lesson_audio');
             return { text: s.text, audioUrl: url };
           }
           return { text: s.text, audioUrl: s.audioUrl };

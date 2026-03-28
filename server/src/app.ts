@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
 
 import authRouter from './routes/auth';
 import classesRouter from './routes/classes';
@@ -24,6 +25,9 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ─── 静态文件服务（上传的图片/音频）────────────────────────────────────────────
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // ─── Rate Limiting ─────────────────────────────────────────────────────────────
 const loginLimiter = rateLimit({
