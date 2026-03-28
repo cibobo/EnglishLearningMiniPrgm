@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   // 创建默认教师账号（开发用）
-  const hash = await bcrypt.hash('admin123', 12);
+  const hash = await bcrypt.hash('admin123', 10);
   const teacher = await prisma.teacher.upsert({
     where: { username: 'admin' },
     update: {},
