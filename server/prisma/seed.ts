@@ -29,6 +29,28 @@ async function main() {
     },
   });
   console.log('✅ 示例班级创建成功:', cls.name);
+
+  // 创建测试学生
+  const testStudents = [
+    { studentCode: 'ABC123', name: '张三' },
+    { studentCode: 'DEF456', name: '李四' },
+    { studentCode: 'GHI789', name: '王五' },
+    { studentCode: 'JKL012', name: '赵六' },
+    { studentCode: 'MNO345', name: '钱七' },
+  ];
+
+  for (const s of testStudents) {
+    const student = await prisma.student.upsert({
+      where: { studentCode: s.studentCode },
+      update: {},
+      create: {
+        studentCode: s.studentCode,
+        name: s.name,
+        classId: cls.id,
+      },
+    });
+    console.log(`✅ 测试学生创建成功: ${student.name} / 学生码: ${student.studentCode}`);
+  }
 }
 
 main()
