@@ -39,6 +39,7 @@ const LessonsPage: React.FC = () => {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(false);
   const [createModal, setCreateModal] = useState(false);
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [sentences, setSentences] = useState<SentenceForm[]>([{ text: '' }]);
   const [detailModal, setDetailModal] = useState<{ open: boolean; lesson: LessonDetail | null }>({ open: false, lesson: null });
@@ -73,11 +74,40 @@ const LessonsPage: React.FC = () => {
     return public_url;
   };
 
-  // ─── Create lesson ───────────────────────────────────────────────────────────
+  // ─── Create/Edit lesson ───────────────────────────────────────────────────────────
   const openCreateModal = () => {
+    setEditingLessonId(null);
     setSentences([{ text: '' }]);
     form.resetFields();
     setCreateModal(true);
+  };
+
+  const openEditModal = async (lesson: Lesson) => {
+    try {
+      setLoading(true);
+      const { data } = await api.get(`/lessons/${lesson.id}`);
+      const lessonDetail = data as LessonDetail;
+      setEditingLessonId(lesson.id);
+      setSentences(lessonDetail.sentences.length > 0 ? lessonDetail.sentences : [{ text: '' }]);
+      form.setFieldsValue({
+        title: lessonDetail.title,
+        imageFile: {
+          fileList: [
+            {
+              uid: '-1',
+              name: 'cover.jpg',
+              status: 'done',
+              url: lessonDetail.imageUrl,
+            },
+          ],
+        },
+      });
+      setCreateModal(true);
+    } catch {
+      message.error('获取课程详情失败');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const saveLesson = async () => {
@@ -87,8 +117,13 @@ const LessonsPage: React.FC = () => {
 
     setUploading(true);
     try {
-      const imageFile = vals.imageFile.fileList[0].originFileObj as File;
-      const imageUrl = await uploadFile(imageFile, 'lesson_image');
+      let imageUrl = '';
+      const selectedImage = vals.imageFile.fileList[0];
+      if (selectedImage.originFileObj) {
+        imageUrl = await uploadFile(selectedImage.originFileObj as File, 'lesson_image');
+      } else {
+        imageUrl = selectedImage.url; // old image URL
+      }
 
       const sentencesData = await Promise.all(
         sentences.map(async (s) => {
@@ -97,16 +132,25 @@ const LessonsPage: React.FC = () => {
             const url = await uploadFile(audioRaw, 'lesson_audio');
             return { text: s.text, audioUrl: url };
           }
-          return { text: s.text };
+          return { text: s.text, audioUrl: typeof audioRaw === 'string' ? audioRaw : undefined };
         })
       );
 
-      await api.post('/lessons', { title: vals.title, imageUrl, sentences: sentencesData });
-      message.success('课程已创建并加入课程库');
+      if (editingLessonId) {
+        // Update
+        await api.put(`/lessons/${editingLessonId}`, { title: vals.title, imageUrl });
+        await api.post(`/lessons/${editingLessonId}/sentences`, { sentences: sentencesData });
+        message.success('课程已更新');
+      } else {
+        // Create
+        await api.post('/lessons', { title: vals.title, imageUrl, sentences: sentencesData });
+        message.success('课程已创建并加入课程库');
+      }
+
       setCreateModal(false);
       fetchLessons();
     } catch {
-      message.error('创建失败，请重试');
+      message.error('保存失败，请重试');
     } finally {
       setUploading(false);
     }
@@ -127,7 +171,7 @@ const LessonsPage: React.FC = () => {
   const removeSentence = (i: number) => setSentences(prev => prev.filter((_, idx) => idx !== i));
   const updateSentenceText = (i: number, text: string) =>
     setSentences(prev => prev.map((s, idx) => idx === i ? { ...s, text } : s));
-  const updateSentenceAudio = (i: number, file: File) =>
+  const updateSentenceAudio = (i: number, file: File | undefined) =>
     setSentences(prev => prev.map((s, idx) => idx === i ? { ...s, audioUrl: file as unknown as string } : s));
 
   return (
@@ -165,8 +209,8 @@ const LessonsPage: React.FC = () => {
                   <Tooltip title="查看详情" key="view">
                     <EyeOutlined onClick={() => openDetail(lesson)} />
                   </Tooltip>,
-                  <Tooltip title="编辑（开发中）" key="edit">
-                    <EditOutlined style={{ color: '#aaa' }} />
+                  <Tooltip title="编辑" key="edit">
+                    <EditOutlined onClick={() => openEditModal(lesson)} style={{ color: '#1677ff' }} />
                   </Tooltip>,
                   <Popconfirm
                     key="delete"
@@ -197,13 +241,13 @@ const LessonsPage: React.FC = () => {
         )}
       </Spin>
 
-      {/* ── Create Lesson Modal ───────────────────────────────────────────────── */}
+      {/* ── Create/Edit Lesson Modal ──────────────────────────────────────────── */}
       <Modal
-        title="新建课程"
+        title={editingLessonId ? "编辑课程" : "新建课程"}
         open={createModal}
         onOk={saveLesson}
         onCancel={() => setCreateModal(false)}
-        okText="保存到课程库"
+        okText={editingLessonId ? "保存课程修改" : "保存到课程库"}
         cancelText="取消"
         confirmLoading={uploading}
         width={640}
@@ -233,13 +277,32 @@ const LessonsPage: React.FC = () => {
                   onChange={e => updateSentenceText(i, e.target.value)}
                   style={{ marginBottom: 8 }}
                 />
-                <Upload
-                  accept="audio/*"
-                  maxCount={1}
-                  beforeUpload={(file) => { updateSentenceAudio(i, file); return false; }}
-                >
-                  <Button icon={<UploadOutlined />} size="small">上传参考音频（可选）</Button>
-                </Upload>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Upload
+                    accept="audio/*"
+                    maxCount={1}
+                    showUploadList={false}
+                    beforeUpload={(file) => { updateSentenceAudio(i, file); return false; }}
+                  >
+                    <Button icon={<UploadOutlined />} size="small">
+                      {s.audioUrl ? '重新选择音频' : '上传参考音频（可选）'}
+                    </Button>
+                  </Upload>
+                  
+                  {typeof s.audioUrl === 'string' && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <Tag color="green" style={{ margin: 0 }}>已有音频</Tag>
+                      <Button size="small" type="link" onClick={() => new Audio(s.audioUrl as string).play()}>试听</Button>
+                      <Button size="small" type="link" danger onClick={() => updateSentenceAudio(i, undefined)}>删除</Button>
+                    </div>
+                  )}
+                  {s.audioUrl instanceof File && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <Tag color="blue" style={{ margin: 0 }}>待传: {(s.audioUrl as unknown as File).name}</Tag>
+                      <Button size="small" type="link" danger onClick={() => updateSentenceAudio(i, undefined)}>删除</Button>
+                    </div>
+                  )}
+                </div>
               </Card>
             ))}
             <Button type="dashed" icon={<PlusOutlined />} onClick={addSentence} block>
