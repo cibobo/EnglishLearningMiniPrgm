@@ -296,9 +296,9 @@ const LessonsPage: React.FC = () => {
                       <Button size="small" type="link" danger onClick={() => updateSentenceAudio(i, undefined)}>删除</Button>
                     </div>
                   )}
-                  {s.audioUrl instanceof File && (
+                  {(s.audioUrl as unknown) instanceof File && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <Tag color="blue" style={{ margin: 0 }}>待传: {(s.audioUrl as unknown as File).name}</Tag>
+                      <Tag color="blue" style={{ margin: 0 }}>待传: {((s.audioUrl as unknown) as File).name}</Tag>
                       <Button size="small" type="link" danger onClick={() => updateSentenceAudio(i, undefined)}>删除</Button>
                     </div>
                   )}
