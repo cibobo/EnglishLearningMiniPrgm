@@ -5,7 +5,7 @@ import {
 } from 'antd';
 import {
   PlusOutlined, UploadOutlined, EyeOutlined,
-  DeleteOutlined, SoundOutlined, EditOutlined,
+  DeleteOutlined, EditOutlined,
 } from '@ant-design/icons';
 import api from '../lib/api';
 
@@ -245,6 +245,7 @@ const LessonsPage: React.FC = () => {
       <Modal
         title={editingLessonId ? "编辑课程" : "新建课程"}
         open={createModal}
+        destroyOnClose
         onOk={saveLesson}
         onCancel={() => setCreateModal(false)}
         okText={editingLessonId ? "保存课程修改" : "保存到课程库"}
@@ -292,7 +293,7 @@ const LessonsPage: React.FC = () => {
                   {typeof s.audioUrl === 'string' && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <Tag color="green" style={{ margin: 0 }}>已有音频</Tag>
-                      <Button size="small" type="link" onClick={() => new Audio(s.audioUrl as string).play()}>试听</Button>
+                      <audio controls preload="none" src={s.audioUrl} style={{ height: 32, width: 220 }} />
                       <Button size="small" type="link" danger onClick={() => updateSentenceAudio(i, undefined)}>删除</Button>
                     </div>
                   )}
@@ -316,6 +317,7 @@ const LessonsPage: React.FC = () => {
       <Modal
         title={detailModal.lesson?.title}
         open={detailModal.open}
+        destroyOnClose
         onCancel={() => setDetailModal({ open: false, lesson: null })}
         footer={<Button onClick={() => setDetailModal({ open: false, lesson: null })}>关闭</Button>}
         width={600}
@@ -338,13 +340,7 @@ const LessonsPage: React.FC = () => {
                   style={{ padding: '8px 0' }}
                   extra={
                     s.audioUrl && (
-                      <Tooltip title="播放参考音频">
-                        <Button
-                          size="small"
-                          icon={<SoundOutlined />}
-                          onClick={() => new Audio(s.audioUrl!).play()}
-                        />
-                      </Tooltip>
+                      <audio controls preload="none" src={s.audioUrl} style={{ height: 32, width: 220 }} />
                     )
                   }
                 >
