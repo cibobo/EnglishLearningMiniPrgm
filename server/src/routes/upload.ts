@@ -21,9 +21,9 @@ const CATEGORY_DIRS: Record<UploadCategory, string> = {
 };
 
 const ALLOWED_TYPES: Record<UploadCategory, string[]> = {
-  lesson_image: ['image/jpeg', 'image/png', 'image/webp'],
-  lesson_audio: ['audio/mpeg', 'audio/aac', 'audio/wav', 'audio/mp3'],
-  recording: ['audio/aac', 'audio/mpeg', 'audio/mp4'],
+  lesson_image: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+  lesson_audio: ['audio/mpeg', 'audio/aac', 'audio/wav', 'audio/mp3', 'audio/x-m4a', 'audio/m4a', 'audio/mp4', 'video/mp4'],
+  recording: ['audio/aac', 'audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/wav', 'audio/mp3', 'video/mp4'],
 };
 
 // multer 动态存储：根据 category 决定子目录
