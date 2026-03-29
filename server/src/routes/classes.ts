@@ -11,12 +11,18 @@ router.get('/', async (req, res) => {
     const classes = await prisma.class.findMany({
       where: { teacherId: req.user!.id, deletedAt: null },
       include: {
-        _count: { select: { students: true, classLessons: true } },
+        // @ts-ignore Prisma client type might be stale in IDE
+        _count: { 
+          select: { 
+            students: { where: { deletedAt: null } }, 
+            classLessons: { where: { lesson: { deletedAt: null } } } 
+          } 
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
     // 将 classLessons count 重命名为 lessons 以保持前端兼容
-    const result = classes.map(c => ({
+    const result = classes.map((c: any) => ({
       ...c,
       _count: { students: c._count.students, lessons: c._count.classLessons },
     }));

@@ -120,10 +120,17 @@ router.put('/:id', requireTeacher, async (req, res) => {
 // ─── DELETE /lessons/:id ──────────────────────────────────────────────────────
 router.delete('/:id', requireTeacher, async (req, res) => {
   try {
-    await prisma.lesson.update({
-      where: { id: req.params.id as string },
-      data: { deletedAt: new Date() },
-    });
+    const lessonId = req.params.id as string;
+    await prisma.$transaction([
+      prisma.lesson.update({
+        where: { id: lessonId },
+        data: { deletedAt: new Date() },
+      }),
+      // @ts-ignore Prisma client might be stale in IDE
+      prisma.classLesson.deleteMany({
+        where: { lessonId: lessonId },
+      }),
+    ]);
     res.json({ message: '课程已删除' });
   } catch {
     res.status(500).json({ message: '服务器错误' });
