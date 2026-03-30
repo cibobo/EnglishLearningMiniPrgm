@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Button, Modal, Form, Input, Upload, Card, Tag, Tooltip,
+  Button, Modal, Form, Input, Upload, Card, Tag, Tooltip, Popover,
   message, Popconfirm, Typography, List, Image, Divider, Empty, Spin,
 } from 'antd';
 import {
@@ -371,7 +371,16 @@ const LessonsPage: React.FC = () => {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {typeof s.imageUrl === 'string' && <Tag color="orange" style={{ margin: 0 }}>已有图</Tag>}
+                    {typeof s.imageUrl === 'string' && (
+                      <Popover
+                        content={<img src={s.imageUrl} alt="preview" style={{ maxWidth: 200, maxHeight: 200, objectFit: 'contain' }} />}
+                        title="图片预览"
+                        trigger="hover"
+                        placement="top"
+                      >
+                        <Tag color="orange" style={{ margin: 0, cursor: 'pointer' }}>已有图</Tag>
+                      </Popover>
+                    )}
                     {s.imageUrl instanceof File && <Tag color="blue" style={{ margin: 0, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.imageUrl.name}>待传图</Tag>}
                     
                     <Upload
