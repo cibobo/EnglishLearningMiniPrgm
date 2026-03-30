@@ -337,79 +337,72 @@ const LessonsPage: React.FC = () => {
           <Divider dashed />
 
           <Form.Item label="句子与插图时间轴" required>
-            {sentences.map((s, i) => (
-              <Card
-                key={i}
-                size="small"
-                style={{ marginBottom: 12 }}
-                extra={sentences.length > 1 && (
-                  <Button size="small" danger onClick={() => removeSentence(i)}>删除</Button>
-                )}
-              >
-                <Input.TextArea
-                  value={s.text}
-                  placeholder={`第 ${i + 1} 句英文内容`}
-                  onChange={e => updateSentence(i, { text: e.target.value })}
-                  autoSize={{ minRows: 2, maxRows: 4 }}
-                  style={{ marginBottom: 8 }}
-                />
-                {(s.startTime !== undefined && s.endTime !== undefined) && (
-                  <div style={{ marginBottom: 8 }}>
-                    <Tag color="cyan">时间轴: {s.startTime?.toFixed(2)}s - {s.endTime?.toFixed(2)}s</Tag>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {sentences.map((s, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '8px 12px',
+                    background: '#fafafa',
+                    borderRadius: 8,
+                    border: '1px solid #f0f0f0'
+                  }}
+                >
+                  <div style={{ width: 140, flexShrink: 0, textAlign: 'center' }}>
+                    {(s.startTime != null && s.endTime != null) ? (
+                      <Tag color="cyan" style={{ margin: 0 }}>
+                        {s.startTime?.toFixed(2)}s - {s.endTime?.toFixed(2)}s
+                      </Tag>
+                    ) : (
+                      <Tag style={{ margin: 0 }}>无时间轴</Tag>
+                    )}
                   </div>
-                )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <Upload
-                    accept="audio/*"
-                    maxCount={1}
-                    showUploadList={false}
-                    beforeUpload={(file) => { updateSentence(i, { audioUrl: file }); return false; }}
-                  >
-                    <Button icon={<UploadOutlined />} size="small">
-                      {s.audioUrl ? '更新音频' : '独立音频'}
-                    </Button>
-                  </Upload>
-                  
-                  <Upload
-                    accept="image/*"
-                    maxCount={1}
-                    showUploadList={false}
-                    beforeUpload={(file) => { updateSentence(i, { imageUrl: file }); return false; }}
-                  >
-                    <Button icon={<UploadOutlined />} size="small">
-                      {s.imageUrl ? '更新插图' : '添加插图 (Section)'}
-                    </Button>
-                  </Upload>
 
-                  {typeof s.imageUrl === 'string' && (
-                    <Tag color="orange" style={{ margin: 0 }}>已有插图</Tag>
-                  )}
-                  {s.imageUrl instanceof File && (
-                    <Tag color="blue" style={{ margin: 0 }}>待传插图: {s.imageUrl.name}</Tag>
-                  )}
-                  {s.imageUrl && (
-                    <Button size="small" type="link" danger onClick={() => updateSentence(i, { imageUrl: null })}>清空插图</Button>
-                  )}
-                  
-                  {typeof s.audioUrl === 'string' && (
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <Tag color="green" style={{ margin: 0 }}>已有音频</Tag>
-                      <audio controls preload="none" src={s.audioUrl} style={{ height: 32, width: 220 }} />
-                      <Button size="small" type="link" danger onClick={() => updateSentence(i, { audioUrl: null })}>清空独立音频</Button>
-                    </div>
-                  )}
-                  {s.audioUrl instanceof File && (
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <Tag color="blue" style={{ margin: 0 }}>待传音频: {s.audioUrl.name}</Tag>
-                      <Button size="small" type="link" danger onClick={() => updateSentence(i, { audioUrl: null })}>清空独立音频</Button>
-                    </div>
-                  )}
+                  <div style={{ flex: 1 }}>
+                    <Input.TextArea
+                      value={s.text}
+                      placeholder={`第 ${i + 1} 句英文内容`}
+                      onChange={e => updateSentence(i, { text: e.target.value })}
+                      autoSize={{ minRows: 1, maxRows: 4 }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {typeof s.imageUrl === 'string' && <Tag color="orange" style={{ margin: 0 }}>已有图</Tag>}
+                    {s.imageUrl instanceof File && <Tag color="blue" style={{ margin: 0, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.imageUrl.name}>待传图</Tag>}
+                    
+                    <Upload
+                      accept="image/*"
+                      maxCount={1}
+                      showUploadList={false}
+                      beforeUpload={(file) => { updateSentence(i, { imageUrl: file }); return false; }}
+                    >
+                      <Button icon={<UploadOutlined />} size="small">
+                        {s.imageUrl ? '换图' : '加图'}
+                      </Button>
+                    </Upload>
+
+                    {s.imageUrl && (
+                      <Button size="small" type="text" danger onClick={() => updateSentence(i, { imageUrl: null })}>
+                        清空
+                      </Button>
+                    )}
+
+                    {sentences.length > 1 && (
+                      <Tooltip title="删除该句">
+                        <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => removeSentence(i)} />
+                      </Tooltip>
+                    )}
+                  </div>
                 </div>
-              </Card>
-            ))}
-            <Button type="dashed" icon={<PlusOutlined />} onClick={addSentence} block>
-              添加句子
-            </Button>
+              ))}
+              <Button type="dashed" icon={<PlusOutlined />} onClick={addSentence} block>
+                添加句子
+              </Button>
+            </div>
           </Form.Item>
         </Form>
       </Modal>
