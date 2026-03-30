@@ -5,6 +5,7 @@ import fs from 'fs';
 import os from 'os';
 import speech from '@google-cloud/speech';
 import ffmpeg from 'fluent-ffmpeg';
+// @ts-ignore - no types published for this package
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { authenticate } from '../middleware/auth';
 
