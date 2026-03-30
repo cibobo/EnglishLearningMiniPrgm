@@ -20,6 +20,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/fluent-ffmpeg": "^2.1.28",
     "@types/helmet": "^0.0.48",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
@@ -28,6 +29,7 @@
     "ts-node": "^10.9.2"
   },
   "dependencies": {
+    "@google-cloud/speech": "^7.3.0",
     "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",

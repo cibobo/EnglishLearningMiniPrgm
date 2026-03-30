@@ -73,7 +73,7 @@ router.get('/:id', async (req, res) => {
 // ─── POST /lessons ────────────────────────────────────────────────────────────
 router.post('/', requireTeacher, async (req, res) => {
   try {
-    const { title, imageUrl, sentences } = req.body;
+    const { title, imageUrl, masterAudioUrl, sentences } = req.body;
     if (!title || !imageUrl) {
       res.status(400).json({ message: '缺少必要字段：title、imageUrl' });
       return;
@@ -82,13 +82,17 @@ router.post('/', requireTeacher, async (req, res) => {
     const lesson = await prisma.lesson.create({
       data: {
         teacherId: req.user!.id,
+        masterAudioUrl,
         title,
         imageUrl,
         sentences: sentences
           ? {
-              create: sentences.map((s: { text: string; audioUrl?: string }, i: number) => ({
+              create: sentences.map((s: { text: string; audioUrl?: string; startTime?: number; endTime?: number; imageUrl?: string; }, i: number) => ({
                 text: s.text,
                 audioUrl: s.audioUrl || null,
+                startTime: s.startTime || null,
+                endTime: s.endTime || null,
+                imageUrl: s.imageUrl || null,
                 orderIndex: i,
               })),
             }
@@ -106,10 +110,10 @@ router.post('/', requireTeacher, async (req, res) => {
 // ─── PUT /lessons/:id ─────────────────────────────────────────────────────────
 router.put('/:id', requireTeacher, async (req, res) => {
   try {
-    const { title, imageUrl } = req.body;
+    const { title, imageUrl, masterAudioUrl } = req.body;
     const lesson = await prisma.lesson.update({
       where: { id: req.params.id as string },
-      data: { title, imageUrl },
+      data: { title, imageUrl, masterAudioUrl },
     });
     res.json(lesson);
   } catch {
@@ -148,10 +152,13 @@ router.post('/:id/sentences', requireTeacher, async (req, res) => {
     }
     await prisma.sentence.deleteMany({ where: { lessonId } });
     const created = await prisma.sentence.createMany({
-      data: sentences.map((s: { text: string; audioUrl?: string }, i: number) => ({
+      data: sentences.map((s: { text: string; audioUrl?: string; startTime?: number; endTime?: number; imageUrl?: string; }, i: number) => ({
         lessonId,
         text: s.text,
         audioUrl: s.audioUrl || null,
+        startTime: s.startTime || null,
+        endTime: s.endTime || null,
+        imageUrl: s.imageUrl || null,
         orderIndex: i,
       })),
     });

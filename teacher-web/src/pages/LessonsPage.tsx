@@ -15,6 +15,7 @@ interface Lesson {
   id: string;
   title: string;
   imageUrl: string;
+  masterAudioUrl?: string | null;
   _count: { sentences: number };
   classLessons: { classId: string }[];
 }
@@ -22,7 +23,10 @@ interface Lesson {
 interface Sentence {
   id: string;
   text: string;
-  audioUrl?: string;
+  audioUrl?: string | null;
+  startTime?: number | null;
+  endTime?: number | null;
+  imageUrl?: string | null;
   orderIndex: number;
 }
 
@@ -32,7 +36,10 @@ interface LessonDetail extends Lesson {
 
 interface SentenceForm {
   text: string;
-  audioUrl?: string;
+  audioUrl?: string | File | null;
+  startTime?: number | null;
+  endTime?: number | null;
+  imageUrl?: string | File | null;
 }
 
 const LessonsPage: React.FC = () => {
@@ -91,6 +98,7 @@ const LessonsPage: React.FC = () => {
       setSentences(lessonDetail.sentences.length > 0 ? lessonDetail.sentences : [{ text: '' }]);
       form.setFieldsValue({
         title: lessonDetail.title,
+        masterAudioUrl: lessonDetail.masterAudioUrl,
         imageFile: {
           fileList: [
             {
@@ -110,6 +118,39 @@ const LessonsPage: React.FC = () => {
     }
   };
 
+  const handleTranscribeAudio = async (file: File) => {
+    try {
+      setUploading(true);
+      message.loading({ content: 'AI智能识别中，请耐心等待 (约需几十秒)...', key: 'transcribe', duration: 0 });
+      
+      // 1. 发给云端识别
+      const fd = new FormData();
+      fd.append('audio', file);
+      const { data } = await api.post('/transcribe', fd);
+      
+      // 2. 正常上传原文件作为 masterAudioUrl
+      message.loading({ content: '正在上传音频主文件...', key: 'transcribe', duration: 0 });
+      const publicUrl = await uploadFile(file, 'lesson_audio');
+      form.setFieldsValue({ masterAudioUrl: publicUrl });
+
+      if (data.sentences && data.sentences.length > 0) {
+        setSentences(data.sentences.map((s: any) => ({
+          text: s.text,
+          startTime: s.startTime,
+          endTime: s.endTime,
+        })));
+        message.success({ content: `识别成功！分成了 ${data.sentences.length} 句话`, key: 'transcribe' });
+      } else {
+        message.warning({ content: '识别成功，但没有解析出内容', key: 'transcribe' });
+      }
+    } catch (err: any) {
+      message.error({ content: err.response?.data?.message || '智能识别失败', key: 'transcribe' });
+    } finally {
+      setUploading(false);
+    }
+    return false; // Prevent default upload
+  };
+
   const saveLesson = async () => {
     const vals = await form.validateFields();
     if (!vals.imageFile?.fileList?.[0]) { message.error('请上传封面图'); return; }
@@ -125,25 +166,40 @@ const LessonsPage: React.FC = () => {
         imageUrl = selectedImage.url; // old image URL
       }
 
+      const masterAudioRaw = form.getFieldValue('masterAudioUrl');
+      let masterAudioUrl = typeof masterAudioRaw === 'string' ? masterAudioRaw : null;
+      if (masterAudioRaw instanceof File) {
+         masterAudioUrl = await uploadFile(masterAudioRaw, 'lesson_audio');
+      }
+
       const sentencesData = await Promise.all(
         sentences.map(async (s) => {
-          const audioRaw = s.audioUrl as unknown;
-          if (audioRaw instanceof File) {
-            const url = await uploadFile(audioRaw, 'lesson_audio');
-            return { text: s.text, audioUrl: url };
+          let audioUrl = typeof s.audioUrl === 'string' ? s.audioUrl : null;
+          if (s.audioUrl instanceof File) {
+            audioUrl = await uploadFile(s.audioUrl, 'lesson_audio');
           }
-          return { text: s.text, audioUrl: typeof audioRaw === 'string' ? audioRaw : undefined };
+          let sentenceImgUrl = typeof s.imageUrl === 'string' ? s.imageUrl : null;
+          if (s.imageUrl instanceof File) {
+            sentenceImgUrl = await uploadFile(s.imageUrl, 'lesson_image');
+          }
+          return {
+            text: s.text,
+            audioUrl,
+            startTime: s.startTime || null,
+            endTime: s.endTime || null,
+            imageUrl: sentenceImgUrl,
+          };
         })
       );
 
       if (editingLessonId) {
         // Update
-        await api.put(`/lessons/${editingLessonId}`, { title: vals.title, imageUrl });
+        await api.put(`/lessons/${editingLessonId}`, { title: vals.title, imageUrl, masterAudioUrl });
         await api.post(`/lessons/${editingLessonId}/sentences`, { sentences: sentencesData });
         message.success('课程已更新');
       } else {
         // Create
-        await api.post('/lessons', { title: vals.title, imageUrl, sentences: sentencesData });
+        await api.post('/lessons', { title: vals.title, imageUrl, masterAudioUrl, sentences: sentencesData });
         message.success('课程已创建并加入课程库');
       }
 
@@ -169,10 +225,8 @@ const LessonsPage: React.FC = () => {
 
   const addSentence = () => setSentences(prev => [...prev, { text: '' }]);
   const removeSentence = (i: number) => setSentences(prev => prev.filter((_, idx) => idx !== i));
-  const updateSentenceText = (i: number, text: string) =>
-    setSentences(prev => prev.map((s, idx) => idx === i ? { ...s, text } : s));
-  const updateSentenceAudio = (i: number, file: File | undefined) =>
-    setSentences(prev => prev.map((s, idx) => idx === i ? { ...s, audioUrl: file as unknown as string } : s));
+  const updateSentence = (i: number, update: Partial<SentenceForm>) => 
+    setSentences(prev => prev.map((s, idx) => idx === i ? { ...s, ...update } : s));
 
   return (
     <div>
@@ -262,7 +316,27 @@ const LessonsPage: React.FC = () => {
               <div><UploadOutlined /><div>上传图片</div></div>
             </Upload>
           </Form.Item>
-          <Form.Item label="句子列表" required>
+          <div style={{ display: 'flex', gap: 16, marginBottom: 24, padding: 16, background: '#f8f9fa', borderRadius: 8 }}>
+            <div style={{ flex: 1 }}>
+              <Text strong>智能打轴模式</Text>
+              <Paragraph type="secondary" style={{ margin: 0, fontSize: 13 }}>
+                上传一段主音频，AI会自动识别英文并切分成带时间戳的若干句子。
+              </Paragraph>
+              <div style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
+                <Upload accept="audio/*" showUploadList={false} beforeUpload={handleTranscribeAudio}>
+                  <Button type="primary" icon={<UploadOutlined />} loading={uploading}>
+                    上传主音频并智能分句
+                  </Button>
+                </Upload>
+                {form.getFieldValue('masterAudioUrl') && (
+                  <Tag color="green">已绑定主音频</Tag>
+                )}
+              </div>
+            </div>
+          </div>
+          <Divider dashed />
+
+          <Form.Item label="句子与插图时间轴" required>
             {sentences.map((s, i) => (
               <Card
                 key={i}
@@ -272,35 +346,62 @@ const LessonsPage: React.FC = () => {
                   <Button size="small" danger onClick={() => removeSentence(i)}>删除</Button>
                 )}
               >
-                <Input
+                <Input.TextArea
                   value={s.text}
                   placeholder={`第 ${i + 1} 句英文内容`}
-                  onChange={e => updateSentenceText(i, e.target.value)}
+                  onChange={e => updateSentence(i, { text: e.target.value })}
+                  autoSize={{ minRows: 2, maxRows: 4 }}
                   style={{ marginBottom: 8 }}
                 />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {(s.startTime !== undefined && s.endTime !== undefined) && (
+                  <div style={{ marginBottom: 8 }}>
+                    <Tag color="cyan">时间轴: {s.startTime?.toFixed(2)}s - {s.endTime?.toFixed(2)}s</Tag>
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <Upload
                     accept="audio/*"
                     maxCount={1}
                     showUploadList={false}
-                    beforeUpload={(file) => { updateSentenceAudio(i, file); return false; }}
+                    beforeUpload={(file) => { updateSentence(i, { audioUrl: file }); return false; }}
                   >
                     <Button icon={<UploadOutlined />} size="small">
-                      {s.audioUrl ? '重新选择音频' : '上传参考音频（可选）'}
+                      {s.audioUrl ? '更新音频' : '独立音频'}
                     </Button>
                   </Upload>
+                  
+                  <Upload
+                    accept="image/*"
+                    maxCount={1}
+                    showUploadList={false}
+                    beforeUpload={(file) => { updateSentence(i, { imageUrl: file }); return false; }}
+                  >
+                    <Button icon={<UploadOutlined />} size="small">
+                      {s.imageUrl ? '更新插图' : '添加插图 (Section)'}
+                    </Button>
+                  </Upload>
+
+                  {typeof s.imageUrl === 'string' && (
+                    <Tag color="orange" style={{ margin: 0 }}>已有插图</Tag>
+                  )}
+                  {s.imageUrl instanceof File && (
+                    <Tag color="blue" style={{ margin: 0 }}>待传插图: {s.imageUrl.name}</Tag>
+                  )}
+                  {s.imageUrl && (
+                    <Button size="small" type="link" danger onClick={() => updateSentence(i, { imageUrl: null })}>清空插图</Button>
+                  )}
                   
                   {typeof s.audioUrl === 'string' && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <Tag color="green" style={{ margin: 0 }}>已有音频</Tag>
                       <audio controls preload="none" src={s.audioUrl} style={{ height: 32, width: 220 }} />
-                      <Button size="small" type="link" danger onClick={() => updateSentenceAudio(i, undefined)}>删除</Button>
+                      <Button size="small" type="link" danger onClick={() => updateSentence(i, { audioUrl: null })}>清空独立音频</Button>
                     </div>
                   )}
-                  {(s.audioUrl as unknown) instanceof File && (
+                  {s.audioUrl instanceof File && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <Tag color="blue" style={{ margin: 0 }}>待传: {((s.audioUrl as unknown) as File).name}</Tag>
-                      <Button size="small" type="link" danger onClick={() => updateSentenceAudio(i, undefined)}>删除</Button>
+                      <Tag color="blue" style={{ margin: 0 }}>待传音频: {s.audioUrl.name}</Tag>
+                      <Button size="small" type="link" danger onClick={() => updateSentence(i, { audioUrl: null })}>清空独立音频</Button>
                     </div>
                   )}
                 </div>
@@ -332,22 +433,38 @@ const LessonsPage: React.FC = () => {
                 preview={{ mask: '点击放大' }}
               />
             </div>
-            <Divider>句子列表（{detailModal.lesson.sentences.length} 句）</Divider>
+            <Divider>句子与时间轴（{detailModal.lesson.sentences.length} 句）</Divider>
+            {detailModal.lesson.masterAudioUrl && (
+              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+                <audio controls src={detailModal.lesson.masterAudioUrl} style={{ width: '100%' }} />
+              </div>
+            )}
             <List
               dataSource={detailModal.lesson.sentences}
               renderItem={(s, i) => (
                 <List.Item
-                  style={{ padding: '8px 0' }}
-                  extra={
-                    s.audioUrl && (
-                      <audio controls preload="none" src={s.audioUrl} style={{ height: 32, width: 220 }} />
-                    )
-                  }
+                  style={{ padding: '8px 0', flexDirection: 'column', alignItems: 'flex-start' }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <Tag color="purple">{i + 1}</Tag>
-                    <Paragraph style={{ margin: 0 }}>{s.text}</Paragraph>
+                  <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <Tag color="purple">{i + 1}</Tag>
+                      <Paragraph style={{ margin: 0 }}>{s.text}</Paragraph>
+                    </div>
+                    <div>
+                      {(s.startTime !== null && s.endTime !== null) && (
+                        <Tag>{s.startTime?.toFixed(1)}s - {s.endTime?.toFixed(1)}s</Tag>
+                      )}
+                      {s.audioUrl && (
+                        <audio controls preload="none" src={s.audioUrl} style={{ height: 32, width: 180, marginLeft: 8 }} />
+                      )}
+                    </div>
                   </div>
+                  {s.imageUrl && (
+                    <div style={{ marginTop: 8, marginLeft: 40 }}>
+                      <Tag color="orange">换图点</Tag>
+                      <Image src={s.imageUrl as string} height={60} style={{ borderRadius: 4 }} preview={false} />
+                    </div>
+                  )}
                 </List.Item>
               )}
             />

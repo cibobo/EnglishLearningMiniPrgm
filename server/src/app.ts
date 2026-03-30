@@ -11,6 +11,7 @@ import studentsRouter from './routes/students';
 import lessonsRouter from './routes/lessons';
 import recordingsRouter from './routes/recordings';
 import uploadRouter from './routes/upload';
+import transcribeRouter from './routes/transcribe';
 import dashboardRouter from './routes/dashboard';
 
 dotenv.config();
@@ -55,8 +56,8 @@ app.use('/api/v1/students', studentsRouter);
 app.use('/api/v1/lessons', lessonsRouter);
 app.use('/api/v1/recordings', recordingsRouter);
 app.use('/api/v1/upload', uploadRouter);
+app.use('/api/v1/transcribe', transcribeRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
-
 // ─── Global Error Handler ──────────────────────────────────────────────────────
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[Error]', err.message, err.stack);
