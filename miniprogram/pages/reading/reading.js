@@ -52,19 +52,26 @@ Page({
       let targetImgUrl = null;
       
       sentences.forEach((s, idx) => {
-        // Fallback to lesson cover if the sentence has no image
-        const imgUrl = s.imageUrl || lesson.imageUrl;
-        
-        if (!currentGroup || targetImgUrl !== imgUrl) {
-          targetImgUrl = imgUrl;
+        if (s.imageUrl) {
+          // If the sentence explicitly has an image, start a new group
           currentGroup = { 
             id: `group-${groups.length}`, 
-            imageUrl: targetImgUrl, 
+            imageUrl: s.imageUrl, 
+            sentences: [], 
+            indices: [] 
+          };
+          groups.push(currentGroup);
+        } else if (!currentGroup) {
+          // If the first sentence has no image, fallback to the course cover image
+          currentGroup = { 
+            id: `group-${groups.length}`, 
+            imageUrl: lesson.imageUrl, 
             sentences: [], 
             indices: [] 
           };
           groups.push(currentGroup);
         }
+
         currentGroup.sentences.push(s);
         currentGroup.indices.push(idx);
       });
