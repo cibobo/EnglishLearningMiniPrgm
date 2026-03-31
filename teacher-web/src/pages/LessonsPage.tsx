@@ -5,7 +5,7 @@ import {
 } from 'antd';
 import {
   PlusOutlined, UploadOutlined, EyeOutlined,
-  DeleteOutlined, EditOutlined,
+  DeleteOutlined, EditOutlined, PlayCircleOutlined, PauseCircleOutlined
 } from '@ant-design/icons';
 import api from '../lib/api';
 
@@ -51,6 +51,38 @@ const LessonsPage: React.FC = () => {
   const [sentences, setSentences] = useState<SentenceForm[]>([{ text: '' }]);
   const [detailModal, setDetailModal] = useState<{ open: boolean; lesson: LessonDetail | null }>({ open: false, lesson: null });
   const [form] = Form.useForm();
+
+  const masterAudioUrl = Form.useWatch('masterAudioUrl', form);
+  const audioRef = React.useRef<HTMLAudioElement>(null);
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!createModal) {
+      audioRef.current?.pause();
+      setPlayingIndex(null);
+    }
+  }, [createModal]);
+
+  const handlePlaySegment = (index: number) => {
+    if (!masterAudioUrl) {
+      message.warning('主音频未上传，无法播放');
+      return;
+    }
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (playingIndex === index) {
+      audio.pause();
+      setPlayingIndex(null);
+    } else {
+      const sentence = sentences[index];
+      if (sentence.startTime != null && sentence.endTime != null) {
+        audio.currentTime = sentence.startTime;
+        audio.play().catch(e => console.error("音频播放失败", e));
+        setPlayingIndex(index);
+      }
+    }
+  };
 
   useEffect(() => { fetchLessons(); }, []);
 
@@ -307,6 +339,23 @@ const LessonsPage: React.FC = () => {
         width={640}
       >
         <Form form={form} layout="vertical">
+          <audio 
+            ref={audioRef} 
+            src={masterAudioUrl || undefined}
+            style={{ display: 'none' }} 
+            onTimeUpdate={() => {
+              if (playingIndex !== null && audioRef.current) {
+                const sentence = sentences[playingIndex];
+                if (sentence && sentence.endTime != null) {
+                  if (audioRef.current.currentTime >= sentence.endTime) {
+                    audioRef.current.pause();
+                    setPlayingIndex(null);
+                  }
+                }
+              }
+            }}
+            onEnded={() => setPlayingIndex(null)}
+          />
           <Form.Item name="title" label="课程标题" rules={[{ required: true }]}>
             <Input placeholder="如：Lesson 1 - Hello World" />
           </Form.Item>
@@ -358,8 +407,13 @@ const LessonsPage: React.FC = () => {
                 >
                   <div style={{ width: 140, flexShrink: 0, textAlign: 'center' }}>
                     {(s.startTime != null && s.endTime != null) ? (
-                      <Tag color="cyan" style={{ margin: 0 }}>
-                        {s.startTime?.toFixed(2)}s - {s.endTime?.toFixed(2)}s
+                      <Tag 
+                        color={playingIndex === i ? "processing" : "cyan"} 
+                        style={{ margin: 0, cursor: 'pointer', padding: '2px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+                        onClick={() => handlePlaySegment(i)}
+                      >
+                        {playingIndex === i ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+                        <span>{s.startTime?.toFixed(2)}s - {s.endTime?.toFixed(2)}s</span>
                       </Tag>
                     ) : (
                       <Tag style={{ margin: 0 }}>无时间轴</Tag>
