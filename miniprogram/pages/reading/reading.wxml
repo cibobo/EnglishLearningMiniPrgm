@@ -14,6 +14,7 @@
       scroll-into-view="{{scrollToView}}"
       scroll-with-animation
       scroll-top="0"
+      bindscroll="onScroll"
     >
       <!-- 课程封面 -->
       <view class="cover-wrap" id="cover">

@@ -27,6 +27,9 @@ Page({
     // Scroller destination
     scrollToView: ''
   },
+  
+  _isAutoScrolling: false,
+  _lastScrollTop: 0,
 
   onLoad(options) {
     const { lessonId } = options;
@@ -157,11 +160,19 @@ Page({
             }
           }
           
+          this._isAutoScrolling = true;
+          const isNewGroup = targetGroupIndex !== this.data.activeGroupIndex;
           this.setData({ 
             currentIndex: nextIndex,
-            activeGroupIndex: targetGroupIndex
+            activeGroupIndex: targetGroupIndex,
+            // If changing groups, scroll to the group header to see the new image. 
+            // If staying in the same group, strictly scroll to the exact sentence.
+            scrollToView: isNewGroup ? `group-${targetGroupIndex}` : `sentence-${nextIndex}`
           });
-          this._scrollToCurrent(targetGroupIndex);
+          
+          setTimeout(() => {
+            this._isAutoScrolling = false;
+          }, 800);
         }, 300);
       }
     });
@@ -209,13 +220,22 @@ Page({
   
   onGroupTap(e) {
     const groupIndex = e.currentTarget.dataset.groupIndex;
-    const { activeGroupIndex, groups, currentIndex } = this.data;
     
-    // If accordion is clicked, we expand it. If already expanded we can just scroll.
+    // If clicking the currently expanded accordion, collapse it.
+    if (this.data.activeGroupIndex === groupIndex) {
+      this.setData({ activeGroupIndex: -1 });
+      return;
+    }
+    
+    this._isAutoScrolling = true;
     this.setData({ 
        activeGroupIndex: groupIndex,
        scrollToView: `group-${groupIndex}`
     });
+    
+    setTimeout(() => {
+      this._isAutoScrolling = false;
+    }, 800);
   },
   
   onSentenceTap(e) {
@@ -256,7 +276,57 @@ Page({
   },
 
   _scrollToCurrent(groupIndex) {
+    this._isAutoScrolling = true;
     this.setData({ scrollToView: `group-${groupIndex}` });
+    setTimeout(() => {
+      this._isAutoScrolling = false;
+    }, 800);
+  },
+
+  onScroll(e) {
+    if (this._isAutoScrolling) return;
+
+    const scrollTop = e.detail.scrollTop;
+    
+    // Only process downward scroll to auto-expand next group
+    if (scrollTop <= this._lastScrollTop) {
+       this._lastScrollTop = scrollTop;
+       return;
+    }
+    this._lastScrollTop = scrollTop;
+
+    const now = Date.now();
+    if (now - (this._lastScrollTime || 0) < 150) return;
+    this._lastScrollTime = now;
+
+    const { activeGroupIndex, groups } = this.data;
+    if (activeGroupIndex >= groups.length - 1) return; // Already at the last group
+
+    const query = wx.createSelectorQuery();
+    query.select('.content-area').boundingClientRect();
+    query.select(`#group-${activeGroupIndex + 1}`).boundingClientRect();
+    query.exec((res) => {
+      const scrollRect = res[0];
+      const nextCardRect = res[1];
+      if (!scrollRect || !nextCardRect) return;
+
+      // Trigger line: 35% from the top of the scroll view
+      const triggerY = scrollRect.top + (scrollRect.height * 0.35);
+
+      if (nextCardRect.top <= triggerY) {
+         this._isAutoScrolling = true;
+         const nextIdx = activeGroupIndex + 1;
+         
+         this.setData({ 
+           activeGroupIndex: nextIdx,
+           scrollToView: `group-${nextIdx}`
+         });
+         
+         setTimeout(() => {
+           this._isAutoScrolling = false;
+         }, 800);
+      }
+    });
   },
 
   // ─── Submit All Recordings ─────────────────────────────────────────────────
