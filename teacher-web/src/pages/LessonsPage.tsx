@@ -356,6 +356,9 @@ const LessonsPage: React.FC = () => {
             }}
             onEnded={() => setPlayingIndex(null)}
           />
+          <Form.Item name="masterAudioUrl" hidden>
+            <Input />
+          </Form.Item>
           <Form.Item name="title" label="课程标题" rules={[{ required: true }]}>
             <Input placeholder="如：Lesson 1 - Hello World" />
           </Form.Item>
