@@ -9,23 +9,30 @@ Page({
     lessonId: null,
     lesson: null,
     sentences: [],
+    groups: [],
+    activeGroupIndex: 0,
     currentIndex: 0,
+    playingIndex: -1, // Tracks which sentence is currently outputting audio
     loading: true,
+    
     // Recording state
     isRecording: false,
     recordings: {},       // { [sentenceIndex]: tempFilePath }
     recordedCount: 0,
-    // Playback
-    isPlaying: false,
+    
     // Submit
     submitting: false,
     allDone: false,
+    
+    // Scroller destination
+    scrollToView: ''
   },
 
   onLoad(options) {
     const { lessonId } = options;
     this.setData({ lessonId });
     this._setupRecorder();
+    this._setupAudioContext();
     this.loadLesson(lessonId);
   },
 
@@ -37,15 +44,77 @@ Page({
   async loadLesson(lessonId) {
     try {
       const lesson = await request({ url: `/lessons/${lessonId}` });
+      const sentences = lesson.sentences || [];
+      
+      // Group sentences logically by their illustrations
+      const groups = [];
+      let currentGroup = null;
+      let targetImgUrl = null;
+      
+      sentences.forEach((s, idx) => {
+        // Fallback to lesson cover if the sentence has no image
+        const imgUrl = s.imageUrl || lesson.imageUrl;
+        
+        if (!currentGroup || targetImgUrl !== imgUrl) {
+          targetImgUrl = imgUrl;
+          currentGroup = { 
+            id: `group-${groups.length}`, 
+            imageUrl: targetImgUrl, 
+            sentences: [], 
+            indices: [] 
+          };
+          groups.push(currentGroup);
+        }
+        currentGroup.sentences.push(s);
+        currentGroup.indices.push(idx);
+      });
+
       this.setData({
         lesson,
-        sentences: lesson.sentences,
+        sentences,
+        groups,
+        activeGroupIndex: 0, // initially expand first group
         loading: false,
       });
+      
+      // Prime audio player with the master file
+      if (lesson.masterAudioUrl) {
+         audioContext.src = lesson.masterAudioUrl;
+      }
+      
     } catch (err) {
       wx.showToast({ title: '加载课程失败', icon: 'error' });
       this.setData({ loading: false });
     }
+  },
+
+  // ─── Audio Setup ───────────────────────────────────────────────────────────
+  _setupAudioContext() {
+    audioContext.onPlay(() => {
+    });
+
+    audioContext.onTimeUpdate(() => {
+      const { playingIndex, sentences } = this.data;
+      if (playingIndex === -1) return;
+      
+      const targetSentence = sentences[playingIndex];
+      // If we've reached the end timestamp for this chunk, automatically pause.
+      if (targetSentence && targetSentence.endTime) {
+        if (audioContext.currentTime >= targetSentence.endTime) {
+           audioContext.pause();
+           this.setData({ playingIndex: -1 });
+        }
+      }
+    });
+
+    audioContext.onEnded(() => {
+      this.setData({ playingIndex: -1 });
+    });
+
+    audioContext.onError((err) => {
+      this.setData({ playingIndex: -1 });
+      console.error('[AudioContext Error]', err);
+    });
   },
 
   // ─── Recorder Setup ────────────────────────────────────────────────────────
@@ -55,7 +124,7 @@ Page({
     });
 
     recorderManager.onStop((res) => {
-      const { currentIndex, recordings, sentences } = this.data;
+      const { currentIndex, recordings, sentences, groups } = this.data;
       const updated = { ...recordings, [currentIndex]: res.tempFilePath };
       const recordedCount = Object.keys(updated).length;
       const allDone = recordedCount >= sentences.length;
@@ -67,11 +136,25 @@ Page({
         allDone,
       });
 
-      // 自动跳到下一句（如果不是最后一句）
+      // Advance to next sentence automatically (unless done)
       if (!allDone && currentIndex < sentences.length - 1) {
         setTimeout(() => {
-          this.setData({ currentIndex: currentIndex + 1 });
-          this._scrollToCurrent();
+          const nextIndex = currentIndex + 1;
+          
+          // Determine which group the next sentence belongs to
+          let targetGroupIndex = this.data.activeGroupIndex;
+          for (let i = 0; i < groups.length; i++) {
+            if (groups[i].indices.includes(nextIndex)) {
+               targetGroupIndex = i;
+               break;
+            }
+          }
+          
+          this.setData({ 
+            currentIndex: nextIndex,
+            activeGroupIndex: targetGroupIndex
+          });
+          this._scrollToCurrent(targetGroupIndex);
         }, 300);
       }
     });
@@ -91,6 +174,13 @@ Page({
           wx.openSetting();
           return;
         }
+        
+        // Stop audio playback to not record device output
+        if (this.data.playingIndex !== -1) {
+           audioContext.pause();
+           this.setData({ playingIndex: -1 });
+        }
+
         recorderManager.start({
           format: 'aac',
           sampleRate: 16000,
@@ -108,41 +198,58 @@ Page({
     }
   },
 
-  // ─── Play Reference Audio ──────────────────────────────────────────────────
-  onPlayRef() {
-    const { sentences, currentIndex, isPlaying } = this.data;
-    const sentence = sentences[currentIndex];
-    if (!sentence?.audioUrl) {
-      wx.showToast({ title: '暂无参考音频', icon: 'none' });
-      return;
-    }
-
-    if (isPlaying) {
-      audioContext.stop();
-      this.setData({ isPlaying: false });
-      return;
-    }
-
-    audioContext.src = sentence.audioUrl;
-    audioContext.play();
-    this.setData({ isPlaying: true });
-    audioContext.onEnded(() => this.setData({ isPlaying: false }));
-    audioContext.onError(() => {
-      this.setData({ isPlaying: false });
-      wx.showToast({ title: '音频播放失败', icon: 'none' });
+  // ─── Interactions ──────────────────────────────────────────────────────────
+  
+  onGroupTap(e) {
+    const groupIndex = e.currentTarget.dataset.groupIndex;
+    const { activeGroupIndex, groups, currentIndex } = this.data;
+    
+    // If accordion is clicked, we expand it. If already expanded we can just scroll.
+    this.setData({ 
+       activeGroupIndex: groupIndex,
+       scrollToView: `group-${groupIndex}`
     });
   },
-
-  // ─── Sentence Navigation ───────────────────────────────────────────────────
+  
   onSentenceTap(e) {
-    const { index } = e.currentTarget.dataset;
-    this.setData({ currentIndex: index });
-    this._scrollToCurrent();
+    const targetIdx = e.currentTarget.dataset.index;
+    const { sentences, playingIndex, lesson } = this.data;
+    const sentence = sentences[targetIdx];
+    
+    // If clicking currently active sentence audio... STOP it.
+    if (playingIndex === targetIdx) {
+       audioContext.pause();
+       this.setData({ playingIndex: -1, currentIndex: targetIdx });
+       return;
+    }
+    
+    // Prepare for new play structure
+    this.setData({ 
+       playingIndex: targetIdx,
+       currentIndex: targetIdx,
+    });
+    
+    // Handle playback via timeline if masterAudioUrl exists
+    if (lesson.masterAudioUrl && typeof sentence.startTime === 'number') {
+       if (audioContext.src !== lesson.masterAudioUrl) {
+          audioContext.src = lesson.masterAudioUrl;
+       }
+       // WeChat InnerAudioContext allows setting 'startTime' directly before calling 'play'
+       audioContext.startTime = sentence.startTime;
+       audioContext.play();
+    } 
+    // Fallback to standalone sentence audioUrl
+    else if (sentence.audioUrl) {
+       audioContext.src = sentence.audioUrl;
+       audioContext.play();
+    } else {
+       wx.showToast({ title: '无法播放：该句子暂无音频信息', icon: 'none' });
+       this.setData({ playingIndex: -1 });
+    }
   },
 
-  _scrollToCurrent() {
-    // Use wx.createSelectorQuery to scroll sentence into view
-    this.setData({ scrollToSentence: `sentence-${this.data.currentIndex}` });
+  _scrollToCurrent(groupIndex) {
+    this.setData({ scrollToView: `group-${groupIndex}` });
   },
 
   // ─── Submit All Recordings ─────────────────────────────────────────────────
@@ -165,20 +272,16 @@ Page({
     wx.showLoading({ title: '正在发送录音…', mask: true });
 
     try {
-      // 1. 合并最后一条录音上传（MVP版本：上传最后一条完整录音）
-      // 注意：完整方案应合并所有句子录音；此处使用最后录制的文件作为代表
       const recordingPaths = Object.values(this.data.recordings);
       const lastFile = recordingPaths[recordingPaths.length - 1];
       const filename = `recording_${Date.now()}.aac`;
 
-      // 2. 获取预签名上传 URL
       const presignRes = await request({
         url: '/upload/presign',
         method: 'POST',
         data: { filename, content_type: 'audio/aac', category: 'recording' },
       });
 
-      // 3. 直传到 COS
       await new Promise((resolve, reject) => {
         wx.uploadFile({
           url: presignRes.presigned_url,
@@ -193,11 +296,10 @@ Page({
         });
       });
 
-      // 4. 提交录音记录
       await request({
         url: '/recordings',
         method: 'POST',
-        data: { lessonId, fileKey: presignRes.file_key },
+        data: { lessonId: this.data.lessonId, fileKey: presignRes.file_key },
       });
 
       wx.hideLoading();

@@ -99,16 +99,15 @@ const LessonsPage: React.FC = () => {
       form.setFieldsValue({
         title: lessonDetail.title,
         masterAudioUrl: lessonDetail.masterAudioUrl,
-        imageFile: {
-          fileList: [
-            {
-              uid: '-1',
-              name: 'cover.jpg',
-              status: 'done',
-              url: lessonDetail.imageUrl,
-            },
-          ],
-        },
+        imageFile: [
+          {
+            uid: '-1',
+            name: '当前封面图',
+            status: 'done',
+            url: lessonDetail.imageUrl,
+            thumbUrl: lessonDetail.imageUrl,
+          },
+        ],
       });
       setCreateModal(true);
     } catch {
@@ -153,13 +152,13 @@ const LessonsPage: React.FC = () => {
 
   const saveLesson = async () => {
     const vals = await form.validateFields();
-    if (!vals.imageFile?.fileList?.[0]) { message.error('请上传封面图'); return; }
+    if (!vals.imageFile || vals.imageFile.length === 0) { message.error('请上传封面图'); return; }
     if (sentences.some(s => !s.text.trim())) { message.error('每句内容不能为空'); return; }
 
     setUploading(true);
     try {
       let imageUrl = '';
-      const selectedImage = vals.imageFile.fileList[0];
+      const selectedImage = vals.imageFile[0];
       if (selectedImage.originFileObj) {
         imageUrl = await uploadFile(selectedImage.originFileObj as File, 'lesson_image');
       } else {
@@ -311,9 +310,15 @@ const LessonsPage: React.FC = () => {
           <Form.Item name="title" label="课程标题" rules={[{ required: true }]}>
             <Input placeholder="如：Lesson 1 - Hello World" />
           </Form.Item>
-          <Form.Item name="imageFile" label="封面图" rules={[{ required: true, message: '请上传封面图' }]}>
-            <Upload accept="image/*" maxCount={1} beforeUpload={() => false} listType="picture-card">
-              <div><UploadOutlined /><div>上传图片</div></div>
+          <Form.Item 
+            name="imageFile" 
+            label="封面图" 
+            valuePropName="fileList"
+            getValueFromEvent={(e: any) => Array.isArray(e) ? e : e?.fileList}
+            rules={[{ required: true, message: '请上传封面图' }]}
+          >
+            <Upload accept="image/*" maxCount={1} beforeUpload={() => false} listType="picture">
+              <Button icon={<UploadOutlined />}>更换 / 上传图片</Button>
             </Upload>
           </Form.Item>
           <div style={{ display: 'flex', gap: 16, marginBottom: 24, padding: 16, background: '#f8f9fa', borderRadius: 8 }}>

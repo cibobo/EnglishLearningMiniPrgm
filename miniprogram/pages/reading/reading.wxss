@@ -1,9 +1,10 @@
 /* pages/reading/reading.wxss */
 .page {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: #F5F7FA;
+  overflow: hidden;
 }
 
 /* Loading */
@@ -18,12 +19,19 @@
   gap: 24rpx;
 }
 
+/* Scroll View */
+.content-area {
+  flex: 1;
+  height: 100%;
+}
+
 /* Cover */
 .cover-wrap {
   position: relative;
   width: 100%;
   height: 380rpx;
   flex-shrink: 0;
+  margin-bottom: 24rpx;
 }
 
 .cover-img {
@@ -33,49 +41,106 @@
 
 .cover-overlay {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(transparent, rgba(0,0,0,0.6));
-  padding: 20rpx 32rpx 24rpx;
+  bottom: 0;
+  background: linear-gradient(rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.8));
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 32rpx;
 }
 
 .lesson-title-overlay {
   color: #fff;
-  font-size: 34rpx;
+  font-size: 42rpx;
   font-weight: 800;
-  text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.3);
+  text-shadow: 0 4rpx 12rpx rgba(0,0,0,0.5);
+  margin-bottom: 12rpx;
 }
 
-/* Sentence List */
-.sentence-area {
-  flex: 1;
-  height: 0; /* scroll-view needs explicit height in flex */
-  min-height: 300rpx;
+.progress-text {
+  color: #E5E7EB;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+/* Image Groups */
+.groups-container {
+  padding: 16rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx; /* bigger gap between groups */
+}
+
+.image-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.group-card {
+  position: relative;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background-color: #fff;
+  z-index: 2; /* keep over sentences to hide scrolling overflow if any */
+}
+
+.group-card:active {
+  transform: scale(0.98);
+}
+
+.group-image {
+  width: 100%;
+  display: block;
+  min-height: 200rpx;
+}
+
+.expansion-hint {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  text-align: center;
   padding: 16rpx 0;
+  font-size: 26rpx;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
 }
 
+/* Sentences Accordion */
+.sentences-list {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease;
+}
+
+.sentences-list.expanded {
+  max-height: 8000rpx; /* allows long lists to expand without clipping immediately */
+  opacity: 1;
+  margin-top: 24rpx;
+}
+
+/* Sentence Rows */
 .sentence-row {
   display: flex;
   align-items: center;
   padding: 24rpx 32rpx;
-  margin: 8rpx 24rpx;
-  border-radius: 20rpx;
+  margin-bottom: 24rpx;
+  border-radius: 16rpx;
   background: #fff;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06);
   transition: all 0.2s;
+  border: 4rpx solid transparent; /* default */
 }
 
-.sentence-row.active {
-  background: linear-gradient(135deg, #EEF2FF, #E0E7FF);
-  border: 2rpx solid #818CF8;
-  transform: scale(1.02);
-}
-
-.sentence-row.recorded {
-  background: #F0FDF4;
-  border: 2rpx solid #86EFAC;
-}
-
+/* Normal State text */
 .sentence-num {
   font-size: 24rpx;
   color: #9CA3AF;
@@ -92,68 +157,104 @@
   line-height: 1.5;
 }
 
-.sentence-row.active .sentence-text { color: #3730A3; }
-.sentence-row.recorded .sentence-text { color: #166534; }
-
 .sentence-status {
   font-size: 36rpx;
   width: 60rpx;
   text-align: center;
 }
 
-/* Action Bar */
-.action-bar {
-  background: #fff;
-  border-top: 2rpx solid #F3F4F6;
-  padding: 24rpx 32rpx 48rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
+/* Recorded State */
+.sentence-row.recorded {
+  background: #F0FDF4; /* Light green tint */
+  border: 4rpx solid #86EFAC;
+}
+.sentence-row.recorded .sentence-text { 
+  color: #166534; 
 }
 
-.progress-text {
-  text-align: center;
-  font-size: 26rpx;
-  color: #9CA3AF;
+/* Active Highlight Setup */
+.sentence-row.active {
+  background: linear-gradient(135deg, #EEF2FF, #E0E7FF);
+  border: 4rpx solid #818CF8;
+  transform: scale(1.02);
+  box-shadow: 0 8rpx 20rpx rgba(129, 140, 248, 0.2);
+}
+.sentence-row.active .sentence-text {
+  color: #3730A3;
+}
+
+/* When Recorded + Active */
+.sentence-row.recorded.active {
+  background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
+  border: 4rpx solid #10B981;
+}
+.sentence-row.recorded.active .sentence-text {
+  color: #047857;
+}
+
+/* Bottom Spacer for fixed bar */
+.bottom-spacer {
+  height: 260rpx;
+}
+
+/* Floating Action Bar */
+.floating-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  /* fade to solid white to obscure sentences sliding under it */
+  background: linear-gradient(to bottom, rgba(245,247,250,0) 0%, rgba(245,247,250,0.85) 30%, #F5F7FA 80%);
+  padding: 32rpx 32rpx 64rpx; /* extra bottom padding for iphone safe area */
+  pointer-events: none; /* Let strokes pass through upper transparent part if needed */
+  z-index: 100;
 }
 
 .btn-row {
+  pointer-events: auto; /* re-enable clicks here */
   display: flex;
-  gap: 20rpx;
+  gap: 24rpx;
+  align-items: stretch;
 }
 
-/* 听范读 */
-.btn-ref {
-  flex: 1;
-  background: #F3F4F6;
-  color: #374151;
+/* Submit shortcut button (smaller) */
+.btn-submit {
+  flex: 0 0 auto;
+  min-width: 160rpx;
+  background: linear-gradient(135deg, #059669, #10B981);
+  color: #fff;
   border-radius: 50rpx;
-  padding: 28rpx;
-  text-align: center;
-  font-size: 28rpx;
-  font-weight: 600;
-  transition: all 0.15s;
+  padding: 28rpx 32rpx;
+  font-size: 30rpx;
+  font-weight: 800;
+  border: none;
+  box-shadow: 0 8rpx 24rpx rgba(5, 150, 105, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: normal; /* Override wx button */
+  margin: 0;
 }
 
-.btn-ref.playing {
-  background: #DBEAFE;
-  color: #1D4ED8;
-}
+.btn-submit.submitting { opacity: 0.7; }
 
 /* 按住跟读 */
 .btn-record {
-  flex: 2;
+  flex: 1;
   background: linear-gradient(135deg, #4F46E5, #7C3AED);
   color: #fff;
   border-radius: 50rpx;
   padding: 28rpx;
   text-align: center;
-  font-size: 30rpx;
-  font-weight: 700;
+  font-size: 32rpx;
+  font-weight: 800;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8rpx 24rpx rgba(79, 70, 229, 0.35);
+  box-shadow: 0 8rpx 24rpx rgba(79, 70, 229, 0.4);
   transition: all 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-record.recording {
@@ -171,26 +272,11 @@
   width: 200rpx;
   height: 200rpx;
   border-radius: 50%;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.25);
   animation: pulse 1s ease-out infinite;
 }
 
 @keyframes pulse {
   0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
 }
-
-/* 结束并发送 */
-.btn-submit {
-  background: linear-gradient(135deg, #059669, #10B981);
-  color: #fff;
-  border-radius: 50rpx;
-  padding: 32rpx;
-  font-size: 34rpx;
-  font-weight: 800;
-  border: none;
-  box-shadow: 0 8rpx 24rpx rgba(5, 150, 105, 0.35);
-  width: 100%;
-}
-
-.btn-submit.submitting { opacity: 0.7; }
