@@ -14,8 +14,8 @@
       scroll-into-view="{{scrollToView}}"
       scroll-with-animation
       scroll-top="0"
-      bindscroll="onScroll"
     >
+     <view class="scroll-inner">
       <!-- 课程封面 -->
       <view class="cover-wrap" id="cover">
         <image class="cover-img" src="{{lesson.imageUrl}}" mode="aspectFill" />
@@ -83,6 +83,7 @@
       
       <!-- padding bottom spacer -->
       <view class="bottom-spacer"></view>
+     </view>
     </scroll-view>
 
     <!-- 底部悬浮操作区 -->

@@ -27,7 +27,9 @@
 
 /* Cover */
 .cover-wrap {
-  position: relative;
+  position: sticky;
+  top: -160rpx;
+  z-index: 50;
   width: 100%;
   height: 380rpx;
   flex-shrink: 0;
@@ -77,6 +79,7 @@
 .image-group {
   display: flex;
   flex-direction: column;
+  scroll-margin-top: 220rpx; /* So it doesn't scroll inside the sticky header */
 }
 
 .group-card {
