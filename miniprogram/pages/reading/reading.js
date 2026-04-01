@@ -24,6 +24,9 @@ Page({
     submitting: false,
     allDone: false,
     
+    // Animation
+    flyingStars: [],
+
     // Scroller destination
     scrollToView: ''
   },
@@ -134,25 +137,26 @@ Page({
     });
 
     recorderManager.onStop((res) => {
-      const { currentIndex, recordings, sentences, groups } = this.data;
+      const { currentIndex, recordings, sentences, groups, activeGroupIndex } = this.data;
+      const isNewRecording = !recordings[currentIndex];
+      
       const updated = { ...recordings, [currentIndex]: res.tempFilePath };
       const recordedCount = Object.keys(updated).length;
       const allDone = recordedCount >= sentences.length;
 
-      this.setData({
-        isRecording: false,
-        recordings: updated,
-        recordedCount,
-        allDone,
-      });
+      // Instantly update button visual to unpressed
+      this.setData({ isRecording: false });
 
-      // Advance to next sentence automatically (unless done)
-      if (!allDone && currentIndex < sentences.length - 1) {
-        setTimeout(() => {
+      const handleAdvance = () => {
+        this.setData({
+          recordings: updated,
+          recordedCount,
+          allDone,
+        });
+
+        if (!allDone && currentIndex < sentences.length - 1) {
           const nextIndex = currentIndex + 1;
-          
-          // Determine which group the next sentence belongs to
-          let targetGroupIndex = this.data.activeGroupIndex;
+          let targetGroupIndex = activeGroupIndex;
           for (let i = 0; i < groups.length; i++) {
             if (groups[i].indices.includes(nextIndex)) {
                targetGroupIndex = i;
@@ -161,19 +165,75 @@ Page({
           }
           
           this._isAutoScrolling = true;
-          const isNewGroup = targetGroupIndex !== this.data.activeGroupIndex;
+          const isNewGroup = targetGroupIndex !== activeGroupIndex;
           this.setData({ 
             currentIndex: nextIndex,
             activeGroupIndex: targetGroupIndex,
-            // If changing groups, scroll to the group header to see the new image. 
-            // If staying in the same group, strictly scroll to the exact sentence.
             scrollToView: isNewGroup ? `group-${targetGroupIndex}` : `sentence-${nextIndex}`
           });
           
           setTimeout(() => {
             this._isAutoScrolling = false;
           }, 800);
-        }, 300);
+        }
+      };
+
+      if (isNewRecording) {
+         const query = wx.createSelectorQuery();
+         query.select('.btn-record').boundingClientRect();
+         query.select('#global-target-star').boundingClientRect();
+         
+         query.exec((rects) => {
+             const btnRect = rects[0];
+             const starRect = rects[1];
+             
+             if (!btnRect || !starRect) {
+                // Query failed (e.g., node offscreen), fallback to immediate advance
+                handleAdvance();
+                return;
+             }
+
+             // Determine exact coordinates
+             const starId = Date.now();
+             const newStar = {
+                 id: starId,
+                 x: btnRect.left + btnRect.width / 2 - 15,
+                 y: btnRect.top + btnRect.height / 2 - 15,
+                 opacity: 1,
+                 scale: 1.5
+             };
+             
+             this.setData({ flyingStars: [...this.data.flyingStars, newStar] });
+             
+             // Next frame, start the flight animation
+             setTimeout(() => {
+                 const updatedStars = this.data.flyingStars.map(s => {
+                     if (s.id === starId) {
+                         return { 
+                            ...s, 
+                            x: starRect.left - 5, 
+                            y: starRect.top - 5, 
+                            scale: 0.8, 
+                            opacity: 0.2 
+                         };
+                     }
+                     return s;
+                 });
+                 this.setData({ flyingStars: updatedStars });
+                 
+                 // Wait for CSS transition (600ms) to hit the progress bar
+                 setTimeout(() => {
+                     // Clean up star
+                     const filteredStars = this.data.flyingStars.filter(s => s.id !== starId);
+                     this.setData({ flyingStars: filteredStars });
+                     // Advance state, which expands progress bar width
+                     handleAdvance();
+                 }, 600);
+             }, 50);
+         });
+      } else {
+         // User is just re-recording an already done sentence, no star granted!
+         handleAdvance();
       }
     });
 

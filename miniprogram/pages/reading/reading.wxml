@@ -21,7 +21,20 @@
         <image class="cover-img" src="{{lesson.imageUrl}}" mode="aspectFill" />
         <view class="cover-overlay">
           <text class="lesson-title-overlay">{{lesson.title}}</text>
-          <text class="progress-text">录音打卡进度：{{recordedCount}} / {{sentences.length}}</text>
+          
+          <!-- 进度条区域 (全局仅显示一个，叠加在封面上) -->
+          <view class="lesson-progress-container cover-progress">
+            <view class="progress-header">
+              <text class="progress-title">Today's Journey</text>
+              <view class="progress-count">
+                <text>{{recordedCount}} / {{sentences.length}}</text>
+                <text id="global-target-star" class="star-icon">⭐</text>
+              </view>
+            </view>
+            <view class="progress-track cover-track">
+              <view class="progress-fill" style="width: {{sentences.length ? (recordedCount / sentences.length * 100) : 0}}%;"></view>
+            </view>
+          </view>
         </view>
       </view>
 
@@ -99,4 +112,14 @@
       </view>
     </view>
   </block>
+
+  <!-- 飞行的星星动画遮罩层 -->
+  <view 
+    wx:for="{{flyingStars}}" 
+    wx:key="id" 
+    class="flying-star" 
+    style="left: {{item.x}}px; top: {{item.y}}px; opacity: {{item.opacity}}; transform: scale({{item.scale}});"
+  >
+    ⭐
+  </view>
 </view>
