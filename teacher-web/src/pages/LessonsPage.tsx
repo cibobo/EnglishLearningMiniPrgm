@@ -255,7 +255,25 @@ const LessonsPage: React.FC = () => {
   };
 
   const addSentence = () => setSentences(prev => [...prev, { text: '' }]);
-  const removeSentence = (i: number) => setSentences(prev => prev.filter((_, idx) => idx !== i));
+  const removeSentence = (i: number) => {
+    if (i === 0) {
+      setSentences(prev => prev.filter((_, idx) => idx !== 0));
+    } else {
+      setSentences(prev => {
+        const next = [...prev];
+        const prevSentence = next[i - 1];
+        const currentSentence = next[i];
+        
+        next[i - 1] = {
+          ...prevSentence,
+          text: (prevSentence.text + ' ' + currentSentence.text).trim(),
+          endTime: currentSentence.endTime ?? prevSentence.endTime,
+        };
+        
+        return next.filter((_, idx) => idx !== i);
+      });
+    }
+  };
   const updateSentence = (i: number, update: Partial<SentenceForm>) => 
     setSentences(prev => prev.map((s, idx) => idx === i ? { ...s, ...update } : s));
 
@@ -463,7 +481,7 @@ const LessonsPage: React.FC = () => {
                     )}
 
                     {sentences.length > 1 && (
-                      <Tooltip title="删除该句">
+                      <Tooltip title={i === 0 ? "删除该句" : "向上合并到上一句"}>
                         <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => removeSentence(i)} />
                       </Tooltip>
                     )}
