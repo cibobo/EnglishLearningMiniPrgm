@@ -161,17 +161,15 @@ Page({
             }
           }
           
-          this._isAutoScrolling = true;
           const isNewGroup = targetGroupIndex !== activeGroupIndex;
           this.setData({ 
             currentIndex: nextIndex,
-            activeGroupIndex: targetGroupIndex,
-            scrollToView: isNewGroup ? `group-${targetGroupIndex}` : `sentence-${nextIndex}`
+            activeGroupIndex: targetGroupIndex
           });
           
           setTimeout(() => {
-            this._isAutoScrolling = false;
-          }, 800);
+            this.setData({ scrollToView: isNewGroup ? `group-${targetGroupIndex}` : `sentence-${nextIndex}` });
+          }, isNewGroup ? 400 : 100);
         }
       };
 
@@ -278,21 +276,19 @@ Page({
   onGroupTap(e) {
     const groupIndex = e.currentTarget.dataset.groupIndex;
     
-    // If clicking the currently expanded accordion, collapse it.
     if (this.data.activeGroupIndex === groupIndex) {
       this.setData({ activeGroupIndex: -1 });
       return;
     }
     
-    this._isAutoScrolling = true;
-    this.setData({ 
-       activeGroupIndex: groupIndex,
-       scrollToView: `group-${groupIndex}`
-    });
+    // Set active group to trigger CSS max-height expansion/collapse
+    this.setData({ activeGroupIndex: groupIndex });
     
+    // Wait for the previous group's CSS transition (400ms) to complete 
+    // so the DOM height stabilizes BEFORE triggering scroll-into-view
     setTimeout(() => {
-      this._isAutoScrolling = false;
-    }, 800);
+      this.setData({ scrollToView: `group-${groupIndex}` });
+    }, 400);
   },
   
   onSentenceTap(e) {
