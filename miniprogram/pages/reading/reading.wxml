@@ -7,14 +7,8 @@
   </view>
 
   <block wx:else>
-    <!-- 句子和图片滚动区 -->
-    <scroll-view
-      class="content-area"
-      scroll-y
-      scroll-into-view="{{scrollToView}}"
-      scroll-with-animation
-      scroll-top="0"
-    >
+    <!-- 全局页面滚动区，抛弃存在回弹 Bug 的 scroll-view -->
+    <view class="content-area">
      <view class="scroll-inner">
       <!-- 课程封面 -->
       <view class="cover-wrap" id="cover">
@@ -46,10 +40,8 @@
           wx:for-index="gIndex" 
           wx:key="id" 
           class="image-group"
+          id="group-{{gIndex}}"
         >
-          <!-- 偏移锚点，用于防止 scroll-into-view 被顶部 sticky 的 cover-wrap(220rpx高度)遮挡 -->
-          <view id="{{group.id}}" style="padding-top: 250rpx; margin-top: -250rpx; height: 0; width: 100%; pointer-events: none;"></view>
-
           <!-- 悬浮卡片图片 -->
           <view class="group-card" bindtap="onGroupTap" data-group-index="{{gIndex}}">
             <image class="group-image" src="{{group.imageUrl}}" mode="widthFix" />
@@ -61,37 +53,31 @@
           
           <!-- 手风琴展开的句子列表 -->
           <view class="sentences-list {{activeGroupIndex === gIndex ? 'expanded' : ''}}">
-            <block
+            <view
               wx:for="{{group.sentences}}"
               wx:for-item="sentence"
               wx:for-index="sIdx"
               wx:key="id"
+              id="sentence-{{group.indices[sIdx]}}"
+              class="sentence-row {{group.indices[sIdx] === currentIndex ? 'active' : ''}} {{recordings[group.indices[sIdx]] ? 'recorded' : ''}}"
+              bindtap="onSentenceTap"
+              data-index="{{group.indices[sIdx]}}"
             >
-              <!-- 偏移锚点，防止被吸顶封面遮挡 -->
-              <view id="sentence-{{group.indices[sIdx]}}" style="padding-top: 250rpx; margin-top: -250rpx; height: 0; width: 100%; pointer-events: none;"></view>
-              
-              <view
-                class="sentence-row {{group.indices[sIdx] === currentIndex ? 'active' : ''}} {{recordings[group.indices[sIdx]] ? 'recorded' : ''}}"
-                bindtap="onSentenceTap"
-                data-index="{{group.indices[sIdx]}}"
-              >
-                <text class="sentence-num">{{group.indices[sIdx] + 1}}</text>
-                <text class="sentence-text">{{sentence.text}}</text>
-                <view class="sentence-status">
-                  <text wx:if="{{playingIndex === group.indices[sIdx]}}">🔊</text>
-                  <text wx:elif="{{recordings[group.indices[sIdx]]}}">✅</text>
-                  <text wx:elif="{{group.indices[sIdx] === currentIndex}}">👉</text>
-                </view>
+              <text class="sentence-num">{{group.indices[sIdx] + 1}}</text>
+              <text class="sentence-text">{{sentence.text}}</text>
+              <view class="sentence-status">
+                <text wx:if="{{playingIndex === group.indices[sIdx]}}">🔊</text>
+                <text wx:elif="{{recordings[group.indices[sIdx]]}}">✅</text>
+                <text wx:elif="{{group.indices[sIdx] === currentIndex}}">👉</text>
               </view>
-            </block>
+            </view>
           </view>
         </view>
       </view>
       
-      <!-- padding bottom spacer -->
-      <view class="bottom-spacer"></view>
+      <view class="bottom-spacer" style="height: 150vh;"></view>
      </view>
-    </scroll-view>
+    </view>
 
     <!-- 底部悬浮操作区 -->
     <view class="floating-action-bar">

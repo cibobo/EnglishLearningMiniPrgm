@@ -1,10 +1,10 @@
 /* pages/reading/reading.wxss */
 .page {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: #F5F7FA;
-  overflow: hidden;
+  padding-bottom: 250rpx;
 }
 
 /* Loading */
@@ -19,10 +19,9 @@
   gap: 24rpx;
 }
 
-/* Scroll View */
 .content-area {
   flex: 1;
-  height: 100%;
+  width: 100%;
 }
 
 /* Cover */
@@ -79,7 +78,7 @@
 .image-group {
   display: flex;
   flex-direction: column;
-  scroll-margin-top: 220rpx; /* So it doesn't scroll inside the sticky header */
+  scroll-margin-top: 250rpx; /* So it doesn't scroll under the sticky header */
 }
 
 .group-card {
@@ -133,14 +132,18 @@
 /* Sentence Rows */
 .sentence-row {
   display: flex;
-  align-items: center;
-  padding: 24rpx 32rpx;
-  margin-bottom: 24rpx;
+  flex-direction: row;
+  min-height: 120rpx;
+  background: #fdfdfd;
   border-radius: 16rpx;
-  background: #fff;
-  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06);
-  transition: all 0.2s;
-  border: 4rpx solid transparent; /* default */
+  margin-bottom: 24rpx;
+  padding: 32rpx;
+  box-sizing: border-box;
+  align-items: center;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  /* 对于跳转到单句，同样预留顶部安全距离 */
+  scroll-margin-top: 250rpx;
 }
 
 /* Normal State text */

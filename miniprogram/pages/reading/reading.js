@@ -168,8 +168,12 @@ Page({
           });
           
           setTimeout(() => {
-            this.setData({ scrollToView: isNewGroup ? `group-${targetGroupIndex}` : `sentence-${nextIndex}` });
-          }, isNewGroup ? 400 : 100);
+            if (isNewGroup) {
+              this._scrollToNode(`#group-${targetGroupIndex}`);
+            } else {
+              this._scrollToNode(`#sentence-${nextIndex}`);
+            }
+          }, 400);
         }
       };
 
@@ -285,9 +289,9 @@ Page({
     this.setData({ activeGroupIndex: groupIndex });
     
     // Wait for the previous group's CSS transition (400ms) to complete 
-    // so the DOM height stabilizes BEFORE triggering scroll-into-view
+    // before triggering native page scroll to prevent bounds violations
     setTimeout(() => {
-      this.setData({ scrollToView: `group-${groupIndex}` });
+      this._scrollToNode(`#group-${groupIndex}`);
     }, 400);
   },
   
@@ -328,8 +332,34 @@ Page({
     }
   },
 
+  _scrollToNode(selector) {
+    const query = wx.createSelectorQuery();
+    query.select(selector).boundingClientRect();
+    query.selectViewport().scrollOffset();
+    
+    query.exec((res) => {
+      if (!res[0] || !res[1]) return;
+      
+      const targetRect = res[0];
+      const scrollInfo = res[1];
+      
+      // We want to offset by sticking header height (230rpx)
+      const systemInfo = wx.getSystemInfoSync();
+      const pxPerRpx = systemInfo.screenWidth / 750;
+      const offsetPx = 230 * pxPerRpx;
+      
+      // Calculate absolute scroll destination
+      const targetTop = scrollInfo.scrollTop + targetRect.top - offsetPx;
+      
+      wx.pageScrollTo({
+        scrollTop: targetTop,
+        duration: 300
+      });
+    });
+  },
+
   _scrollToCurrent(groupIndex) {
-    this.setData({ scrollToView: `group-${groupIndex}` });
+    this._scrollToNode(`#group-${groupIndex}`);
   },
 
   // ─── Submit All Recordings ─────────────────────────────────────────────────
