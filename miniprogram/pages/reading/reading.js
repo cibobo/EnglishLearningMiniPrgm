@@ -79,13 +79,38 @@ Page({
         currentGroup.indices.push(idx);
       });
 
+      // Load locally saved reading progress
+      const savedRecordings = wx.getStorageSync(`lesson_recordings_${lessonId}`) || {};
+      const recordedCount = Object.keys(savedRecordings).length;
+
+      let startGroup = 0;
+      let startIndex = 0;
+      for (let i = 0; i < sentences.length; i++) {
+         if (!savedRecordings[i]) {
+            startIndex = i;
+            startGroup = groups.findIndex(g => g.indices.includes(i));
+            if (startGroup === -1) startGroup = 0;
+            break;
+         }
+      }
+
       this.setData({
         lesson,
         sentences,
         groups,
-        activeGroupIndex: 0, // initially expand first group
+        activeGroupIndex: startGroup,
+        currentIndex: startIndex,
         loading: false,
+        recordings: savedRecordings,
+        recordedCount,
+        allDone: recordedCount >= sentences.length
       });
+      
+      if (startIndex > 0) {
+        setTimeout(() => {
+          this._scrollToNode(`#group-${startGroup}`);
+        }, 500);
+      }
       
       // Prime audio player with the master file
       if (lesson.masterAudioUrl) {
@@ -161,6 +186,10 @@ Page({
           recordedCount,
           allDone,
         });
+
+        const storageMask = {};
+        for (let key in updated) storageMask[key] = true;
+        wx.setStorageSync(`lesson_recordings_${this.data.lessonId}`, storageMask);
 
         if (!allDone && currentIndex < sentences.length - 1) {
           const nextIndex = currentIndex + 1;
@@ -371,7 +400,7 @@ Page({
       const scrollInfo = res[1];
       
       // We want to offset by sticking header height (230rpx)
-      const systemInfo = wx.getSystemInfoSync();
+      const systemInfo = wx.getWindowInfo();
       const pxPerRpx = systemInfo.screenWidth / 750;
       const offsetPx = 230 * pxPerRpx;
       
@@ -410,7 +439,22 @@ Page({
 
     try {
       const recordingPaths = Object.values(this.data.recordings);
-      const lastFile = recordingPaths[recordingPaths.length - 1];
+      // Filter out previously saved 'true' booleans, get actual local file paths
+      const actualFiles = recordingPaths.filter(path => typeof path === 'string');
+      const lastFile = actualFiles[actualFiles.length - 1];
+
+      if (!lastFile) {
+        wx.hideLoading();
+        wx.showModal({
+           title: '太棒了',
+           content: '当前课程没有新的未保存录音，可以直接退出哦！',
+           showCancel: false,
+           success: () => wx.navigateBack()
+        });
+        this.setData({ submitting: false });
+        return;
+      }
+      
       const filename = `recording_${Date.now()}.aac`;
 
       const presignRes = await request({
@@ -419,24 +463,35 @@ Page({
         data: { filename, content_type: 'audio/aac', category: 'recording' },
       });
 
-      await new Promise((resolve, reject) => {
+      const token = wx.getStorageSync('access_token');
+
+      const uploadData = await new Promise((resolve, reject) => {
         wx.uploadFile({
-          url: presignRes.presigned_url,
+          url: presignRes.upload_url || presignRes.presigned_url,
           filePath: lastFile,
-          name: 'file',
-          header: { 'Content-Type': 'audio/aac' },
+          name: presignRes.field_name || 'file',
+          header: {
+            Authorization: token ? `Bearer ${token}` : ''
+          },
           success: (res) => {
-            if (res.statusCode >= 200 && res.statusCode < 300) resolve(res);
-            else reject(new Error(`上传失败: ${res.statusCode}`));
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              try {
+                resolve(JSON.parse(res.data));
+              } catch (e) {
+                resolve(res);
+              }
+            } else reject(new Error(`上传失败: ${res.statusCode}`));
           },
           fail: reject,
         });
       });
 
+      const fileKey = uploadData.file_key || presignRes.file_key;
+
       await request({
         url: '/recordings',
         method: 'POST',
-        data: { lessonId: this.data.lessonId, fileKey: presignRes.file_key },
+        data: { lessonId: this.data.lessonId, fileKey: fileKey },
       });
 
       wx.hideLoading();
