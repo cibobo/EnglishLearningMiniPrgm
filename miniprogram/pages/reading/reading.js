@@ -103,14 +103,24 @@ Page({
     audioContext.onPlay(() => {
     });
 
+    audioContext.onSeeking(() => {
+      this.isSeeking = true;
+    });
+
+    audioContext.onSeeked(() => {
+      this.isSeeking = false;
+    });
+
     audioContext.onTimeUpdate(() => {
+      if (this.isSeeking) return;
+
       const { playingIndex, sentences } = this.data;
       if (playingIndex === -1) return;
       
       const targetSentence = sentences[playingIndex];
       // If we've reached the end timestamp for this chunk, automatically pause.
-      if (targetSentence && targetSentence.endTime) {
-        if (audioContext.currentTime >= targetSentence.endTime) {
+      if (targetSentence && typeof targetSentence.endTime === 'number') {
+        if (audioContext.currentTime >= targetSentence.endTime && audioContext.currentTime > 0) {
            audioContext.pause();
            this.setData({ playingIndex: -1 });
         }
@@ -123,6 +133,7 @@ Page({
 
     audioContext.onError((err) => {
       this.setData({ playingIndex: -1 });
+      this.isSeeking = false;
       console.error('[AudioContext Error]', err);
     });
   },
@@ -317,14 +328,30 @@ Page({
     if (lesson.masterAudioUrl && typeof sentence.startTime === 'number') {
        if (audioContext.src !== lesson.masterAudioUrl) {
           audioContext.src = lesson.masterAudioUrl;
+          // WeChat InnerAudioContext allows setting 'startTime' directly before calling 'play'
+          audioContext.startTime = sentence.startTime;
+          audioContext.play();
+       } else {
+          // Synchronously flag that we are seeking to avoid onTimeUpdate instantly stopping it.
+          this.isSeeking = true;
+          // Fallback to clear isSeeking flag in case onSeeked somehow doesn't fire
+          if (this.seekTimeout) clearTimeout(this.seekTimeout);
+          this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
+          
+          audioContext.seek(sentence.startTime);
+          audioContext.play();
        }
-       // WeChat InnerAudioContext allows setting 'startTime' directly before calling 'play'
-       audioContext.startTime = sentence.startTime;
-       audioContext.play();
     } 
     // Fallback to standalone sentence audioUrl
     else if (sentence.audioUrl) {
-       audioContext.src = sentence.audioUrl;
+       if (audioContext.src !== sentence.audioUrl) {
+          audioContext.src = sentence.audioUrl;
+       } else {
+          this.isSeeking = true;
+          if (this.seekTimeout) clearTimeout(this.seekTimeout);
+          this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
+          audioContext.seek(0);
+       }
        audioContext.play();
     } else {
        wx.showToast({ title: '无法播放：该句子暂无音频信息', icon: 'none' });
