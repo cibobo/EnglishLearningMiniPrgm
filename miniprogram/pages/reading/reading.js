@@ -14,23 +14,23 @@ Page({
     currentIndex: 0,
     playingIndex: -1, // Tracks which sentence is currently outputting audio
     loading: true,
-    
+
     // Recording state
     isRecording: false,
     recordings: {},       // { [sentenceIndex]: tempFilePath }
     recordedCount: 0,
-    
+
     // Submit
     submitting: false,
     allDone: false,
-    
+
     // Animation
     flyingStars: [],
 
     // Scroller destination
     scrollToView: ''
   },
-  
+
   onLoad(options) {
     const { lessonId } = options;
     this.setData({ lessonId });
@@ -48,29 +48,29 @@ Page({
     try {
       const lesson = await request({ url: `/lessons/${lessonId}` });
       const sentences = lesson.sentences || [];
-      
+
       // Group sentences logically by their illustrations
       const groups = [];
       let currentGroup = null;
       let targetImgUrl = null;
-      
+
       sentences.forEach((s, idx) => {
         if (s.imageUrl) {
           // If the sentence explicitly has an image, start a new group
-          currentGroup = { 
-            id: `group-${groups.length}`, 
-            imageUrl: s.imageUrl, 
-            sentences: [], 
-            indices: [] 
+          currentGroup = {
+            id: `group-${groups.length}`,
+            imageUrl: s.imageUrl,
+            sentences: [],
+            indices: []
           };
           groups.push(currentGroup);
         } else if (!currentGroup) {
           // If the first sentence has no image, fallback to the course cover image
-          currentGroup = { 
-            id: `group-${groups.length}`, 
-            imageUrl: lesson.imageUrl, 
-            sentences: [], 
-            indices: [] 
+          currentGroup = {
+            id: `group-${groups.length}`,
+            imageUrl: lesson.imageUrl,
+            sentences: [],
+            indices: []
           };
           groups.push(currentGroup);
         }
@@ -98,12 +98,12 @@ Page({
       let startGroup = 0;
       let startIndex = 0;
       for (let i = 0; i < sentences.length; i++) {
-         if (!recordings[i]) {
-            startIndex = i;
-            startGroup = groups.findIndex(g => g.indices.includes(i));
-            if (startGroup === -1) startGroup = 0;
-            break;
-         }
+        if (!recordings[i]) {
+          startIndex = i;
+          startGroup = groups.findIndex(g => g.indices.includes(i));
+          if (startGroup === -1) startGroup = 0;
+          break;
+        }
       }
 
       this.setData({
@@ -117,18 +117,18 @@ Page({
         recordedCount,
         allDone: recordedCount >= sentences.length
       });
-      
+
       if (startIndex > 0) {
         setTimeout(() => {
           this._scrollToNode(`#group-${startGroup}`);
         }, 500);
       }
-      
+
       // Prime audio player with the master file
       if (lesson.masterAudioUrl) {
-         audioContext.src = lesson.masterAudioUrl;
+        audioContext.src = lesson.masterAudioUrl;
       }
-      
+
     } catch (err) {
       wx.showToast({ title: '加载课程失败', icon: 'error' });
       this.setData({ loading: false });
@@ -153,13 +153,13 @@ Page({
 
       const { playingIndex, sentences } = this.data;
       if (playingIndex === -1) return;
-      
+
       const targetSentence = sentences[playingIndex];
       // If we've reached the end timestamp for this chunk, automatically pause.
       if (targetSentence && typeof targetSentence.endTime === 'number') {
         if (audioContext.currentTime >= targetSentence.endTime && audioContext.currentTime > 0) {
-           audioContext.pause();
-           this.setData({ playingIndex: -1 });
+          audioContext.pause();
+          this.setData({ playingIndex: -1 });
         }
       }
     });
@@ -184,7 +184,7 @@ Page({
     recorderManager.onStop((res) => {
       const { currentIndex, recordings, sentences, groups, activeGroupIndex } = this.data;
       const isNewRecording = !recordings[currentIndex];
-      
+
       const updated = { ...recordings, [currentIndex]: res.tempFilePath };
       const recordedCount = Object.keys(updated).length;
       const allDone = recordedCount >= sentences.length;
@@ -217,17 +217,17 @@ Page({
           let targetGroupIndex = activeGroupIndex;
           for (let i = 0; i < groups.length; i++) {
             if (groups[i].indices.includes(nextIndex)) {
-               targetGroupIndex = i;
-               break;
+              targetGroupIndex = i;
+              break;
             }
           }
-          
+
           const isNewGroup = targetGroupIndex !== activeGroupIndex;
-          this.setData({ 
+          this.setData({
             currentIndex: nextIndex,
             activeGroupIndex: targetGroupIndex
           });
-          
+
           setTimeout(() => {
             if (isNewGroup) {
               this._scrollToNode(`#group-${targetGroupIndex}`);
@@ -239,61 +239,61 @@ Page({
       };
 
       if (isNewRecording) {
-         const query = wx.createSelectorQuery();
-         query.select('.btn-record').boundingClientRect();
-         query.select('#global-target-star').boundingClientRect();
-         
-         query.exec((rects) => {
-             const btnRect = rects[0];
-             const starRect = rects[1];
-             
-             if (!btnRect || !starRect) {
-                // Query failed (e.g., node offscreen), fallback to immediate advance
-                handleAdvance();
-                return;
-             }
+        const query = wx.createSelectorQuery();
+        query.select('.btn-record').boundingClientRect();
+        query.select('#global-target-star').boundingClientRect();
 
-             // Determine exact coordinates
-             const starId = Date.now();
-             const newStar = {
-                 id: starId,
-                 x: btnRect.left + btnRect.width / 2 - 15,
-                 y: btnRect.top + btnRect.height / 2 - 15,
-                 opacity: 1,
-                 scale: 1.5
-             };
-             
-             this.setData({ flyingStars: [...this.data.flyingStars, newStar] });
-             
-             // Next frame, start the flight animation
-             setTimeout(() => {
-                 const updatedStars = this.data.flyingStars.map(s => {
-                     if (s.id === starId) {
-                         return { 
-                            ...s, 
-                            x: starRect.left - 5, 
-                            y: starRect.top - 5, 
-                            scale: 0.8, 
-                            opacity: 0.2 
-                         };
-                     }
-                     return s;
-                 });
-                 this.setData({ flyingStars: updatedStars });
-                 
-                 // Wait for CSS transition (600ms) to hit the progress bar
-                 setTimeout(() => {
-                     // Clean up star
-                     const filteredStars = this.data.flyingStars.filter(s => s.id !== starId);
-                     this.setData({ flyingStars: filteredStars });
-                     // Advance state, which expands progress bar width
-                     handleAdvance();
-                 }, 600);
-             }, 50);
-         });
+        query.exec((rects) => {
+          const btnRect = rects[0];
+          const starRect = rects[1];
+
+          if (!btnRect || !starRect) {
+            // Query failed (e.g., node offscreen), fallback to immediate advance
+            handleAdvance();
+            return;
+          }
+
+          // Determine exact coordinates
+          const starId = Date.now();
+          const newStar = {
+            id: starId,
+            x: btnRect.left + btnRect.width / 2 - 15,
+            y: btnRect.top + btnRect.height / 2 - 15,
+            opacity: 1,
+            scale: 1.5
+          };
+
+          this.setData({ flyingStars: [...this.data.flyingStars, newStar] });
+
+          // Next frame, start the flight animation
+          setTimeout(() => {
+            const updatedStars = this.data.flyingStars.map(s => {
+              if (s.id === starId) {
+                return {
+                  ...s,
+                  x: starRect.left - 5,
+                  y: starRect.top - 5,
+                  scale: 0.8,
+                  opacity: 0.2
+                };
+              }
+              return s;
+            });
+            this.setData({ flyingStars: updatedStars });
+
+            // Wait for CSS transition (600ms) to hit the progress bar
+            setTimeout(() => {
+              // Clean up star
+              const filteredStars = this.data.flyingStars.filter(s => s.id !== starId);
+              this.setData({ flyingStars: filteredStars });
+              // Advance state, which expands progress bar width
+              handleAdvance();
+            }, 600);
+          }, 50);
+        });
       } else {
-         // User is just re-recording an already done sentence, no star granted!
-         handleAdvance();
+        // User is just re-recording an already done sentence, no star granted!
+        handleAdvance();
       }
     });
 
@@ -306,17 +306,20 @@ Page({
 
   // ─── Record Button (Long Press) ────────────────────────────────────────────
   onRecordStart() {
+    this._wantToRecord = true;  // Set intent flag BEFORE async call
     wx.getSetting({
       success: (res) => {
+        if (!this._wantToRecord) return;  // User already released - abort
+
         if (res.authSetting['scope.record'] === false) {
           wx.openSetting();
           return;
         }
-        
+
         // Stop audio playback to not record device output
         if (this.data.playingIndex !== -1) {
-           audioContext.pause();
-           this.setData({ playingIndex: -1 });
+          audioContext.pause();
+          this.setData({ playingIndex: -1 });
         }
 
         recorderManager.start({
@@ -331,81 +334,82 @@ Page({
   },
 
   onRecordStop() {
+    this._wantToRecord = false;  // Clear intent flag
     if (this.data.isRecording) {
       recorderManager.stop();
     }
   },
 
   // ─── Interactions ──────────────────────────────────────────────────────────
-  
+
   onGroupTap(e) {
     const groupIndex = e.currentTarget.dataset.groupIndex;
-    
+
     if (this.data.activeGroupIndex === groupIndex) {
       this.setData({ activeGroupIndex: -1 });
       return;
     }
-    
+
     // Set active group to trigger CSS max-height expansion/collapse
     this.setData({ activeGroupIndex: groupIndex });
-    
+
     // Wait for the previous group's CSS transition (400ms) to complete 
     // before triggering native page scroll to prevent bounds violations
     setTimeout(() => {
       this._scrollToNode(`#group-${groupIndex}`);
     }, 400);
   },
-  
+
   onSentenceTap(e) {
     const targetIdx = e.currentTarget.dataset.index;
     const { sentences, playingIndex, lesson } = this.data;
     const sentence = sentences[targetIdx];
-    
+
     // If clicking currently active sentence audio... STOP it.
     if (playingIndex === targetIdx) {
-       audioContext.pause();
-       this.setData({ playingIndex: -1, currentIndex: targetIdx });
-       return;
+      audioContext.pause();
+      this.setData({ playingIndex: -1, currentIndex: targetIdx });
+      return;
     }
-    
+
     // Prepare for new play structure
-    this.setData({ 
-       playingIndex: targetIdx,
-       currentIndex: targetIdx,
+    this.setData({
+      playingIndex: targetIdx,
+      currentIndex: targetIdx,
     });
-    
+
     // Handle playback via timeline if masterAudioUrl exists
     if (lesson.masterAudioUrl && typeof sentence.startTime === 'number') {
-       if (audioContext.src !== lesson.masterAudioUrl) {
-          audioContext.src = lesson.masterAudioUrl;
-          // WeChat InnerAudioContext allows setting 'startTime' directly before calling 'play'
-          audioContext.startTime = sentence.startTime;
-          audioContext.play();
-       } else {
-          // Synchronously flag that we are seeking to avoid onTimeUpdate instantly stopping it.
-          this.isSeeking = true;
-          // Fallback to clear isSeeking flag in case onSeeked somehow doesn't fire
-          if (this.seekTimeout) clearTimeout(this.seekTimeout);
-          this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
-          
-          audioContext.seek(sentence.startTime);
-          audioContext.play();
-       }
-    } 
+      if (audioContext.src !== lesson.masterAudioUrl) {
+        audioContext.src = lesson.masterAudioUrl;
+        // WeChat InnerAudioContext allows setting 'startTime' directly before calling 'play'
+        audioContext.startTime = sentence.startTime;
+        audioContext.play();
+      } else {
+        // Synchronously flag that we are seeking to avoid onTimeUpdate instantly stopping it.
+        this.isSeeking = true;
+        // Fallback to clear isSeeking flag in case onSeeked somehow doesn't fire
+        if (this.seekTimeout) clearTimeout(this.seekTimeout);
+        this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
+
+        audioContext.seek(sentence.startTime);
+        audioContext.play();
+      }
+    }
     // Fallback to standalone sentence audioUrl
     else if (sentence.audioUrl) {
-       if (audioContext.src !== sentence.audioUrl) {
-          audioContext.src = sentence.audioUrl;
-       } else {
-          this.isSeeking = true;
-          if (this.seekTimeout) clearTimeout(this.seekTimeout);
-          this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
-          audioContext.seek(0);
-       }
-       audioContext.play();
+      if (audioContext.src !== sentence.audioUrl) {
+        audioContext.src = sentence.audioUrl;
+      } else {
+        this.isSeeking = true;
+        if (this.seekTimeout) clearTimeout(this.seekTimeout);
+        this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
+        audioContext.seek(0);
+      }
+      audioContext.play();
     } else {
-       wx.showToast({ title: '无法播放：该句子暂无音频信息', icon: 'none' });
-       this.setData({ playingIndex: -1 });
+      wx.showToast({ title: '无法播放：该句子暂无音频信息', icon: 'none' });
+      this.setData({ playingIndex: -1 });
     }
   },
 
@@ -413,21 +417,21 @@ Page({
     const query = wx.createSelectorQuery();
     query.select(selector).boundingClientRect();
     query.selectViewport().scrollOffset();
-    
+
     query.exec((res) => {
       if (!res[0] || !res[1]) return;
-      
+
       const targetRect = res[0];
       const scrollInfo = res[1];
-      
+
       // We want to offset by sticking header height (230rpx)
       const systemInfo = wx.getWindowInfo();
       const pxPerRpx = systemInfo.screenWidth / 750;
       const offsetPx = 230 * pxPerRpx;
-      
+
       // Calculate absolute scroll destination
       const targetTop = scrollInfo.scrollTop + targetRect.top - offsetPx;
-      
+
       wx.pageScrollTo({
         scrollTop: targetTop,
         duration: 300
@@ -456,7 +460,8 @@ Page({
 
   async _doSubmit() {
     this.setData({ submitting: true });
-    wx.showLoading({ title: '正在发送录音…', mask: true });
+    // NOTE: do NOT use mask:true here - it would block touchend on the record button
+    wx.showLoading({ title: '准备中…', mask: false });
 
     try {
       const { recordings, lessonId, sentences } = this.data;
@@ -482,23 +487,26 @@ Page({
       if (pendingEntries.length === 0) {
         wx.hideLoading();
         wx.showModal({
-           title: '太棒了',
-           content: '当前课程没有新的未保存录音，可以直接退出哦！',
-           showCancel: false,
-           success: () => wx.navigateBack()
+          title: '太棒了',
+          content: '当前课程没有新的未保存录音，可以直接退出哦！',
+          showCancel: false,
+          success: () => wx.navigateBack()
         });
         this.setData({ submitting: false });
         return;
       }
+
+      // Only show the blocking mask NOW that we're actually uploading
+      wx.showLoading({ title: `上传录音 1/${pendingEntries.length}…`, mask: true });
 
       // Upload each pending entry individually
       const storage = wx.getStorageSync(`lesson_recordings_${lessonId}`) || {};
 
       for (let i = 0; i < pendingEntries.length; i++) {
         const entry = pendingEntries[i];
-        wx.showLoading({ 
-          title: `上传录音 ${i + 1}/${pendingEntries.length}…`, 
-          mask: true 
+        wx.showLoading({
+          title: `上传录音 ${i + 1}/${pendingEntries.length}…`,
+          mask: true
         });
 
         const filename = `recording_${Date.now()}_${entry.sentenceIndex}.aac`;
@@ -528,7 +536,7 @@ Page({
         await request({
           url: '/recordings',
           method: 'POST',
-          data: { 
+          data: {
             lessonId,
             fileKey,
             sentenceId: entry.sentenceId,
