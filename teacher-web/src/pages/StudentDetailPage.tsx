@@ -49,6 +49,7 @@ const StudentDetailPage: React.FC = () => {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({});
+  const [listenedIds, setListenedIds] = useState<Set<string>>(new Set());
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => { fetchProgress(); }, [id]);
@@ -94,6 +95,24 @@ const StudentDetailPage: React.FC = () => {
       audioRef.current.src = url;
       audioRef.current.play().catch(() => message.error('播放失败'));
       setPlayingId(recordingId);
+
+      // Mark as reviewed on first listen (fire-and-forget, don't block playback)
+      if (!listenedIds.has(recordingId)) {
+        setListenedIds(prev => new Set(prev).add(recordingId));
+        // Update local progress state immediately for instant UI feedback
+        setProgress(prev => {
+          if (!prev) return prev;
+          const updatedGroups = prev.lessonGroups.map(group => ({
+            ...group,
+            submissions: group.submissions.map(sub =>
+              sub.id === recordingId ? { ...sub, status: 'reviewed' } : sub
+            ),
+          }));
+          return { ...prev, lessonGroups: updatedGroups };
+        });
+        // Persist to server in background
+        api.patch(`/recordings/${recordingId}/status`, { status: 'reviewed' }).catch(() => {});
+      }
     }
   };
 
