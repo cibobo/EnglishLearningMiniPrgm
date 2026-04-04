@@ -2,7 +2,7 @@
 const { request } = require('../../utils/request');
 
 const recorderManager = wx.getRecorderManager();
-const audioContext = wx.createInnerAudioContext();
+// this._audio is created per page instance in onLoad (see this._audio)
 
 Page({
   data: {
@@ -34,13 +34,18 @@ Page({
   onLoad(options) {
     const { lessonId } = options;
     this.setData({ lessonId });
+    // Create a fresh audio context per page visit to avoid using a destroyed instance
+    this._audio = wx.createInnerAudioContext();
     this._setupRecorder();
     this._setupAudioContext();
     this.loadLesson(lessonId);
   },
 
   onUnload() {
-    audioContext.destroy();
+    if (this._audio) {
+      this._audio.destroy();
+      this._audio = null;
+    }
     if (this.data.isRecording) recorderManager.stop();
   },
 
@@ -126,7 +131,7 @@ Page({
 
       // Prime audio player with the master file
       if (lesson.masterAudioUrl) {
-        audioContext.src = lesson.masterAudioUrl;
+        this._audio.src = lesson.masterAudioUrl;
       }
 
     } catch (err) {
@@ -137,18 +142,18 @@ Page({
 
   // ─── Audio Setup ───────────────────────────────────────────────────────────
   _setupAudioContext() {
-    audioContext.onPlay(() => {
+    this._audio.onPlay(() => {
     });
 
-    audioContext.onSeeking(() => {
+    this._audio.onSeeking(() => {
       this.isSeeking = true;
     });
 
-    audioContext.onSeeked(() => {
+    this._audio.onSeeked(() => {
       this.isSeeking = false;
     });
 
-    audioContext.onTimeUpdate(() => {
+    this._audio.onTimeUpdate(() => {
       if (this.isSeeking) return;
 
       const { playingIndex, sentences } = this.data;
@@ -157,21 +162,21 @@ Page({
       const targetSentence = sentences[playingIndex];
       // If we've reached the end timestamp for this chunk, automatically pause.
       if (targetSentence && typeof targetSentence.endTime === 'number') {
-        if (audioContext.currentTime >= targetSentence.endTime && audioContext.currentTime > 0) {
-          audioContext.pause();
+        if (this._audio.currentTime >= targetSentence.endTime && this._audio.currentTime > 0) {
+          this._audio.pause();
           this.setData({ playingIndex: -1 });
         }
       }
     });
 
-    audioContext.onEnded(() => {
+    this._audio.onEnded(() => {
       this.setData({ playingIndex: -1 });
     });
 
-    audioContext.onError((err) => {
+    this._audio.onError((err) => {
       this.setData({ playingIndex: -1 });
       this.isSeeking = false;
-      console.error('[AudioContext Error]', err);
+      console.error('[this._audio Error]', err);
     });
   },
 
@@ -318,7 +323,7 @@ Page({
 
         // Stop audio playback to not record device output
         if (this.data.playingIndex !== -1) {
-          audioContext.pause();
+          this._audio.pause();
           this.setData({ playingIndex: -1 });
         }
 
@@ -367,7 +372,7 @@ Page({
 
     // If clicking currently active sentence audio... STOP it.
     if (playingIndex === targetIdx) {
-      audioContext.pause();
+      this._audio.pause();
       this.setData({ playingIndex: -1, currentIndex: targetIdx });
       return;
     }
@@ -380,11 +385,11 @@ Page({
 
     // Handle playback via timeline if masterAudioUrl exists
     if (lesson.masterAudioUrl && typeof sentence.startTime === 'number') {
-      if (audioContext.src !== lesson.masterAudioUrl) {
-        audioContext.src = lesson.masterAudioUrl;
+      if (this._audio.src !== lesson.masterAudioUrl) {
+        this._audio.src = lesson.masterAudioUrl;
         // WeChat InnerAudioContext allows setting 'startTime' directly before calling 'play'
-        audioContext.startTime = sentence.startTime;
-        audioContext.play();
+        this._audio.startTime = sentence.startTime;
+        this._audio.play();
       } else {
         // Synchronously flag that we are seeking to avoid onTimeUpdate instantly stopping it.
         this.isSeeking = true;
@@ -392,21 +397,21 @@ Page({
         if (this.seekTimeout) clearTimeout(this.seekTimeout);
         this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
 
-        audioContext.seek(sentence.startTime);
-        audioContext.play();
+        this._audio.seek(sentence.startTime);
+        this._audio.play();
       }
     }
     // Fallback to standalone sentence audioUrl
     else if (sentence.audioUrl) {
-      if (audioContext.src !== sentence.audioUrl) {
-        audioContext.src = sentence.audioUrl;
+      if (this._audio.src !== sentence.audioUrl) {
+        this._audio.src = sentence.audioUrl;
       } else {
         this.isSeeking = true;
         if (this.seekTimeout) clearTimeout(this.seekTimeout);
         this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
-        audioContext.seek(0);
+        this._audio.seek(0);
       }
-      audioContext.play();
+      this._audio.play();
     } else {
       wx.showToast({ title: '无法播放：该句子暂无音频信息', icon: 'none' });
       this.setData({ playingIndex: -1 });
