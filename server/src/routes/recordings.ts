@@ -1,15 +1,11 @@
 import { Router } from 'express';
-import COS from 'cos-nodejs-sdk-v5';
 import prisma from '../lib/prisma';
 import { authenticate, requireTeacher, requireStudent } from '../middleware/auth';
 
 const router = Router();
 router.use(authenticate);
 
-const cos = new COS({
-  SecretId: process.env.COS_SECRET_ID!,
-  SecretKey: process.env.COS_SECRET_KEY!,
-});
+const BASE_URL = process.env.SERVER_BASE_URL || 'http://150.230.2.226:3000';
 
 // ─── POST /recordings ─────────────────────────────────────────────────────────
 // 学生提交录音
@@ -27,7 +23,7 @@ router.post('/', requireStudent, async (req, res) => {
       return;
     }
 
-    const audioUrl = `${process.env.COS_DOMAIN}/${fileKey}`;
+    const audioUrl = fileKey.startsWith('http') ? fileKey : `${BASE_URL}/uploads/${fileKey}`;
     const submission = await prisma.recordingSubmission.create({
       data: {
         studentId: req.user!.id,
@@ -78,29 +74,8 @@ router.get('/:id/url', requireTeacher, async (req, res) => {
       return;
     }
 
-    // 从 audioUrl 提取 fileKey
-    const domain = process.env.COS_DOMAIN!;
-    const fileKey = recording.audioUrl.replace(`${domain}/`, '');
-
-    // 生成 1 小时有效的临时访问 URL
-    const tempUrl = await new Promise<string>((resolve, reject) => {
-      cos.getObjectUrl(
-        {
-          Bucket: process.env.COS_BUCKET!,
-          Region: process.env.COS_REGION!,
-          Key: fileKey,
-          Method: 'GET',
-          Expires: 3600,
-          Sign: true,
-        },
-        (err: any, data: any) => {
-          if (err) reject(err);
-          else resolve(data.Url);
-        }
-      );
-    });
-
-    res.json({ url: tempUrl, expires_in: 3600 });
+    // Since we're using local storage, the audioUrl in the database is already accessible
+    res.json({ url: recording.audioUrl, expires_in: 3600 });
   } catch {
     res.status(500).json({ message: '获取播放 URL 失败' });
   }
