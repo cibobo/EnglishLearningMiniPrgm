@@ -80,13 +80,25 @@ Page({
       });
 
       // Load locally saved reading progress
-      const savedRecordings = wx.getStorageSync(`lesson_recordings_${lessonId}`) || {};
-      const recordedCount = Object.keys(savedRecordings).length;
+      const savedStorage = wx.getStorageSync(`lesson_recordings_${lessonId}`) || {};
+      // Rebuild recordings map: uploaded entries count as done (truthy), pending as their tempPath
+      const recordings = {};
+      for (let key in savedStorage) {
+        const entry = savedStorage[key];
+        if (entry === true || (entry && entry.uploaded)) {
+          recordings[key] = entry; // already uploaded
+        } else if (entry && entry.tempPath) {
+          recordings[key] = entry.tempPath; // local file waiting to upload
+        } else {
+          recordings[key] = entry;
+        }
+      }
+      const recordedCount = Object.keys(recordings).length;
 
       let startGroup = 0;
       let startIndex = 0;
       for (let i = 0; i < sentences.length; i++) {
-         if (!savedRecordings[i]) {
+         if (!recordings[i]) {
             startIndex = i;
             startGroup = groups.findIndex(g => g.indices.includes(i));
             if (startGroup === -1) startGroup = 0;
@@ -101,7 +113,7 @@ Page({
         activeGroupIndex: startGroup,
         currentIndex: startIndex,
         loading: false,
-        recordings: savedRecordings,
+        recordings,
         recordedCount,
         allDone: recordedCount >= sentences.length
       });
@@ -187,8 +199,17 @@ Page({
           allDone,
         });
 
-        const storageMask = {};
-        for (let key in updated) storageMask[key] = true;
+        // Persist to storage: store tempFilePath for new recordings, preserve uploaded markers
+        const existingStorage = wx.getStorageSync(`lesson_recordings_${this.data.lessonId}`) || {};
+        const storageMask = { ...existingStorage };
+        for (let key in updated) {
+          const val = updated[key];
+          if (typeof val === 'string') {
+            // New local recording not yet uploaded
+            storageMask[key] = { uploaded: false, tempPath: val };
+          }
+          // If already { uploaded: true }, don't overwrite
+        }
         wx.setStorageSync(`lesson_recordings_${this.data.lessonId}`, storageMask);
 
         if (!allDone && currentIndex < sentences.length - 1) {
@@ -438,12 +459,27 @@ Page({
     wx.showLoading({ title: '正在发送录音…', mask: true });
 
     try {
-      const recordingPaths = Object.values(this.data.recordings);
-      // Filter out previously saved 'true' booleans, get actual local file paths
-      const actualFiles = recordingPaths.filter(path => typeof path === 'string');
-      const lastFile = actualFiles[actualFiles.length - 1];
+      const { recordings, lessonId, sentences } = this.data;
+      const token = wx.getStorageSync('access_token');
 
-      if (!lastFile) {
+      // Collect entries that are local files not yet uploaded
+      const pendingEntries = []; // [{ sentenceIndex, tempPath, sentenceId }]
+      for (let key in recordings) {
+        const val = recordings[key];
+        const sentenceIndex = parseInt(key);
+        if (typeof val === 'string') {
+          // It's a tempFilePath - needs uploading
+          const sentence = sentences[sentenceIndex];
+          pendingEntries.push({
+            sentenceIndex,
+            tempPath: val,
+            sentenceId: sentence ? sentence.id : null,
+          });
+        }
+        // If val is an object {uploaded:true} or boolean true, skip - already on server
+      }
+
+      if (pendingEntries.length === 0) {
         wx.hideLoading();
         wx.showModal({
            title: '太棒了',
@@ -454,50 +490,60 @@ Page({
         this.setData({ submitting: false });
         return;
       }
-      
-      const filename = `recording_${Date.now()}.aac`;
 
-      const presignRes = await request({
-        url: '/upload/presign',
-        method: 'POST',
-        data: { filename, content_type: 'audio/aac', category: 'recording' },
-      });
+      // Upload each pending entry individually
+      const storage = wx.getStorageSync(`lesson_recordings_${lessonId}`) || {};
 
-      const token = wx.getStorageSync('access_token');
-
-      const uploadData = await new Promise((resolve, reject) => {
-        wx.uploadFile({
-          url: presignRes.upload_url || presignRes.presigned_url,
-          filePath: lastFile,
-          name: presignRes.field_name || 'file',
-          header: {
-            Authorization: token ? `Bearer ${token}` : ''
-          },
-          success: (res) => {
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-              try {
-                resolve(JSON.parse(res.data));
-              } catch (e) {
-                resolve(res);
-              }
-            } else reject(new Error(`上传失败: ${res.statusCode}`));
-          },
-          fail: reject,
+      for (let i = 0; i < pendingEntries.length; i++) {
+        const entry = pendingEntries[i];
+        wx.showLoading({ 
+          title: `上传录音 ${i + 1}/${pendingEntries.length}…`, 
+          mask: true 
         });
-      });
 
-      const fileKey = uploadData.file_key || presignRes.file_key;
+        const filename = `recording_${Date.now()}_${entry.sentenceIndex}.aac`;
+        const presignRes = await request({
+          url: '/upload/presign',
+          method: 'POST',
+          data: { filename, content_type: 'audio/aac', category: 'recording' },
+        });
 
-      await request({
-        url: '/recordings',
-        method: 'POST',
-        data: { lessonId: this.data.lessonId, fileKey: fileKey },
-      });
+        const uploadData = await new Promise((resolve, reject) => {
+          wx.uploadFile({
+            url: presignRes.upload_url || presignRes.presigned_url,
+            filePath: entry.tempPath,
+            name: presignRes.field_name || 'file',
+            header: { Authorization: token ? `Bearer ${token}` : '' },
+            success: (res) => {
+              if (res.statusCode >= 200 && res.statusCode < 300) {
+                try { resolve(JSON.parse(res.data)); } catch (e) { resolve(res); }
+              } else reject(new Error(`上传失败: ${res.statusCode}`));
+            },
+            fail: reject,
+          });
+        });
+
+        const fileKey = uploadData.file_key || presignRes.file_key;
+
+        await request({
+          url: '/recordings',
+          method: 'POST',
+          data: { 
+            lessonId,
+            fileKey,
+            sentenceId: entry.sentenceId,
+          },
+        });
+
+        // Mark this entry as uploaded in storage
+        storage[entry.sentenceIndex] = { uploaded: true };
+        wx.setStorageSync(`lesson_recordings_${lessonId}`, storage);
+      }
 
       wx.hideLoading();
       wx.showModal({
         title: '🎉 太棒了！',
-        content: '录音已发送给老师，老师会认真听的！',
+        content: `共 ${pendingEntries.length} 条录音已发送给老师，老师会认真听的！`,
         showCancel: false,
         success: () => wx.navigateBack(),
       });

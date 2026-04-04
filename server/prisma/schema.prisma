@@ -97,7 +97,8 @@ model Sentence {
   imageUrl   String? @map("image_url") @db.VarChar(500) 
   orderIndex Int     @default(0) @map("order_index")
 
-  lesson Lesson @relation(fields: [lessonId], references: [id])
+  lesson               Lesson                @relation(fields: [lessonId], references: [id])
+  recordingSubmissions RecordingSubmission[]
 
   @@map("sentences")
 }
@@ -106,12 +107,14 @@ model RecordingSubmission {
   id          String   @id @default(uuid())
   studentId   String   @map("student_id")
   lessonId    String   @map("lesson_id")
+  sentenceId  String?  @map("sentence_id")  // nullable for backward compat
   audioUrl    String   @map("audio_url") @db.VarChar(500)
   status      String   @default("pending") @db.VarChar(20)
   submittedAt DateTime @default(now()) @map("submitted_at")
 
-  student Student @relation(fields: [studentId], references: [id])
-  lesson  Lesson  @relation(fields: [lessonId], references: [id])
+  student  Student   @relation(fields: [studentId], references: [id])
+  lesson   Lesson    @relation(fields: [lessonId], references: [id])
+  sentence Sentence? @relation(fields: [sentenceId], references: [id])
 
   @@map("recording_submissions")
 }

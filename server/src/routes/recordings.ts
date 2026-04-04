@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import fs from 'fs';
+import path from 'path';
 import prisma from '../lib/prisma';
 import { authenticate, requireTeacher, requireStudent } from '../middleware/auth';
 
@@ -11,7 +13,7 @@ const BASE_URL = process.env.SERVER_BASE_URL || 'http://150.230.2.226:3000';
 // 学生提交录音
 router.post('/', requireStudent, async (req, res) => {
   try {
-    const { lessonId, fileKey } = req.body;
+    const { lessonId, fileKey, sentenceId } = req.body;
     if (!lessonId || !fileKey) {
       res.status(400).json({ message: '缺少 lessonId 或 fileKey' });
       return;
@@ -28,6 +30,7 @@ router.post('/', requireStudent, async (req, res) => {
       data: {
         studentId: req.user!.id,
         lessonId,
+        sentenceId: sentenceId || null,
         audioUrl,
         status: 'pending',
       },
@@ -52,6 +55,7 @@ router.get('/', requireTeacher, async (req, res) => {
       include: {
         student: { select: { id: true, name: true } },
         lesson: { select: { id: true, title: true } },
+        sentence: { select: { id: true, text: true, orderIndex: true } },
       },
       orderBy: { submittedAt: 'desc' },
     });
@@ -100,6 +104,42 @@ router.patch('/:id/status', requireTeacher, async (req, res) => {
       data: { status },
     });
     res.json(updated);
+  } catch {
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+// ─── DELETE /recordings/:id ─────────────────────────────────────────────────────
+router.delete('/:id', requireTeacher, async (req, res) => {
+  try {
+    const recording = await prisma.recordingSubmission.findUnique({
+      where: { id: req.params.id as string },
+    });
+    if (!recording) {
+      res.status(404).json({ message: '录音不存在' });
+      return;
+    }
+
+    // 删除数据库记录
+    const recordingId = req.params.id as string;
+    await prisma.recordingSubmission.delete({ where: { id: recordingId } });
+
+    // 尝试删除本地文件
+    try {
+      let audioUrl = recording.audioUrl;
+      if (audioUrl.startsWith('undefined/')) {
+        audioUrl = `${BASE_URL}/${audioUrl.slice('undefined/'.length)}`;
+      }
+      const urlObj = new URL(audioUrl);
+      // urlObj.pathname e.g. "/uploads/student-recordings/2026/04/xxx.aac"
+      const relPath = urlObj.pathname.replace(/^\/uploads\//, '');
+      const filePath = path.join(process.cwd(), 'uploads', relPath);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch {
+      // 文件删除失败不影响接口成功响应
+    }
+
+    res.json({ message: '录音已删除' });
   } catch {
     res.status(500).json({ message: '服务器错误' });
   }

@@ -117,29 +117,57 @@ router.get('/:id/progress', async (req, res) => {
       return;
     }
 
-    // 统计该学生班级分配的课程数（通过关联表）
-    const totalLessons = student.classId
-      ? await prisma.classLesson.count({
-          where: {
-            classId: student.classId,
-            lesson: { deletedAt: null },
+    // 获取该学生班级分配的所有课程，并包含句子数量
+    const classLessons = student.classId
+      ? await prisma.classLesson.findMany({
+          where: { classId: student.classId, lesson: { deletedAt: null } },
+          include: {
+            lesson: {
+              select: {
+                id: true,
+                title: true,
+                _count: { select: { sentences: true } },
+              },
+            },
           },
+          orderBy: { orderIndex: 'asc' },
         })
-      : 0;
+      : [];
+
+    const totalLessons = classLessons.length;
 
     const submissions = await prisma.recordingSubmission.findMany({
       where: { studentId: req.params.id },
-      include: { lesson: { select: { id: true, title: true } } },
+      include: {
+        lesson: {
+          select: { id: true, title: true, sentences: { select: { id: true, text: true, orderIndex: true }, orderBy: { orderIndex: 'asc' } } },
+        },
+        sentence: { select: { id: true, text: true, orderIndex: true } },
+      },
       orderBy: { submittedAt: 'desc' },
     });
 
     const completedLessons = new Set(submissions.map((s) => s.lessonId)).size;
+
+    // 构建每个课程的分组结构
+    const lessonGroups = classLessons.map((cl) => {
+      const lessonId = cl.lesson.id;
+      const lessonSubmissions = submissions.filter((s) => s.lessonId === lessonId);
+      return {
+        lessonId,
+        lessonTitle: cl.lesson.title,
+        sentenceCount: cl.lesson._count.sentences,
+        submissionCount: lessonSubmissions.length,
+        submissions: lessonSubmissions,
+      };
+    });
 
     res.json({
       student,
       totalLessons,
       completedLessons,
       submissions,
+      lessonGroups,
     });
   } catch {
     res.status(500).json({ message: '服务器错误' });
