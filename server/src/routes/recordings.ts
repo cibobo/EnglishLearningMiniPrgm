@@ -74,8 +74,12 @@ router.get('/:id/url', requireTeacher, async (req, res) => {
       return;
     }
 
-    // Since we're using local storage, the audioUrl in the database is already accessible
-    res.json({ url: recording.audioUrl, expires_in: 3600 });
+    // Fix URLs that were stored with "undefined/" prefix due to missing SERVER_BASE_URL env var
+    let audioUrl = recording.audioUrl;
+    if (audioUrl.startsWith('undefined/')) {
+      audioUrl = `${BASE_URL}/${audioUrl.slice('undefined/'.length)}`;
+    }
+    res.json({ url: audioUrl, expires_in: 3600 });
   } catch {
     res.status(500).json({ message: '获取播放 URL 失败' });
   }
