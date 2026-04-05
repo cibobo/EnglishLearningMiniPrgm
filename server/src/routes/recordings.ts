@@ -1,21 +1,17 @@
 import { Router } from 'express';
-import fs from 'fs';
-import path from 'path';
 import prisma from '../lib/prisma';
 import { authenticate, requireTeacher, requireStudent } from '../middleware/auth';
 
 const router = Router();
 router.use(authenticate);
 
-const BASE_URL = process.env.SERVER_BASE_URL || 'http://150.230.2.226:3000';
-
 // ─── POST /recordings ─────────────────────────────────────────────────────────
-// 学生提交录音
+// 学生提交录音（小程序端直传 COS 后，把 cloudId 发给后端登记）
 router.post('/', requireStudent, async (req, res) => {
   try {
-    const { lessonId, fileKey, sentenceId } = req.body;
-    if (!lessonId || !fileKey) {
-      res.status(400).json({ message: '缺少 lessonId 或 fileKey' });
+    const { lessonId, cloudId, sentenceId } = req.body;
+    if (!lessonId || !cloudId) {
+      res.status(400).json({ message: '缺少 lessonId 或 cloudId' });
       return;
     }
 
@@ -25,13 +21,14 @@ router.post('/', requireStudent, async (req, res) => {
       return;
     }
 
-    const audioUrl = fileKey.startsWith('http') ? fileKey : `${BASE_URL}/uploads/${fileKey}`;
+    // cloudId 格式: cloud://prod-xxx/recordings/lessonId/timestamp_index.aac
+    // 直接存储，后续通过微信开放接口或 COS SDK 生成临时下载链接
     const submission = await prisma.recordingSubmission.create({
       data: {
         studentId: req.user!.id,
         lessonId,
         sentenceId: sentenceId || null,
-        audioUrl,
+        audioUrl: cloudId,
         status: 'pending',
       },
     });
@@ -66,7 +63,8 @@ router.get('/', requireTeacher, async (req, res) => {
 });
 
 // ─── GET /recordings/:id/url ──────────────────────────────────────────────────
-// 获取录音私有访问 URL（仅教师）
+// 获取录音访问 URL（仅教师）
+// audioUrl 可能是旧的 http URL 或新的 cloud:// CloudID
 router.get('/:id/url', requireTeacher, async (req, res) => {
   try {
     const recordingId = req.params.id as string;
@@ -78,12 +76,10 @@ router.get('/:id/url', requireTeacher, async (req, res) => {
       return;
     }
 
-    // Fix URLs that were stored with "undefined/" prefix due to missing SERVER_BASE_URL env var
-    let audioUrl = recording.audioUrl;
-    if (audioUrl.startsWith('undefined/')) {
-      audioUrl = `${BASE_URL}/${audioUrl.slice('undefined/'.length)}`;
-    }
-    res.json({ url: audioUrl, expires_in: 3600 });
+    // 新格式：cloud:// CloudID，直接返回给教师端。
+    // 教师端通过 wx.cloud.getTempFileURL 转换为临时播放链接。
+    // 旧格式：http URL（Oracle 服务器时期的历史数据），直接返回。
+    res.json({ url: recording.audioUrl, expires_in: 3600 });
   } catch {
     res.status(500).json({ message: '获取播放 URL 失败' });
   }
@@ -110,6 +106,9 @@ router.patch('/:id/status', requireTeacher, async (req, res) => {
 });
 
 // ─── DELETE /recordings/:id ─────────────────────────────────────────────────────
+// 删除数据库记录
+// 注意：COS 上的音频文件不会自动删除，可在云托管控制台手动清理，
+// 或后续集成 COS SDK 在此处自动删除。
 router.delete('/:id', requireTeacher, async (req, res) => {
   try {
     const recording = await prisma.recordingSubmission.findUnique({
@@ -120,24 +119,8 @@ router.delete('/:id', requireTeacher, async (req, res) => {
       return;
     }
 
-    // 删除数据库记录
-    const recordingId = req.params.id as string;
-    await prisma.recordingSubmission.delete({ where: { id: recordingId } });
-
-    // 尝试删除本地文件
-    try {
-      let audioUrl = recording.audioUrl;
-      if (audioUrl.startsWith('undefined/')) {
-        audioUrl = `${BASE_URL}/${audioUrl.slice('undefined/'.length)}`;
-      }
-      const urlObj = new URL(audioUrl);
-      // urlObj.pathname e.g. "/uploads/student-recordings/2026/04/xxx.aac"
-      const relPath = urlObj.pathname.replace(/^\/uploads\//, '');
-      const filePath = path.join(process.cwd(), 'uploads', relPath);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    } catch {
-      // 文件删除失败不影响接口成功响应
-    }
+    await prisma.recordingSubmission.delete({ where: { id: req.params.id as string } });
+    // TODO: 后续可调用 COS SDK 删除 recording.audioUrl 对应的 COS 文件
 
     res.json({ message: '录音已删除' });
   } catch {
