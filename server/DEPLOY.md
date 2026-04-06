@@ -116,7 +116,7 @@ https://express-u5ne-242771-4-1419482792.sh.run.tcloudbase.com
 ```powershell
 git add -A
 git commit -m "chore: deploy update"
-git archive --format=zip --output=deploy.zip HEAD Dockerfile .dockerignore package.json package-lock.json tsconfig.json src prisma
+git archive --format=zip --output=deploy.zip HEAD Dockerfile .dockerignore package.json package-lock.json tsconfig.json tsconfig.seed.json src prisma
 ```
 
 打包后将 `server/deploy.zip` 上传到云托管控制台。
