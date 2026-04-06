@@ -1,8 +1,12 @@
-# 使用官方 Node 20 Alpine 镜像（含正确版本 Node.js，Prisma 5.x 需要 Node 16+）
-FROM node:20-alpine
+# 使用官方 Node 20 Debian Slim 镜像（原生支持 glibc 和标准 OpenSSL，完美兼容 Prisma）
+FROM node:20-slim
 
-# 安装 HTTPS 证书（云托管调用必需）和构建工具
-RUN apk add --no-cache ca-certificates openssl libc6-compat
+# 安装 HTTPS 证书和 OpenSSL（Prisma 迁移引擎强依赖）
+# 配合国内 apt 镜像源加速下载
+RUN sed -i 's/deb.debian.org/mirrors.tencent.com/g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update \
+    && apt-get install -y ca-certificates openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
