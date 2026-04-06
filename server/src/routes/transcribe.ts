@@ -18,7 +18,15 @@ router.use(authenticate);
 const upload = multer({ dest: os.tmpdir() });
 
 // Instantiate Google Speech Client
-const client = new speech.SpeechClient();
+const speechConfig: any = {};
+if (process.env.GOOGLE_CREDENTIALS_JSON) {
+  try {
+    speechConfig.credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+  } catch (err) {
+    console.warn("Failed to parse GOOGLE_CREDENTIALS_JSON:", err);
+  }
+}
+const client = new speech.SpeechClient(speechConfig);
 
 router.post('/', upload.single('audio'), async (req: Request, res: Response): Promise<void> => {
   const file = (req as any).file;
