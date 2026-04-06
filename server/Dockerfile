@@ -1,25 +1,17 @@
-# 参考微信云托管官方示例优化
-# 使用 alpine:3.13 基础镜像配合国内镜像源，确保构建速度和稳定性
-FROM alpine:3.13
+# 使用官方 Node 20 Alpine 镜像（含正确版本 Node.js，Prisma 5.x 需要 Node 16+）
+FROM node:20-alpine
 
-# 安装 HTTPS 证书（云托管调用必需）
-RUN apk add ca-certificates
-
-# 安装 Node.js 和 npm（使用腾讯镜像加速）
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tencent.com/g' /etc/apk/repositories \
-  && apk add --update --no-cache nodejs npm
-
-# 安装 TypeScript 编译工具
-RUN npm install -g typescript ts-node --registry=https://mirrors.cloud.tencent.com/npm/
+# 安装 HTTPS 证书（云托管调用必需）和构建工具
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 
-# 拷贝依赖文件
+# 先拷贝依赖文件（利用 Docker 层缓存）
 COPY package*.json ./
 COPY tsconfig.json ./
 COPY prisma ./prisma/
 
-# 使用国内镜像源安装依赖
+# 使用腾讯国内镜像源加速安装
 RUN npm config set registry https://mirrors.cloud.tencent.com/npm/
 RUN npm install
 
