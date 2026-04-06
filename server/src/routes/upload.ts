@@ -1,16 +1,18 @@
 import { Router, Request, Response } from 'express';
-import multer, { StorageEngine, FileFilterCallback } from 'multer';
+import multer from 'multer';
 import crypto from 'crypto';
 import path from 'path';
-import fs from 'fs';
+import tcb from '@cloudbase/node-sdk';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
 router.use(authenticate);
 
-// ─── 本地存储配置 ──────────────────────────────────────────────────────────────
-// 文件保存到服务器的 uploads/ 目录下
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
+// ─── 初始化 CloudBase Node SDK ────────────────────────────────────────────────
+// 在微信云托管内容器会自动继承环境凭证
+const cloudApp = tcb.init({
+  env: tcb.SYMBOL_CURRENT_ENV,
+});
 
 type UploadCategory = 'lesson_image' | 'lesson_audio' | 'recording';
 
@@ -26,35 +28,17 @@ const ALLOWED_TYPES: Record<UploadCategory, string[]> = {
   recording: ['audio/aac', 'audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/wav', 'audio/mp3', 'video/mp4'],
 };
 
-// multer 动态存储：根据 category 决定子目录
-const storage = multer.diskStorage({
-  destination: (req, _file, cb) => {
-    const category = req.query.category as UploadCategory;
-    const subDir = CATEGORY_DIRS[category] || 'misc';
-    const now = new Date();
-    const datePath = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const dir = path.join(UPLOADS_DIR, subDir, datePath);
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.bin';
-    cb(null, `${crypto.randomUUID()}${ext}`);
-  },
-});
-
+// 改用内存存储，直接将前端传来的包读到内存里，再通过 SDK 上传至 COS
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB 上限
 });
 
-// 服务器的公网基础 URL（从 env 读取，默认用 IP）
+// 服务器的公网基础 URL
 const BASE_URL = process.env.SERVER_BASE_URL || 'http://150.230.2.226:3000';
 
 // ─── POST /upload/presign ─────────────────────────────────────────────────────
-// 注意：原来是「预签名URL然后前端直传」的模式。
-// 改为本地存储后，前端需要改用 POST /upload/file 接口直接上传文件。
-// 为了保持前端兼容，此接口返回一个「上传令牌」，前端用它调用 /upload/file。
+// 为了保持前端（Teacher-Web）兼容，该接口继续返回包含后续真实上传路径的指令
 router.post('/presign', async (req: Request, res: Response) => {
   const { filename, content_type, category } = req.body as {
     filename: string;
@@ -77,31 +61,59 @@ router.post('/presign', async (req: Request, res: Response) => {
     return;
   }
 
-  // 返回直传接口地址，前端把文件 POST 到这里
   res.json({
     upload_url: `${BASE_URL}/api/v1/upload/file?category=${category}`,
-    method: 'POST',                 // 前端用 multipart/form-data POST
-    field_name: 'file',             // FormData 的字段名
+    method: 'POST',
+    field_name: 'file',
     expires_in: 900,
   });
 });
 
 // ─── POST /upload/file?category=xxx ──────────────────────────────────────────
-// 接收前端直传的文件，保存到本地，返回可访问的 public_url
-router.post('/file', upload.single('file'), (req: Request, res: Response) => {
-  if (!req.file) {
-    res.status(400).json({ message: '未收到文件' });
-    return;
+// 接收前端 Teacher-Web 的真实文件，通过云托管内网 SDK 存入 COS
+router.post('/file', upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ message: '未收到文件' });
+      return;
+    }
+
+    const category = (req.query.category as UploadCategory) || 'lesson_image';
+    const subDir = CATEGORY_DIRS[category] || 'misc';
+    
+    // 生成 CloudPath (例如: lesson-images/2026/04/uuid.jpg)
+    const now = new Date();
+    const datePath = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const ext = path.extname(req.file.originalname) || '.bin';
+    const cloudPath = `${subDir}/${datePath}/${crypto.randomUUID()}${ext}`;
+
+    // 使用 CloudBase SDK 把内存中的文件 Buffer 直传云存储
+    const uploadResult = await cloudApp.uploadFile({
+      cloudPath: cloudPath,
+      fileContent: req.file.buffer,
+    });
+
+    // uploadResult.fileID 是类似 cloud://xxx... 的格式
+    // 借用 getTempFileURL() 方法来反推获取底层的 HTTPS URL (去掉签名部分留作永久公共链接)
+    const tempUrlResult = await cloudApp.getTempFileURL({
+      fileList: [uploadResult.fileID]
+    });
+    
+    let publicUrl = tempUrlResult.fileList[0].tempFileURL;
+    // 去掉 ?sign=... 后缀得到原生静态加载地址（前提：COS 权限需设置为公有读）
+    if (publicUrl.includes('?')) {
+      publicUrl = publicUrl.substring(0, publicUrl.indexOf('?'));
+    }
+
+    res.json({
+      file_key: uploadResult.fileID,
+      // 如果老师网页没配置 COS CORS 白名单拦截了公共访问，我们也可以传原始 public_url (含临时签名) 供立马预览
+      public_url: publicUrl, 
+    });
+  } catch (err) {
+    console.error('上传到微信云 COS 失败:', err);
+    res.status(500).json({ message: '文件转存失败' });
   }
-
-  // 计算相对于 UPLOADS_DIR 的路径，作为 file_key
-  const relativePath = path.relative(UPLOADS_DIR, req.file.path).replace(/\\/g, '/');
-  const publicUrl = `${BASE_URL}/uploads/${relativePath}`;
-
-  res.json({
-    file_key: relativePath,
-    public_url: publicUrl,
-  });
 });
 
 export default router;
