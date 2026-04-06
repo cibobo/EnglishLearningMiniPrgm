@@ -8,6 +8,10 @@ App({
   },
 
   onLaunch() {
+    // 初始化微信云服务（仅用于 wx.cloud.uploadFile 直传 COS）
+    // 注意：API 调用仍然走 wx.request，不受此影响
+    wx.cloud.init({ env: 'prod-7gq2vor170262a75' });
+
     // 检查本地 Token，若有效则静默刷新用户信息
     const token = getStorageSync('access_token');
     if (token) {

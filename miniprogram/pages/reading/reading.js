@@ -465,20 +465,15 @@ Page({
 
   async _doSubmit() {
     this.setData({ submitting: true });
-    // NOTE: do NOT use mask:true here - it would block touchend on the record button
     wx.showLoading({ title: '准备中…', mask: false });
 
     try {
       const { recordings, lessonId, sentences } = this.data;
-      const token = wx.getStorageSync('access_token');
-
-      // Collect entries that are local files not yet uploaded
-      const pendingEntries = []; // [{ sentenceIndex, tempPath, sentenceId }]
+      const pendingEntries = [];
       for (let key in recordings) {
         const val = recordings[key];
         const sentenceIndex = parseInt(key);
         if (typeof val === 'string') {
-          // It's a tempFilePath - needs uploading
           const sentence = sentences[sentenceIndex];
           pendingEntries.push({
             sentenceIndex,
@@ -486,7 +481,6 @@ Page({
             sentenceId: sentence ? sentence.id : null,
           });
         }
-        // If val is an object {uploaded:true} or boolean true, skip - already on server
       }
 
       if (pendingEntries.length === 0) {
@@ -501,54 +495,35 @@ Page({
         return;
       }
 
-      // Only show the blocking mask NOW that we're actually uploading
       wx.showLoading({ title: `上传录音 1/${pendingEntries.length}…`, mask: true });
-
-      // Upload each pending entry individually
       const storage = wx.getStorageSync(`lesson_recordings_${lessonId}`) || {};
 
       for (let i = 0; i < pendingEntries.length; i++) {
         const entry = pendingEntries[i];
-        wx.showLoading({
-          title: `上传录音 ${i + 1}/${pendingEntries.length}…`,
-          mask: true
-        });
+        wx.showLoading({ title: `上传录音 ${i + 1}/${pendingEntries.length}…`, mask: true });
 
-        const filename = `recording_${Date.now()}_${entry.sentenceIndex}.aac`;
-        const presignRes = await request({
-          url: '/upload/presign',
-          method: 'POST',
-          data: { filename, content_type: 'audio/aac', category: 'recording' },
-        });
-
-        const uploadData = await new Promise((resolve, reject) => {
-          wx.uploadFile({
-            url: presignRes.upload_url || presignRes.presigned_url,
+        const cloudPath = `recordings/${lessonId}/${Date.now()}_${entry.sentenceIndex}.aac`;
+        // wx.cloud.uploadFile 在部分基础库版本不返回 Promise，统一用回调包装
+        const uploadRes = await new Promise((resolve, reject) => {
+          wx.cloud.uploadFile({
+            cloudPath,
             filePath: entry.tempPath,
-            name: presignRes.field_name || 'file',
-            header: { Authorization: token ? `Bearer ${token}` : '' },
-            success: (res) => {
-              if (res.statusCode >= 200 && res.statusCode < 300) {
-                try { resolve(JSON.parse(res.data)); } catch (e) { resolve(res); }
-              } else reject(new Error(`上传失败: ${res.statusCode}`));
-            },
-            fail: reject,
+            config: { env: 'prod-7gq2vor170262a75' },
+            success: (res) => resolve(res),
+            fail: (err) => reject(new Error(err.errMsg || '上传失败')),
           });
         });
-
-        const fileKey = uploadData.file_key || presignRes.file_key;
 
         await request({
           url: '/recordings',
           method: 'POST',
           data: {
             lessonId,
-            fileKey,
+            cloudId: uploadRes.fileID,   // CloudID，如 cloud://prod-xxx/recordings/...
             sentenceId: entry.sentenceId,
           },
         });
 
-        // Mark this entry as uploaded in storage
         storage[entry.sentenceIndex] = { uploaded: true };
         wx.setStorageSync(`lesson_recordings_${lessonId}`, storage);
       }

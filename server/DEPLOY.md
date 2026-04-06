@@ -59,3 +59,124 @@ pm2 restart all
 
 > **最佳实践建议**：
 > 以后如果本地只是改了一行没有逻辑和数据库绑定的简单代码，虽然第 3 步 `prisma` 操作可以跳过，但我仍然**强烈建议**每次都把这 5 个命令连着跑完（或者写成一个小小的 `sh` 运行脚本），以防万一！
+
+---
+
+---
+
+# 微信云托管部署指南
+
+架构：Express.js (TypeScript) + Prisma + MySQL → 腾讯云「云托管」
+
+**当前云托管服务域名：**
+```
+https://express-u5ne-242771-4-1419482792.sh.run.tcloudbase.com
+```
+
+---
+
+## 第一步：在云托管控制台配置数据库
+
+> 做这步之前先别部署代码，数据库地址要先拿到才能填 ENV。
+
+1. 打开 [微信云开发控制台](https://cloud.weixin.qq.com/)
+2. 进入 **云托管 → 数据库**（或单独开通**腾讯云数据库 MySQL**）
+3. 创建一个 MySQL 实例，记录下内网 Host、端口、用户名、密码、库名
+
+> ⚠️ 云托管内的服务通过**内网**直连数据库，不需要公网暴露。
+
+---
+
+## 第二步：在云托管配置环境变量
+
+在 **云托管 → 服务 → 版本配置 → 环境变量** 中填入：
+
+| 变量名 | 说明 |
+|---|---|
+| `PORT` | `80`（云托管要求，Dockerfile 已设） |
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | `mysql://user:pass@10.x.x.x:3306/learning_app`（内网地址） |
+| `JWT_ACCESS_SECRET` | 随机长字符串 |
+| `JWT_REFRESH_SECRET` | 随机长字符串 |
+| `JWT_ACCESS_EXPIRES_IN` | `2h` |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` |
+| `WECHAT_APPID` | 小程序 AppID |
+| `WECHAT_SECRET` | 小程序 Secret |
+| `CORS_ORIGIN` | 教师端 Web 地址 |
+
+---
+
+## 第三步：打包代码（每次发布都用这条命令）
+
+> ⚠️ **必须用 `git archive` 而不是 `Compress-Archive`**。  
+> Windows 的 `Compress-Archive` 会产生反斜杠路径，Linux 无法识别，导致构建失败。
+
+在 `server/` 目录下运行：
+
+```powershell
+git add -A
+git commit -m "chore: deploy update"
+git archive --format=zip --output=deploy.zip HEAD Dockerfile .dockerignore package.json package-lock.json tsconfig.json src prisma
+```
+
+打包后将 `server/deploy.zip` 上传到云托管控制台。
+
+---
+
+## 第四步：上传并等待构建
+
+```
+云托管控制台 → 服务 → 新建版本 → 上传代码包 → 选择 deploy.zip
+```
+
+构建时云托管会自动：
+1. 按 `Dockerfile` 执行 `docker build`
+2. 容器启动时运行 `prisma migrate deploy`（自动建表/迁移）
+3. 启动 `node dist/app.js`
+
+构建日志在 **服务 → 版本 → 构建日志** 可实时查看。
+
+---
+
+## 第五步：验证部署成功
+
+访问健康检查接口：
+
+```
+GET https://express-u5ne-242771-4-1419482792.sh.run.tcloudbase.com/api/v1/health
+```
+
+应返回：
+
+```json
+{ "status": "ok", "timestamp": "..." }
+```
+
+---
+
+## 第六步：更新小程序 API 地址
+
+```javascript
+// miniprogram/utils/request.js
+const BASE_URL = 'https://express-u5ne-242771-4-1419482792.sh.run.tcloudbase.com/api/v1';
+```
+
+---
+
+## 第七步：配置微信合法域名
+
+在 **微信公众平台 → 开发 → 开发设置 → 服务器域名** 中添加：
+
+- **request 合法域名**：`https://express-u5ne-242771-4-1419482792.sh.run.tcloudbase.com`
+- **uploadFile 合法域名**：同上
+
+---
+
+## 已知坑（逐一解决过）
+
+| 问题 | 原因 | 解法 |
+|---|---|---|
+| ZIP 路径反斜杠警告，构建失败 | `Compress-Archive` 产生 Windows 路径 | 改用 `git archive` |
+| `prisma preinstall` 失败 | `alpine:3.13` 自带 Node.js v12，太旧 | 换 `node:20-alpine` |
+| `openssl not found`，启动崩溃 | Alpine 默认无 OpenSSL | Dockerfile 加 `apk add openssl libc6-compat` |
+
