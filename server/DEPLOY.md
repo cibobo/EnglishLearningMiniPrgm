@@ -46,6 +46,29 @@ pm2 restart all
 
 ---
 
+## 🔑 核心配置：集成 Google Speech-to-Text 凭证
+
+当需要使用 AI 智能长语音识别打轴功能时，我们必须往 Oracle 生产服务器上安全配置来自 Google Cloud 的鉴权文件：
+
+1. **获取鉴权文件**
+   - 从 Google Cloud Console 中生成并下载一个服务帐号密钥，即 `google-credentials.json` 文件。
+
+2. **安全上传文件到服务器 (绝不能提交至 Git)**
+   - 为防泄露，绝对不要将包含密钥的 JSON 推送到公共代码仓库。
+   - 方式一：使用 SFTP 客户端（如 FileZilla、WinSCP 等）将它拖拽上传至 Oracle 服务器。
+   - 方式二：也可以通过终端在安全目录手动创建（例如：`vim /home/ubuntu/google-credentials.json`），然后复制并右键粘贴内容。强烈建议存放到项目目录**外层**更安全的区域。
+
+3. **配置服务器后端环境变量 (.env)**
+   - 打开项目后端挂载路径 `server/.env` 文件，在最底部新加上对应的绝对路径指向变量：
+   ```env
+   GOOGLE_APPLICATION_CREDENTIALS="/home/ubuntu/google-credentials.json"
+   ```
+
+4. **强制重启生效**
+   - 最后，必须在 `server` 根目录重新跑一次守护进程重启（如 `pm2 restart all`），好让 Node.js 客户端在初始化时吃下新的鉴权路径！
+
+---
+
 ## 🛠️ 常见报错急救速查
 
 *   **报错**：`Property 'xxx' does not exist on type 'PrismaClient' / 'LessonCreateInput'`
