@@ -94,3 +94,64 @@ pm2 restart teacher-web
 3. **接口报 CORS 跨域拦截 / ERR_CONNECTION_REFUSED**
    - **原因**：CORS 是因为后端的跨域白名单（在 `app.ts` 内部）不认识 `http://150.230.2.226:8080`；而 Refused 是因为打过去地址发现后端系统根本没开或者死机了。
    - **解法**：使用 `pm2 logs` 分别针对前端或后台检查错误原因，确认后端 3000 端口存活。
+
+---
+
+## 🌩️ 进阶部署方案：使用 Nginx + Cloudflare 域名加速托管
+
+如果你的架构已经演进到拥有自己的域名，并希望利用 Cloudflare 提供的高速 CDN 和免费 HTTPS 绿锁，推荐抛弃 PM2 Serve，改用企业级的 Nginx 进行静态托管。
+
+### 第一阶段：准备 Cloudflare 与网络权限
+1. **云端防火墙**：在 Oracle Cloud 网页控制台的 Security Lists 中，额外添加入站规则开放 **80** 和 **443** 端口。
+2. **内部防火墙**：在 Linux SSH 内执行以下命令放行 Web 默认端口：
+   ```bash
+   sudo iptables -I INPUT -p tcp -m tcp --dport 80 -j ACCEPT
+   sudo iptables -I INPUT -p tcp -m tcp --dport 443 -j ACCEPT
+   sudo netfilter-persistent save
+   ```
+3. **设置 Cloudflare DNS**：在 Cloudflare 中添加 `A` 记录指向你的 Oracle 服务器 IP，并**点亮橙色云朵标志**启用代理。
+4. **设置 SSL 模式**：在 Cloudflare 的 **SSL/TLS -> 概述** 中，必须将加密模式设置为 **灵活 (Flexible)** 或 **完全 (Full)**。
+
+### 第二阶段：安装配置 Nginx
+```bash
+# 安装 Nginx
+sudo apt update
+sudo apt install nginx -y
+
+# 编辑针对本项目域名的专用配置（自行替换为你的真实域名和绝对路径）
+sudo nano /etc/nginx/conf.d/teacher-web.conf
+```
+输入以下为单页应用（SPA）量身定制的配置内容：
+```nginx
+server {
+    listen 80;
+    server_name www.yourdomain.online; # 替换为你绑定的域名
+
+    # 替换为你刚才 npm run build 生成的 dist 文件夹绝对路径
+    root /var/www/EnglishLearningMiniPrgm/teacher-web/dist;
+    index index.html;
+
+    # 让 Vue/React Router 完美处理 History 刷新不报 404
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 静态资源长期缓存，加速秒开
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2)$ {
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+    }
+}
+```
+
+### 第三阶段：解决权限并重启即刻生效
+```bash
+# 给所有父级目录和产物颁发 Nginx 的查看通行证 (防止前端报 403 Forbidden)
+sudo chmod -R 755 /var/www/EnglishLearningMiniPrgm/teacher-web/dist
+sudo chmod 755 /var/www/EnglishLearningMiniPrgm
+
+# 测试配置正确并让 Nginx 加载生效
+sudo nginx -t
+sudo systemctl reload nginx
+```
+以后每次代码拉取完执行 `npm run build` 生成新的 dist 文件夹后，Nginx 会自动实时应用最新的前端体验，极速优雅！

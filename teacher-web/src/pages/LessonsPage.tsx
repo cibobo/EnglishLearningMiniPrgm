@@ -157,7 +157,7 @@ const LessonsPage: React.FC = () => {
       // 1. 发给云端识别
       const fd = new FormData();
       fd.append('audio', file);
-      const { data } = await api.post('/transcribe', fd);
+      const { data } = await api.post('/api/transcribe', fd, { baseURL: '' });
       
       // 2. 正常上传原文件作为 masterAudioUrl
       message.loading({ content: '正在上传音频主文件...', key: 'transcribe', duration: 0 });
