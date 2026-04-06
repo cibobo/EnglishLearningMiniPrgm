@@ -17,6 +17,7 @@ import dashboardRouter from './routes/dashboard';
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1); // 允许信任微信云托管的反向代理（修复 rate-limit 日志报错）
 
 // ─── Security Middleware ───────────────────────────────────────────────────────
 app.use(helmet({

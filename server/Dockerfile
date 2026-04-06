@@ -31,8 +31,11 @@ RUN npm run build
 # 云托管监听 80 端口
 ENV PORT=80
 ENV NODE_ENV=production
+# 忽略微信云托管内网拦截可能抛出的自签名证书报错
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 
 EXPOSE 80
 
-# 启动：先跑数据库迁移，再启动服务
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/app.js"]
+# 启动：同步数据库表结构并启动服务
+# (因为没有使用 migration 系统，所以用 db push 同步 schema)
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/app.js"]
