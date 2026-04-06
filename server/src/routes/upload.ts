@@ -35,7 +35,7 @@ const upload = multer({
 });
 
 // 服务器的公网基础 URL
-const BASE_URL = process.env.SERVER_BASE_URL || 'http://150.230.2.226:3000';
+const BASE_URL = process.env.SERVER_BASE_URL || 'https://express-u5ne-242771-4-1419482792.sh.run.tcloudbase.com';
 
 // ─── POST /upload/presign ─────────────────────────────────────────────────────
 // 为了保持前端（Teacher-Web）兼容，该接口继续返回包含后续真实上传路径的指令

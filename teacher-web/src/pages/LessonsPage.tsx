@@ -103,13 +103,10 @@ const LessonsPage: React.FC = () => {
     });
     const formData = new FormData();
     formData.append(presign.field_name ?? 'file', file);
-    const uploadRes = await fetch(presign.upload_url, {
-      method: presign.method ?? 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('access_token') ?? ''}` },
-      body: formData,
+    const { data } = await api.post(presign.upload_url, formData, {
+      baseURL: '' // Prevent appending base URL if presign.upload_url is somehow relative, though it's absolute
     });
-    if (!uploadRes.ok) throw new Error('文件上传失败');
-    const { public_url } = await uploadRes.json();
+    const { public_url } = data;
     return public_url;
   };
 
