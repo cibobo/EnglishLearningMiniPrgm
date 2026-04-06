@@ -2,7 +2,7 @@
 FROM node:20-alpine
 
 # 安装 HTTPS 证书（云托管调用必需）和构建工具
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates openssl libc6-compat
 
 WORKDIR /app
 
