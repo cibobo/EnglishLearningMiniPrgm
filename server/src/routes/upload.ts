@@ -136,6 +136,7 @@ router.post('/file', upload.single('file'), async (req: Request, res: Response) 
         StorageClass: 'STANDARD',
         Body: req.file.buffer,
         ContentLength: req.file.size,
+        ContentType: req.file.mimetype,
         Headers: {
           'x-cos-meta-fileid': metaid
         }
