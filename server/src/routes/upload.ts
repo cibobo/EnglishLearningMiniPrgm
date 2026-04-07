@@ -2,17 +2,42 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import crypto from 'crypto';
 import path from 'path';
-import tcb from '@cloudbase/node-sdk';
+import axios from 'axios';
+import COS from 'cos-nodejs-sdk-v5';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
 router.use(authenticate);
 
-// ─── 初始化 CloudBase Node SDK ────────────────────────────────────────────────
-// 在微信云托管内容器会自动继承环境凭证
-const cloudApp = tcb.init({
-  env: tcb.SYMBOL_CURRENT_ENV,
-});
+const cosConfig = {
+  Bucket: process.env.COS_BUCKET || '', // 在云托管环境变量中配置
+  Region: process.env.COS_REGION || 'ap-shanghai'
+};
+
+let cos: COS;
+try {
+  cos = new COS({
+    getAuthorization: async function (options, callback) {
+      try {
+        const res = await axios.get('http://api.weixin.qq.com/_/cos/getauth');
+        const info = res.data;
+        const auth = {
+          TmpSecretId: info.TmpSecretId,
+          TmpSecretKey: info.TmpSecretKey,
+          SecurityToken: info.Token,
+          StartTime: Math.floor(Date.now() / 1000),
+          ExpiredTime: info.ExpiredTime,
+        };
+        callback(auth);
+      } catch (err) {
+        console.error('获取临时密钥失败', err);
+      }
+    },
+  });
+  console.log('COS 初始化成功');
+} catch (e) {
+  console.error('COS 初始化失败', e);
+}
 
 type UploadCategory = 'lesson_image' | 'lesson_audio' | 'recording';
 
@@ -87,31 +112,57 @@ router.post('/file', upload.single('file'), async (req: Request, res: Response) 
     const ext = path.extname(req.file.originalname) || '.bin';
     const cloudPath = `${subDir}/${datePath}/${crypto.randomUUID()}${ext}`;
 
-    // 使用 CloudBase SDK 把内存中的文件 Buffer 直传云存储
-    const uploadResult = await cloudApp.uploadFile({
-      cloudPath: cloudPath,
-      fileContent: req.file.buffer,
-    });
+    try {
+      // 1. 获取文件上传所需的加密元数据，保证后续小程序端能够访问
+      const authRes = await axios.post('http://api.weixin.qq.com/_/cos/metaid/encode', {
+        openid: '', // 管理端统一为空字符串
+        bucket: cosConfig.Bucket,
+        paths: [cloudPath]
+      });
 
-    // uploadResult.fileID 是类似 cloud://xxx... 的格式
-    // 借用 getTempFileURL() 方法来反推获取底层的 HTTPS URL (去掉签名部分留作永久公共链接)
-    const tempUrlResult = await cloudApp.getTempFileURL({
-      fileList: [uploadResult.fileID]
-    });
-    
-    let publicUrl = tempUrlResult.fileList[0].tempFileURL;
-    // 去掉 ?sign=... 后缀得到原生静态加载地址（前提：COS 权限需设置为公有读）
-    if (publicUrl.includes('?')) {
-      publicUrl = publicUrl.substring(0, publicUrl.indexOf('?'));
+      const metaid = authRes.data?.respdata?.x_cos_meta_field_strs?.[0];
+
+      if (!metaid) {
+        console.error('获取文件元数据失败，API返回值:', authRes.data);
+        res.status(500).json({ message: '文件上传初始化凭证失败' });
+        return;
+      }
+
+      // 2. 使用 COS SDK 结合元数据执行普通上传
+      cos.putObject({
+        Bucket: cosConfig.Bucket,
+        Region: cosConfig.Region,
+        Key: cloudPath,
+        StorageClass: 'STANDARD',
+        Body: req.file.buffer,
+        ContentLength: req.file.size,
+        Headers: {
+          'x-cos-meta-fileid': metaid
+        }
+      }, (err, data) => {
+        if (err) {
+          console.error('上传到微信云 COS 失败:', err);
+          res.status(500).json({ message: '文件转存失败' });
+          return;
+        }
+
+        // data.Location 返回示例: "examplebucket-1250000000.cos.ap-guangzhou.myqcloud.com/lesson-images/..."
+        const publicUrl = `https://${data.Location}`;
+
+        res.json({
+          // 可以将 tcb 云环境 ID 拼接成的完整地址视为前端可读取的持久标志，这里我们尽量保持向下兼容或直接返回云端路径对象
+          file_key: cloudPath, 
+          // public_url 代表可被外部直接访问的公有URL
+          public_url: publicUrl, 
+        });
+      });
+    } catch (err) {
+      console.error('获取元数据阶段失败:', err);
+      res.status(500).json({ message: '系统内部调用元数据错误' });
     }
 
-    res.json({
-      file_key: uploadResult.fileID,
-      // 如果老师网页没配置 COS CORS 白名单拦截了公共访问，我们也可以传原始 public_url (含临时签名) 供立马预览
-      public_url: publicUrl, 
-    });
   } catch (err) {
-    console.error('上传到微信云 COS 失败:', err);
+    console.error('文件上传处理失败:', err);
     res.status(500).json({ message: '文件转存失败' });
   }
 });
