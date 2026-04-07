@@ -35,6 +35,23 @@ try {
     },
   });
   console.log('COS 初始化成功');
+
+  // 自动强制校验并设置存储桶为公有读（异步执行，不阻塞启动）
+  if (cosConfig.Bucket) {
+    setTimeout(() => {
+      cos.putBucketAcl({
+        Bucket: cosConfig.Bucket,
+        Region: cosConfig.Region,
+        ACL: 'public-read'
+      }, (err, data) => {
+        if (err) {
+          console.error('【通知】自动设置 COS 存储桶为公有读失败（如已是公有读可能忽略）:', err.message || err);
+        } else {
+          console.log('【成功】底层 COS 存储桶权限已自动更新为「公有读私有写」');
+        }
+      });
+    }, 3000); // 延迟3秒执行，确保环境完全就绪
+  }
 } catch (e) {
   console.error('COS 初始化失败', e);
 }
