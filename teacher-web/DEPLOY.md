@@ -125,7 +125,8 @@ sudo nano /etc/nginx/conf.d/teacher-web.conf
 ```nginx
 server {
     listen 80;
-    server_name www.yourdomain.online; # 替换为你绑定的域名
+    # 替换为你绑定的域名。如果希望同时允许通过服务器公网 IP 直接访问，只需用空格将其加在后面即可，比如：
+    server_name www.yourdomain.online 150.230.2.226; 
 
     # 替换为你刚才 npm run build 生成的 dist 文件夹绝对路径
     root /var/www/EnglishLearningMiniPrgm/teacher-web/dist;
