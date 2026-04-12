@@ -1,19 +1,25 @@
 // utils/request.js — 统一网络请求封装
 //const BASE_URL = 'http://150.230.2.226:3000/api/v1';           // Oracle 服务器（已停用）
-const BASE_URL = 'https://express-u5ne-242771-4-1419482792.sh.run.tcloudbase.com/api/v1';
+// const BASE_URL = 'https://express-u5ne-242771-4-1419482792.sh.run.tcloudbase.com/api/v1';
 
 const request = (options) => {
   return new Promise((resolve, reject) => {
     const token = wx.getStorageSync('access_token');
-    wx.request({
-      url: `${BASE_URL}${options.url}`,
+    
+    // 使用微信云托管原生方法，免域名配置
+    wx.cloud.callContainer({
+      config: {
+        env: 'prod-7gq2vor170262a75', // 微信云托管的环境ID
+      },
+      path: `/api/v1${options.url}`,  // 接口路径
       method: options.method || 'GET',
-      data: options.data || {},
       header: {
-        'Content-Type': 'application/json',
+        'X-WX-SERVICE': 'express-u5ne', // 服务名称
+        'content-type': 'application/json',
         Authorization: token ? `Bearer ${token}` : '',
         ...options.header,
       },
+      data: options.data || {},
       success: (res) => {
         if (res.statusCode === 401) {
           // Token 过期，尝试刷新
