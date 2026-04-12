@@ -1,340 +1,380 @@
 /* pages/reading/reading.wxss */
 .page {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #F5F7FA;
-  padding-bottom: 250rpx;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
 }
 
-/* Loading */
-.loading-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #9CA3AF;
-  font-size: 28rpx;
-  gap: 24rpx;
-}
-
-.content-area {
-  flex: 1;
-  width: 100%;
-}
-
-/* Cover */
-.cover-wrap {
-  position: sticky;
-  top: -160rpx;
-  z-index: 50;
-  width: 100%;
-  height: 380rpx;
-  flex-shrink: 0;
-  margin-bottom: 24rpx;
-}
-
-.cover-img {
+/* =============================================
+   Global Immersive Background
+   ============================================= */
+.global-bg {
+  position: absolute; /* fixed doesn't work well over video/native sometimes, absolute inside relative page is safest */
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
+  z-index: -2;
+  filter: blur(40px) brightness(0.95);
+  transform: scale(1.15); /* Hide blured edges */
 }
 
-.cover-overlay {
+.global-bg-overlay {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.8));
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 32rpx;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background: rgba(238, 253, 242, 0.65); /* Surface Mint Green Tint */
 }
 
-.lesson-title-overlay {
-  color: #fff;
-  font-size: 42rpx;
+/* =============================================
+   Header (Top Glass Card)
+   ============================================= */
+.top-header-glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  padding: 100rpx 40rpx 32rpx;
+  border-bottom-left-radius: 48rpx;
+  border-bottom-right-radius: 48rpx;
+  box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.06);
+  z-index: 50;
+  flex-shrink: 0;
+  border-bottom: 2rpx solid rgba(255,255,255,0.8);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex: 1;
+}
+
+.header-thumb {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  border: 4rpx solid #c2e8ff; /* secondary container */
+  background: #eefdf2;
+}
+
+.header-title {
+  font-size: 34rpx;
   font-weight: 800;
-  text-shadow: 0 4rpx 12rpx rgba(0,0,0,0.5);
-  margin-bottom: 12rpx;
+  color: #7e5700;
+  max-width: 320rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-progress {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: #ffffff;
+  padding: 12rpx 24rpx;
+  border-radius: 999rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.04);
 }
 
 .progress-text {
-  color: #E5E7EB;
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 800;
+  color: #006688;
 }
 
-/* Image Groups */
+.star-icon {
+  font-size: 32rpx;
+  line-height: 1;
+}
+
+.header-progress-track {
+  width: 100%;
+  height: 16rpx;
+  background: rgba(0,0,0,0.05);
+  border-radius: 999rpx;
+  overflow: hidden;
+}
+
+.header-progress-fill {
+  height: 100%;
+  background: #ffba38;
+  border-radius: 999rpx;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* =============================================
+   List Content & Groups
+   ============================================= */
+.content-scroll {
+  flex: 1;
+  height: 0;
+  box-sizing: border-box;
+}
+
 .groups-container {
-  padding: 16rpx 32rpx;
+  padding: 40rpx 32rpx;
   display: flex;
   flex-direction: column;
-  gap: 32rpx; /* bigger gap between groups */
+  gap: 48rpx;
 }
 
 .image-group {
   display: flex;
   flex-direction: column;
-  scroll-margin-top: 250rpx; /* So it doesn't scroll under the sticky header */
+  gap: 24rpx;
 }
 
-.group-card {
-  position: relative;
-  border-radius: 20rpx;
+/* 绘本图卡 */
+.group-image-card {
+  width: 100%;
+  border-radius: 48rpx;
   overflow: hidden;
-  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.12);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  background-color: #fff;
-  z-index: 2; /* keep over sentences to hide scrolling overflow if any */
-}
-
-.group-card:active {
-  transform: scale(0.98);
+  box-shadow: 0 16rpx 40rpx rgba(0,0,0,0.08);
+  border: 8rpx solid #ffffff;
+  background: #fff;
 }
 
 .group-image {
   width: 100%;
   display: block;
-  min-height: 200rpx;
 }
 
-.expansion-hint {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.45);
-  color: #fff;
-  text-align: center;
-  padding: 16rpx 0;
-  font-size: 26rpx;
-  font-weight: 600;
-  backdrop-filter: blur(4px);
-}
-
-/* Sentences Accordion */
 .sentences-list {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease;
-}
-
-.sentences-list.expanded {
-  max-height: 8000rpx; /* allows long lists to expand without clipping immediately */
-  opacity: 1;
-  margin-top: 24rpx;
-}
-
-/* Sentence Rows */
-.sentence-row {
   display: flex;
-  flex-direction: row;
-  min-height: 120rpx;
-  background: #fdfdfd;
-  border-radius: 16rpx;
-  margin-bottom: 24rpx;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+/* =============================================
+   Sentence Cards (Bouncy Standard)
+   ============================================= */
+.bouncy-sentence-card {
+  border-radius: 32rpx;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
+}
+
+/* Locked (Not read yet, and not current) */
+.card-locked {
+  background: rgba(255,255,255,0.5);
+  border: 4rpx dashed #c6c6c6;
+  opacity: 0.8;
   padding: 32rpx;
-  box-sizing: border-box;
-  align-items: center;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-  /* 对于跳转到单句，同样预留顶部安全距离 */
-  scroll-margin-top: 250rpx;
 }
-
-/* Normal State text */
-.sentence-num {
-  font-size: 24rpx;
-  color: #9CA3AF;
-  font-weight: 700;
-  width: 48rpx;
-  flex-shrink: 0;
-}
-
-.sentence-text {
-  flex: 1;
-  font-size: 34rpx;
-  color: #1F2937;
+.card-locked .s-text {
+  color: #777777;
   font-weight: 600;
-  line-height: 1.5;
+  font-style: italic;
+  font-size: 32rpx;
 }
 
-.sentence-status {
+/* Completed */
+.card-completed {
+  background: #e8f7ec; /* surface-container-low */
+  border-bottom: 8rpx solid #d7e6dc;
+  padding: 32rpx;
+}
+.card-completed .s-text {
+  color: #121e18;
+  font-weight: 700;
+  font-size: 32rpx;
+}
+
+.sentence-text-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+.status-icon {
   font-size: 36rpx;
-  width: 60rpx;
+  flex-shrink: 0;
+  line-height: normal;
+}
+
+/* =============================================
+   Active Sentence & Giant Mic
+   ============================================= */
+.card-active {
+  background: #ffdeac; /* primary-container */
+  border: 8rpx solid #006688; /* secondary */
+  border-radius: 40rpx;
+  box-shadow: 0 16rpx 0px #004d67;
+  transform: rotate(-1deg);
+  margin: 16rpx 0;
+}
+
+.active-content-layout {
+  padding: 48rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48rpx;
+}
+
+.active-text-wrap {
   text-align: center;
 }
 
-/* Recorded State */
-.sentence-row.recorded {
-  background: #F0FDF4; /* Light green tint */
-  border: 4rpx solid #86EFAC;
-}
-.sentence-row.recorded .sentence-text { 
-  color: #166534; 
-}
-
-/* Active Highlight Setup */
-.sentence-row.active {
-  background: linear-gradient(135deg, #EEF2FF, #E0E7FF);
-  border: 4rpx solid #818CF8;
-  transform: scale(1.02);
-  box-shadow: 0 8rpx 20rpx rgba(129, 140, 248, 0.2);
-}
-.sentence-row.active .sentence-text {
-  color: #3730A3;
+.s-text-active {
+  font-size: 44rpx;
+  font-weight: 800;
+  color: #604100;
+  line-height: 1.4;
+  display: block;
 }
 
-/* When Recorded + Active */
-.sentence-row.recorded.active {
-  background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
-  border: 4rpx solid #10B981;
-}
-.sentence-row.recorded.active .sentence-text {
-  color: #047857;
+/* Microphone Area */
+.giant-mic-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32rpx;
 }
 
-/* Bottom Spacer for fixed bar */
+.giant-mic-btn {
+  width: 240rpx;
+  height: 240rpx;
+  background: #006688; /* secondary */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16rpx 0px #004d67;
+  transition: all 0.15s;
+}
+
+/* Inner Core */
+.mic-inner {
+  width: 180rpx;
+  height: 180rpx;
+  background: #c2e8ff; /* secondary-fixed */
+  border-radius: 50%;
+  border: 8rpx solid rgba(0, 77, 103, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s;
+}
+
+.mic-icon {
+  font-size: 80rpx;
+}
+
+/* Recording State */
+.giant-mic-btn.is-recording {
+  background: #ffb1c0;
+  box-shadow: 0 6rpx 0px #81233f;
+  transform: translateY(10rpx);
+}
+.giant-mic-btn.is-recording .mic-inner {
+  background: #ffd9df;
+  border-color: rgba(129, 35, 63, 0.2);
+  transform: scale(0.9);
+}
+
+.recording-pulse {
+  animation: giant-pulse 1s infinite alternate;
+}
+@keyframes giant-pulse {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0.8; }
+}
+
+.mic-hint-badge {
+  background: rgba(96, 65, 0, 0.1);
+  padding: 12rpx 32rpx;
+  border-radius: 999rpx;
+}
+.mic-hint-badge text {
+  font-size: 24rpx;
+  font-weight: 800;
+  color: #604100;
+  letter-spacing: 2rpx;
+}
+
+/* =============================================
+   Bottom Sticky Bar (Submit / Change Adventure)
+   ============================================= */
 .bottom-spacer {
-  height: 260rpx;
+  height: 220rpx; 
 }
 
-/* Floating Action Bar */
-.floating-action-bar {
-  position: fixed;
+.bottom-action-bar {
+  position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  /* fade to solid white to obscure sentences sliding under it */
-  background: linear-gradient(to bottom, rgba(245,247,250,0) 0%, rgba(245,247,250,0.85) 30%, #F5F7FA 80%);
-  padding: 32rpx 32rpx 64rpx; /* extra bottom padding for iphone safe area */
-  pointer-events: none; /* Let strokes pass through upper transparent part if needed */
-  z-index: 100;
-}
-
-.btn-row {
-  pointer-events: auto; /* re-enable clicks here */
+  padding: 0 40rpx 80rpx; /* safe area padding */
   display: flex;
-  gap: 24rpx;
-  align-items: stretch;
-}
-
-/* Submit shortcut button (smaller) */
-.btn-submit {
-  flex: 0 0 auto;
-  min-width: 160rpx;
-  background: linear-gradient(135deg, #059669, #10B981);
-  color: #fff;
-  border-radius: 50rpx;
-  padding: 28rpx 32rpx;
-  font-size: 30rpx;
-  font-weight: 800;
-  border: none;
-  box-shadow: 0 8rpx 24rpx rgba(5, 150, 105, 0.35);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  line-height: normal; /* Override wx button */
-  margin: 0;
+  pointer-events: none; 
 }
 
-.btn-submit.submitting { opacity: 0.7; }
+/* Because it's absolute, gradient obscuring isn't needed anymore unless desired. We just let the button float */
 
-/* 按住跟读 */
-.btn-record {
-  flex: 1;
-  background: linear-gradient(135deg, #4F46E5, #7C3AED);
-  color: #fff;
-  border-radius: 50rpx;
-  padding: 28rpx;
-  text-align: center;
-  font-size: 32rpx;
-  font-weight: 800;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 8rpx 24rpx rgba(79, 70, 229, 0.4);
-  transition: all 0.1s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-record.recording {
-  background: linear-gradient(135deg, #DC2626, #EF4444);
-  box-shadow: 0 8rpx 24rpx rgba(220, 38, 38, 0.4);
-  transform: scale(0.97);
-}
-
-/* 录音脉冲动画 */
-.record-pulse {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 200rpx;
-  height: 200rpx;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.25);
-  animation: pulse 1s ease-out infinite;
-}
-
-@keyframes pulse {
-  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
-}
-
-/* ─── Progress Bar and Elements ─────────────────────────────────────── */
-.lesson-progress-container {
-  margin: 0 4rpx 16rpx 4rpx;
-  padding: 16rpx;
-  background-color: #ffffff;
-  border-radius: 12rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12rpx;
-}
-
-.progress-title {
-  font-size: 28rpx;
-  color: #4B5563;
-  font-weight: 700;
-}
-
-.progress-count {
-  font-size: 32rpx;
-  color: #3B82F6;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.star-icon {
+.submit-adventure-btn {
+  pointer-events: auto;
+  background: #a03b56; /* tertiary */
+  color: #ffffff;
+  padding: 32rpx 64rpx;
+  border-radius: 999rpx;
   font-size: 36rpx;
-  text-shadow: 0 2rpx 8rpx rgba(250, 204, 21, 0.4);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  box-shadow: 0 12rpx 0px #81233f;
+  transition: all 0.2s;
+  animation: bouncy-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.progress-track {
-  width: 100%;
-  height: 20rpx;
-  background: #E5E7EB;
-  border-radius: 10rpx;
-  overflow: hidden;
+@keyframes bouncy-in {
+  0% { transform: translateY(100rpx) scale(0.5); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #60A5FA, #3B82F6);
-  border-radius: 10rpx;
-  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+.submit-adventure-btn:active {
+  box-shadow: 0 6rpx 0px #81233f;
+  transform: translateY(6rpx);
+}
+
+.submit-adventure-btn.submitting {
+  opacity: 0.6;
+  transform: scale(0.95);
+}
+
+/* Loading Wrapper */
+.loading-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 40rpx;
+  gap: 32rpx;
+}
+.skeleton-card {
+  height: 240rpx;
+  background: rgba(255,255,255,0.4);
+  border-radius: 32rpx;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.4; }
 }
 
 .flying-star {
@@ -344,29 +384,4 @@
   transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
   text-shadow: 0 4rpx 12rpx rgba(250, 204, 21, 0.8);
-}
-
-/* ─── Glassmorphism for Cover Overlay Progress Bar ───────────────────── */
-.lesson-progress-container.cover-progress {
-  margin: 0;
-  padding: 16rpx 24rpx;
-  background-color: rgba(0, 0, 0, 0.35); /* semi-transparent dark */
-  backdrop-filter: blur(8rpx); /* glass effect */
-  border-radius: 16rpx;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: none;
-}
-
-.lesson-progress-container.cover-progress .progress-title {
-  color: #E5E7EB; /* light gray for title */
-  font-weight: 600;
-}
-
-.lesson-progress-container.cover-progress .progress-count {
-  color: #FFFFFF; /* bold white for count to stand out on dark bg */
-  text-shadow: 0 2rpx 4rpx rgba(0,0,0,0.5);
-}
-
-.lesson-progress-container.cover-progress .progress-track {
-  background: rgba(255, 255, 255, 0.25);
 }

@@ -1,38 +1,37 @@
 <!-- pages/reading/reading.wxml -->
 <view class="page">
+  <!-- 沉浸式虚化大背景 -->
+  <image class="global-bg" src="{{lesson.imageUrl}}" mode="aspectFill" />
+  <view class="global-bg-overlay"></view> 
+
   <!-- Loading -->
   <view wx:if="{{loading}}" class="loading-wrap">
-    <view class="loading-spinner"></view>
-    <text>加载中…</text>
+    <view class="skeleton-card"></view>
+    <view class="skeleton-card"></view>
   </view>
 
   <block wx:else>
-    <!-- 全局页面滚动区，抛弃存在回弹 Bug 的 scroll-view -->
-    <view class="content-area">
-     <view class="scroll-inner">
-      <!-- 课程封面 -->
-      <view class="cover-wrap" id="cover">
-        <image class="cover-img" src="{{lesson.imageUrl}}" mode="aspectFill" />
-        <view class="cover-overlay">
-          <text class="lesson-title-overlay">{{lesson.title}}</text>
-          
-          <!-- 进度条区域 (全局仅显示一个，叠加在封面上) -->
-          <view class="lesson-progress-container cover-progress">
-            <view class="progress-header">
-              <text class="progress-title">Today's Journey</text>
-              <view class="progress-count">
-                <text>{{recordedCount}} / {{sentences.length}}</text>
-                <text id="global-target-star" class="star-icon">⭐</text>
-              </view>
-            </view>
-            <view class="progress-track cover-track">
-              <view class="progress-fill" style="width: {{sentences.length ? (recordedCount / sentences.length * 100) : 0}}%;"></view>
-            </view>
-          </view>
-        </view>
+    <!-- 顶部状态小卡片 (Header) -->
+    <view class="top-header-glass">
+      <view class="header-content">
+         <view class="header-left">
+           <image wx:if="{{lesson.imageUrl}}" class="header-thumb" src="{{lesson.imageUrl}}" mode="aspectFill"/>
+           <text class="header-title">{{lesson.title}}</text>
+         </view>
+         <view class="header-progress">
+           <text class="progress-text">{{recordedCount}} / {{sentences.length}}</text>
+           <text class="star-icon">⭐</text>
+         </view>
       </view>
+      <!-- 进度条胶囊 -->
+      <view class="header-progress-track">
+         <view class="header-progress-fill" style="width: {{sentences.length ? (recordedCount / sentences.length * 100) : 0}}%;"></view>
+      </view>
+    </view>
 
-      <!-- 按组排列的打卡图片和对应的句子 -->
+    <!-- 主滚动区域 -->
+    <scroll-view class="content-scroll" scroll-y enable-passive>
+      <!-- 分组内容区 -->
       <view class="groups-container">
         <view 
           wx:for="{{groups}}" 
@@ -42,72 +41,80 @@
           class="image-group"
           id="group-{{gIndex}}"
         >
-          <!-- 悬浮卡片图片 -->
-          <view class="group-card" bindtap="onGroupTap" data-group-index="{{gIndex}}">
-            <image class="group-image" src="{{group.imageUrl}}" mode="widthFix" />
-            <view class="expansion-hint">
-              <text wx:if="{{activeGroupIndex !== gIndex}}">点击展开句子 ▼</text>
-              <text wx:else>点击收起 ▲</text>
-            </view>
+          <!-- 图片插画展示卡片 -->
+          <view class="group-image-card">
+            <image class="group-image" src="{{group.imageUrl}}" mode="aspectFill" />
           </view>
           
-          <!-- 手风琴展开的句子列表 -->
-          <view class="sentences-list {{activeGroupIndex === gIndex ? 'expanded' : ''}}">
+          <!-- 句子序列 -->
+          <view class="sentences-list">
             <view
               wx:for="{{group.sentences}}"
               wx:for-item="sentence"
               wx:for-index="sIdx"
               wx:key="id"
               id="sentence-{{group.indices[sIdx]}}"
-              class="sentence-row {{group.indices[sIdx] === currentIndex ? 'active' : ''}} {{recordings[group.indices[sIdx]] ? 'recorded' : ''}}"
+              class="bouncy-sentence-card {{group.indices[sIdx] === currentIndex ? 'card-active' : (recordings[group.indices[sIdx]] ? 'card-completed' : 'card-locked')}}"
               bindtap="onSentenceTap"
               data-index="{{group.indices[sIdx]}}"
             >
-              <text class="sentence-num">{{group.indices[sIdx] + 1}}</text>
-              <text class="sentence-text">{{sentence.text}}</text>
-              <view class="sentence-status">
-                <text wx:if="{{playingIndex === group.indices[sIdx]}}">🔊</text>
-                <text wx:elif="{{recordings[group.indices[sIdx]]}}">✅</text>
-                <text wx:elif="{{group.indices[sIdx] === currentIndex}}">👉</text>
+              
+              <!-- 已完成状态或未开始状态 UI -->
+              <view class="sentence-content" wx:if="{{group.indices[sIdx] !== currentIndex}}">
+                 <view class="sentence-text-row">
+                    <text class="status-icon" wx:if="{{recordings[group.indices[sIdx]]}}">✅</text>
+                    <text class="status-icon" wx:else>🔒</text>
+                    <text class="s-text">{{sentence.text}}</text>
+                 </view>
               </view>
+
+              <!-- 当前激活状态 UI -->
+              <view class="active-content-layout" wx:else>
+                 <view class="active-text-wrap">
+                    <text class="s-text-active">"{{sentence.text}}"</text>
+                 </view>
+                 
+                 <!-- The Giant Microphone Button -->
+                 <view class="giant-mic-container">
+                    <view 
+                      class="giant-mic-btn {{isRecording ? 'is-recording' : ''}}"
+                      bindtouchstart="onRecordStart"
+                      bindtouchend="onRecordStop"
+                      catch:touchmove="onRecordStop"
+                    >
+                      <view class="mic-inner">
+                        <text class="mic-icon" wx:if="{{!isRecording}}">🎙️</text>
+                        <text class="mic-icon recording-pulse" wx:else>🔴</text>
+                      </view>
+                    </view>
+                    <view class="mic-hint-badge">
+                      <text>{{isRecording ? 'RELEASE TO FINISH' : 'TAP & HOLD TO RECORD'}}</text>
+                    </view>
+                 </view>
+              </view>
+
             </view>
           </view>
         </view>
       </view>
       
-      <view class="bottom-spacer" style="height: 150vh;"></view>
-     </view>
-    </view>
+      <!-- 底部安全留白，确保能滚到底部 -->
+      <view class="bottom-spacer"></view>
+    </scroll-view>
 
-    <!-- 底部悬浮操作区 -->
-    <view class="floating-action-bar">
-      <view class="btn-row">
-        <!-- 结束并发送 -->
-        <button
-          wx:if="{{recordedCount > 0}}"
-          class="btn-submit {{submitting ? 'submitting' : ''}}"
-          bindtap="onSubmit"
-          loading="{{submitting}}"
-          disabled="{{submitting}}"
-        >
-          {{allDone ? '✅ 直接发送' : '📤 提前发送'}}
-        </button>
-
-        <!-- 按住跟读 (悬浮主体) -->
-        <view
-          class="btn-record {{isRecording ? 'recording' : ''}}"
-          bindtouchstart="onRecordStart"
-          bindtouchend="onRecordStop"
-          catch:touchmove="onRecordStop"
-        >
-          <view wx:if="{{isRecording}}" class="record-pulse"></view>
-          <text>{{isRecording ? '🎙 录音中…松开完成' : '● 按住开始跟读'}}</text>
-        </view>
+    <!-- 底部 Change Adventure / Submit Action Area -->
+    <view class="bottom-action-bar" wx:if="{{recordedCount > 0}}">
+      <view 
+        class="submit-adventure-btn {{submitting ? 'submitting' : ''}}"
+        bindtap="onSubmit"
+      >
+         <text class="btn-icon">{{allDone ? '✅' : '📤'}}</text>
+         <text class="btn-text">{{allDone ? 'Submit Adventure' : 'Submit Early'}}</text>
       </view>
     </view>
   </block>
 
-  <!-- 飞行的星星动画遮罩层 -->
+  <!-- Stars overlay -->
   <view 
     wx:for="{{flyingStars}}" 
     wx:key="id" 

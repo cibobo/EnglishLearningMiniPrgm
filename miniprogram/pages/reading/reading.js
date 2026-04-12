@@ -245,8 +245,8 @@ Page({
 
       if (isNewRecording) {
         const query = wx.createSelectorQuery();
-        query.select('.btn-record').boundingClientRect();
-        query.select('#global-target-star').boundingClientRect();
+        query.select('.giant-mic-btn').boundingClientRect();
+        query.select('.star-icon').boundingClientRect();
 
         query.exec((rects) => {
           const btnRect = rects[0];
