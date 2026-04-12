@@ -129,20 +129,45 @@ https://express-u5ne-242771-4-1419482792.sh.run.tcloudbase.com
 
 ---
 
-## 第三步：打包代码（每次发布都用这条命令）
+## 第三步：打包代码
+
+我们针对两种不同的发布情境，准备了不同的 `Dockerfile`。拆分开的原因是去除了每次容器启动都强行校验重建数据库的逻辑，以获取最快的冷启动速度。请根据你的需求选择对应的命令：
 
 > ⚠️ **必须用 `git archive` 而不是 `Compress-Archive`**。  
 > Windows 的 `Compress-Archive` 会产生反斜杠路径，Linux 无法识别，导致构建失败。
 
+### 选择 A：常规代码变动（不涉及数据库结构的调整）- 极速冷启动
+大部分时间你都应该使用此选项，它会直接运行 `node dist/app.js`。
+
 在 `server/` 目录下运行：
 
 ```powershell
+# 将当前的无 DB 操作的 Dockerfile 代码纳入 Git 记录
+git checkout Dockerfile
 git add -A
-git commit -m "chore: deploy update"
+git commit -m "chore: deploy standard code update"
+# 生成 deploy.zip 发布包
 git archive --format=zip --output=deploy.zip HEAD Dockerfile .dockerignore package.json package-lock.json tsconfig.json tsconfig.seed.json src prisma
 ```
 
-打包后将 `server/deploy.zip` 上传到云托管控制台。
+### 选择 B：修改了 Prisma 表结构（需要同步到数据库）
+当你加入了新表、新字段，需要在云端真正落实更新时，执行这个初始化版本的打包。（容器启动时会顺带执行 `npx prisma db push && npx prisma db seed`）
+
+在 `server/` 目录下运行：
+
+```powershell
+# 将初始化专用的 Dockerfile.init 覆盖过去
+cp Dockerfile.init Dockerfile
+git add -A
+git commit -m "chore: deploy database structure update"
+# 生成 deploy.zip 发布包
+git archive --format=zip --output=deploy.zip HEAD Dockerfile .dockerignore package.json package-lock.json tsconfig.json tsconfig.seed.json src prisma
+
+# 打包完毕后，建议顺手把本地 Dockerfile 还原回快速启动的版本，以防下次勿用
+git checkout Dockerfile
+```
+
+打包后将 `server/deploy.zip` 上传到微信云托管控制台。
 
 ---
 
