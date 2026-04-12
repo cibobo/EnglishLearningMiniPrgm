@@ -43,11 +43,10 @@
 
 
     <!-- ===== 状态2：输入学生码 ===== -->
-    <view wx:else class="card">
+    <view wx:else class="card card--go-only">
       <!-- 卡片角装饰 -->
       <view class="card-deco card-deco--tr"></view>
 
-      <text class="section-label">Magic Number ✨</text>
       <text class="code-hint">请输入老师给你的学生码</text>
 
       <!-- 输入框 -->

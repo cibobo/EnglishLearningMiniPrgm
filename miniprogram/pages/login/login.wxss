@@ -151,48 +151,26 @@
 /* =============================================
    标签 / 提示文字
    ============================================= */
-.section-label {
+.code-hint {
   font-size: 36rpx;
   font-weight: 800;
   color: #474747;
   text-align: center;
-  align-self: flex-start;
-}
-
-.hint-box {
-  width: 100%;
-  background: #e8f7ec;
-  border-radius: 999rpx;
-  padding: 22rpx 36rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.hint-text {
-  font-size: 26rpx;
-  color: #004d67;
-  text-align: center;
-  line-height: 1.5;
-}
-
-.code-hint {
-  font-size: 28rpx;
-  color: #474747;
-  text-align: center;
+  align-self: center;
 }
 
 /* =============================================
    输入框
    ============================================= */
 .input-wrapper {
-  width: 100%;
+  width: 88%;
   background: #e8f7ec;
   border-radius: 999rpx;
   padding: 0 44rpx;
   height: 92rpx;
   display: flex;
   align-items: center;
+  box-sizing: border-box;
 }
 
 .code-input {
