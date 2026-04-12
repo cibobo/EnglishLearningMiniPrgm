@@ -134,9 +134,61 @@ Page({
         this._audio.src = lesson.masterAudioUrl;
       }
 
+      // Measure group anchor positions after DOM settles
+      setTimeout(() => this._measureGroupOffsets(), 400);
+
     } catch (err) {
       wx.showToast({ title: '加载课程失败', icon: 'error' });
       this.setData({ loading: false });
+    }
+  },
+
+  // Measure Y position of each group anchor node (relative to scroll-view top)
+  _measureGroupOffsets() {
+    const { groups } = this.data;
+    if (!groups || groups.length === 0) return;
+
+    const query = wx.createSelectorQuery().in(this);
+    groups.forEach((g, idx) => {
+      query.select(`#group-anchor-${idx}`).boundingClientRect();
+    });
+    // Also need scroll-view top as reference
+    query.select('.content-scroll').boundingClientRect();
+
+    query.exec((rects) => {
+      const scrollViewRect = rects[rects.length - 1];
+      if (!scrollViewRect) return;
+      const scrollViewTop = scrollViewRect.top;
+
+      // Store offsets as distances from the scroll-view container top
+      this._groupOffsets = [];
+      for (let i = 0; i < groups.length; i++) {
+        const rect = rects[i];
+        if (rect) {
+          // How far down from scroll-view top is this anchor currently (at scrollTop=0)
+          this._groupOffsets[i] = rect.top - scrollViewTop;
+        } else {
+          this._groupOffsets[i] = 0;
+        }
+      }
+    });
+  },
+
+  onContentScroll(e) {
+    const scrollTop = e.detail.scrollTop;
+    const offsets = this._groupOffsets;
+    if (!offsets || offsets.length === 0) return;
+
+    // Find the last group whose anchor is above (or at) the current scroll position + small lookahead
+    let activeIdx = 0;
+    for (let i = 0; i < offsets.length; i++) {
+      if (scrollTop >= offsets[i] - 80) {
+        activeIdx = i;
+      }
+    }
+
+    if (activeIdx !== this.data.activeGroupIndex) {
+      this.setData({ activeGroupIndex: activeIdx });
     }
   },
 

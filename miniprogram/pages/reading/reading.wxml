@@ -1,8 +1,8 @@
 <!-- pages/reading/reading.wxml -->
 <view class="page">
-  <!-- 沉浸式虚化大背景 -->
-  <image class="global-bg" src="{{lesson.imageUrl}}" mode="aspectFill" />
-  <view class="global-bg-overlay"></view> 
+  <!-- 全屏虚化背景 (随滚动切换分组插画) -->
+  <image class="global-bg" src="{{groups[activeGroupIndex].imageUrl || lesson.imageUrl}}" mode="aspectFill" />
+  <view class="global-bg-overlay"></view>
 
   <!-- Loading -->
   <view wx:if="{{loading}}" class="loading-wrap">
@@ -30,7 +30,7 @@
     </view>
 
     <!-- 主滚动区域 -->
-    <scroll-view class="content-scroll" scroll-y enable-passive>
+    <scroll-view class="content-scroll" scroll-y enable-passive bindscroll="onContentScroll">
       <!-- 分组内容区 -->
       <view class="groups-container">
         <view 
@@ -41,10 +41,8 @@
           class="image-group"
           id="group-{{gIndex}}"
         >
-          <!-- 图片插画展示卡片 -->
-          <view class="group-image-card">
-            <image class="group-image" src="{{group.imageUrl}}" mode="aspectFill" />
-          </view>
+          <!-- 隐形锡点：用于检测滚动到哪个分组 -->
+          <view class="group-anchor" id="group-anchor-{{gIndex}}"></view>
           
           <!-- 句子序列 -->
           <view class="sentences-list">

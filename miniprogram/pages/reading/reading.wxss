@@ -13,14 +13,15 @@
    Global Immersive Background
    ============================================= */
 .global-bg {
-  position: absolute; /* fixed doesn't work well over video/native sometimes, absolute inside relative page is safest */
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   z-index: -2;
-  filter: blur(40px) brightness(0.95);
-  transform: scale(1.15); /* Hide blured edges */
+  filter: blur(10px) brightness(1.0);
+  transform: scale(1.08);
+  transition: src 0s; /* Images can't transition `src` but the image element fades naturally */
 }
 
 .global-bg-overlay {
@@ -30,7 +31,7 @@
   width: 100%;
   height: 100%;
   z-index: -1;
-  background: rgba(238, 253, 242, 0.65); /* Surface Mint Green Tint */
+  background: rgba(238, 253, 242, 0.30); /* Light tint - keep illustration recognizable */
 }
 
 /* =============================================
@@ -138,19 +139,10 @@
   gap: 24rpx;
 }
 
-/* 绘本图卡 */
-.group-image-card {
-  width: 100%;
-  border-radius: 48rpx;
+/* Group anchor - invisible zero-height marker for scroll detection */
+.group-anchor {
+  height: 0;
   overflow: hidden;
-  box-shadow: 0 16rpx 40rpx rgba(0,0,0,0.08);
-  border: 8rpx solid #ffffff;
-  background: #fff;
-}
-
-.group-image {
-  width: 100%;
-  display: block;
 }
 
 .sentences-list {
