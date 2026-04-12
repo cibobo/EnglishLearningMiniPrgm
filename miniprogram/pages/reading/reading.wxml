@@ -66,7 +66,7 @@
               wx:for-index="sIdx"
               wx:key="id"
               id="sentence-{{group.indices[sIdx]}}"
-              class="bouncy-sentence-card {{group.indices[sIdx] === currentIndex ? 'card-active' : (recordings[group.indices[sIdx]] ? 'card-completed' : 'card-locked')}}"
+              class="bouncy-sentence-card {{group.indices[sIdx] === currentIndex ? ('card-active' + (playingIndex === currentIndex ? ' card-playing' : '')) : (recordings[group.indices[sIdx]] ? 'card-completed' : 'card-locked')}}"
               bindtap="onSentenceTap"
               data-index="{{group.indices[sIdx]}}"
             >
@@ -89,18 +89,19 @@
                  <!-- The Giant Microphone Button -->
                  <view class="giant-mic-container">
                     <view 
-                      class="giant-mic-btn {{isRecording ? 'is-recording' : ''}}"
+                      class="giant-mic-btn {{isRecording ? 'is-recording' : (playingIndex === currentIndex ? 'is-playing' : '')}}"
                       bindtouchstart="onRecordStart"
                       bindtouchend="onRecordStop"
                       catch:touchmove="onRecordStop"
                     >
                       <view class="mic-inner">
-                        <text class="mic-icon" wx:if="{{!isRecording}}">🎙️</text>
-                        <text class="mic-icon recording-pulse" wx:else>🔴</text>
+                        <text class="mic-icon" wx:if="{{isRecording}}">🔴</text>
+                        <text class="mic-icon playing-breathe" wx:elif="{{playingIndex === currentIndex}}">🔊</text>
+                        <text class="mic-icon" wx:else>🎙️</text>
                       </view>
                     </view>
                     <view class="mic-hint-badge">
-                      <text>{{isRecording ? 'RELEASE TO FINISH' : 'TAP & HOLD TO RECORD'}}</text>
+                      <text>{{isRecording ? 'RELEASE TO FINISH' : (playingIndex === currentIndex ? 'NOW PLAYING' : 'TAP &amp; HOLD TO RECORD')}}</text>
                     </view>
                  </view>
               </view>

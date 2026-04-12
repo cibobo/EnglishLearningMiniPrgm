@@ -281,6 +281,13 @@
   box-shadow: 0 16rpx 0px #004d67;
   transform: rotate(-1deg);
   margin: 16rpx 0;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* When audio is playing: straighten the card */
+.card-active.card-playing {
+  transform: rotate(0deg);
+  box-shadow: 0 16rpx 0px #004d67, 0 0 0 6rpx rgba(0, 180, 100, 0.25);
 }
 
 .active-content-layout {
@@ -352,12 +359,30 @@
   transform: scale(0.9);
 }
 
+/* Playing State (green) */
+.giant-mic-btn.is-playing {
+  background: #1a9e5c;
+  box-shadow: 0 16rpx 0px #0d5e36;
+}
+.giant-mic-btn.is-playing .mic-inner {
+  background: #b7f0d4;
+  border-color: rgba(13, 94, 54, 0.2);
+}
+
 .recording-pulse {
   animation: giant-pulse 1s infinite alternate;
 }
 @keyframes giant-pulse {
   0% { transform: scale(1); opacity: 1; }
   100% { transform: scale(1.3); opacity: 0.8; }
+}
+
+.playing-breathe {
+  animation: speaker-breathe 0.8s ease-in-out infinite alternate;
+}
+@keyframes speaker-breathe {
+  0%   { transform: scale(0.85); opacity: 0.85; }
+  100% { transform: scale(1.2);  opacity: 1; }
 }
 
 .mic-hint-badge {
