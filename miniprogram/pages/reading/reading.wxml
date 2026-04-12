@@ -17,6 +17,16 @@
       <image wx:if="{{lesson.imageUrl}}" class="header-bg-img" src="{{lesson.imageUrl}}" mode="aspectFill"/>
       <view class="header-bg-overlay"></view>
 
+      <!-- 完美对齐微信胶囊的绝对定位返回按键 -->
+      <view 
+        class="nav-back-pill" 
+        style="top: {{navTop}}px; height: {{navHeight}}px; width: {{navHeight * 1.5}}px;" 
+        hover-class="nav-back-pill-hover" 
+        bindtap="onNavigateBack"
+      >
+        <text class="nav-pill-icon">◀</text>
+      </view>
+
       <view class="header-content">
          <view class="header-left">
            <image wx:if="{{lesson.imageUrl}}" class="header-thumb" src="{{lesson.imageUrl}}" mode="aspectFill"/>

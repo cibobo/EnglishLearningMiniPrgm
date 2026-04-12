@@ -15,6 +15,10 @@ Page({
     playingIndex: -1, // Tracks which sentence is currently outputting audio
     loading: true,
 
+    // Dynamic Navigation
+    navTop: 50, // default fallback
+    navHeight: 32,
+
     // Recording state
     isRecording: false,
     recordings: {},       // { [sentenceIndex]: tempFilePath }
@@ -33,15 +37,23 @@ Page({
 
   onLoad(options) {
     const { lessonId, theme } = options;
+    const menuButton = wx.getMenuButtonBoundingClientRect();
+    
     this.setData({ 
       lessonId,
-      colorTheme: theme || 'theme-primary'
+      colorTheme: theme || 'theme-primary',
+      navTop: menuButton.top,
+      navHeight: menuButton.height
     });
     // Create a fresh audio context per page visit to avoid using a destroyed instance
     this._audio = wx.createInnerAudioContext();
     this._setupRecorder();
     this._setupAudioContext();
     this.loadLesson(lessonId);
+  },
+
+  onNavigateBack() {
+    wx.navigateBack();
   },
 
   onUnload() {
