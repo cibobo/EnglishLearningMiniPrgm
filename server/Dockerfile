@@ -36,7 +36,5 @@ ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 
 EXPOSE 80
 
-# 启动：同步数据库表结构、注入测试数据，并启动服务
-# (因为没有使用 migration 系统，所以用 db push 同步 schema)
-# (追加了 db seed，因为 seed.ts 用的是 upsert，所以每次跑都是安全的)
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx prisma db seed && node dist/app.js"]
+# 启动服务
+CMD ["node", "dist/app.js"]
