@@ -71,32 +71,37 @@
 }
 
 /* =============================================
-   Navigation Back Button (Cartoon Style)
+   Navigation Back Button (Match Native Capsule)
    ============================================= */
 .nav-back-pill {
   position: absolute;
-  left: 45rpx;
+  left: 32rpx;
   /* top, height, width dynamic in WXML */
   border-radius: 999rpx;
-  background: #39a6d0;
-  box-shadow: 0 8rpx 0 0 #21739c;
-  border: 4rpx solid #c2e8ff;
+  background: rgba(0, 0, 0, 0.15); /* Native translucent dark */
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: none; /* Removed cartoon shadow */
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: background 0.2s ease;
   z-index: 100;
   box-sizing: border-box;
 }
 .nav-back-pill-hover {
-  transform: translateY(8rpx);
-  box-shadow: 0 0 0 0 #21739c;
+  background: rgba(0, 0, 0, 0.3); /* Darken on press */
+  transform: none; /* Removed bounce */
+  box-shadow: none;
 }
 .nav-pill-icon {
-  color: #fff;
-  font-size: 28rpx;
-  font-weight: 900;
-  margin-right: 4rpx; /* Optical centering for arrow */
+  width: 36rpx;
+  height: 36rpx;
+  /* Hollow thick left chevron */
+  background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14 18L8 12L14 6' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  margin-right: 2rpx; /* Optical centering */
 }
 
 .header-content {

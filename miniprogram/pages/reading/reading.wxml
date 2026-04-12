@@ -24,7 +24,7 @@
         hover-class="nav-back-pill-hover" 
         bindtap="onNavigateBack"
       >
-        <text class="nav-pill-icon">◀</text>
+        <view class="nav-pill-icon"></view>
       </view>
 
       <view class="header-content">
