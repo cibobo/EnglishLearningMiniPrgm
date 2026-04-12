@@ -426,7 +426,7 @@ const LessonsPage: React.FC = () => {
                   <div style={{ width: 140, flexShrink: 0, textAlign: 'center' }}>
                     {(s.startTime != null && s.endTime != null) ? (
                       <Tag 
-                        color={playingIndex === i ? "processing" : "cyan"} 
+                        color={playingIndex === i ? "red" : "default"} 
                         style={{ margin: 0, cursor: 'pointer', padding: '2px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
                         onClick={() => handlePlaySegment(i)}
                       >
@@ -526,7 +526,7 @@ const LessonsPage: React.FC = () => {
                 >
                   <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <Tag color="purple">{i + 1}</Tag>
+                      <Tag color="red">{i + 1}</Tag>
                       <Paragraph style={{ margin: 0 }}>{s.text}</Paragraph>
                     </div>
                     <div>

@@ -246,7 +246,7 @@ const ClassesPage: React.FC = () => {
             } 
           },
           expandedRowRender: (record) => (
-            <div style={{ background: '#fafafa', padding: '16px 24px', margin: '-16px -16px -16px 48px', borderRadius: 8 }}>
+            <div style={{ background: '#f2f2f2', padding: '16px 24px', margin: '-16px -16px -16px 48px', borderRadius: 8 }}>
               <Tabs defaultActiveKey="lessons" style={{ minHeight: 200 }}>
                 {/* ── 已分配课程 Tab ── */}
                 <Tabs.TabPane tab={<Space><LinkOutlined /> 已分配课程 ({record._count.lessons})</Space>} key="lessons">
@@ -376,9 +376,9 @@ const ClassesPage: React.FC = () => {
                     alignItems: 'center', 
                     justifyContent: 'space-between', 
                     padding: '12px 16px', 
-                    border: '1px solid #f0f0f0', 
+                    border: '1px solid rgba(0,0,0,0.04)', 
                     borderRadius: 6,
-                    background: selectedLessonIds.includes(l.id) ? '#e6f4ff' : '#fff',
+                    background: selectedLessonIds.includes(l.id) ? 'rgba(255,56,92,0.05)' : '#ffffff',
                     transition: 'all 0.3s'
                   }}
                 >
@@ -430,7 +430,7 @@ const ClassesPage: React.FC = () => {
                   }
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <Tag color="purple">{i + 1}</Tag>
+                    <Tag color="red">{i + 1}</Tag>
                     <Paragraph style={{ margin: 0 }}>{s.text}</Paragraph>
                   </div>
                 </List.Item>

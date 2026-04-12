@@ -164,7 +164,7 @@ const StudentDetailPage: React.FC = () => {
           <Descriptions.Item label="课程完成进度" span={2}>
             <Space direction="vertical" style={{ width: '100%' }}>
               <Text>{completedLessons} / {totalLessons} 课</Text>
-              <Progress percent={pct} strokeColor={{ '0%': '#4F46E5', '100%': '#10B981' }} />
+              <Progress percent={pct} strokeColor="#ff385c" />
             </Space>
           </Descriptions.Item>
         </Descriptions>
@@ -210,9 +210,10 @@ const StudentDetailPage: React.FC = () => {
                             alignItems: 'center',
                             gap: 12,
                             padding: '10px 14px',
-                            background: isPlaying ? '#f0f5ff' : '#fafafa',
-                            borderRadius: 8,
-                            border: `1px solid ${isPlaying ? '#adc6ff' : '#f0f0f0'}`,
+                            background: isPlaying ? 'rgba(255,56,92,0.05)' : '#ffffff',
+                            borderRadius: 12,
+                            border: `1px solid ${isPlaying ? 'rgba(255,56,92,0.2)' : 'rgba(0,0,0,0.02)'}`,
+                            boxShadow: isPlaying ? 'none' : 'rgba(0,0,0,0.02) 0px 0px 0px 1px',
                             transition: 'all 0.2s',
                           }}
                         >

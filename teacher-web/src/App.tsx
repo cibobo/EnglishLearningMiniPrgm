@@ -22,10 +22,30 @@ const App: React.FC = () => {
   return (
     <ConfigProvider locale={zhCN} theme={{
       token: {
-        colorPrimary: '#4F46E5',
-        borderRadius: 10,
-        fontFamily: "'PingFang SC', 'Helvetica Neue', Arial, sans-serif",
+        colorPrimary: '#ff385c',      // Rausch Red
+        colorTextBase: '#222222',     // Near Black
+        colorBgLayout: '#ffffff',     // Pure White canvas
+        colorBgContainer: '#ffffff',  // Surface white
+        borderRadius: 8,              // Buttons and standard elements
+        fontFamily: "'Airbnb Cereal VF', 'Inter', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif",
       },
+      components: {
+        Card: {
+          borderRadiusLG: 20,
+          boxShadowSecondary: 'rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 6px, rgba(0,0,0,0.1) 0px 4px 8px',
+        },
+        Button: {
+          fontWeight: 500,
+        },
+        Menu: {
+          itemColor: '#6a6a6a',
+          itemSelectedColor: '#ff385c',
+          itemSelectedBg: 'rgba(255,56,92,0.05)',
+        },
+        Table: {
+          borderRadiusLG: 8,
+        }
+      }
     }}>
       <BrowserRouter>
         <Routes>

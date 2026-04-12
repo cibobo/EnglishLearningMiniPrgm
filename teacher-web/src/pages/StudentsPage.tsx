@@ -89,7 +89,7 @@ const StudentsPage: React.FC = () => {
       title: '学生', key: 'student',
       render: (_: any, r: Student) => (
         <Space>
-          <Avatar style={{ background: '#4F46E5' }}>{r.name[0]}</Avatar>
+          <Avatar style={{ background: '#ff385c' }}>{r.name[0]}</Avatar>
           <div>
             <Text strong>{r.name}</Text>
             <div><Text type="secondary" style={{ fontSize: 12 }}>学生码：{r.studentCode}</Text></div>
@@ -152,10 +152,10 @@ const StudentsPage: React.FC = () => {
           loading={loading}
           renderItem={(r: Student) => (
             <List.Item style={{ padding: '8px 0' }}>
-              <Card size="small" style={{ width: '100%', borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
+              <Card size="small" style={{ width: '100%', borderRadius: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Space>
-                    <Avatar style={{ background: '#4F46E5' }}>{r.name[0]}</Avatar>
+                    <Avatar style={{ background: '#ff385c' }}>{r.name[0]}</Avatar>
                     <div>
                       <Text strong>{r.name}</Text>
                       <div><Text type="secondary" style={{ fontSize: 12 }}>学生码：{r.studentCode}</Text></div>

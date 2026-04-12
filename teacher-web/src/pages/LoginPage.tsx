@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Card, Typography, message } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, BookOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import '../styles/login.css';
@@ -30,8 +30,10 @@ const LoginPage: React.FC = () => {
       <div className="login-bg" />
       <Card className="login-card" bordered={false}>
         <div className="login-header">
-          <div className="login-logo">📚</div>
-          <Title level={3} style={{ marginBottom: 4 }}>英语跟读系统</Title>
+          <div className="login-logo">
+            <BookOutlined />
+          </div>
+          <Title level={3} style={{ marginBottom: 4, letterSpacing: '-0.24px', color: '#222222' }}>英语跟读系统</Title>
           <Text type="secondary">教师管理平台</Text>
         </div>
         <Form name="login" onFinish={onFinish} size="large" autoComplete="off">
