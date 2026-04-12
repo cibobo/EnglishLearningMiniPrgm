@@ -59,3 +59,6 @@ $RECYCLE.BIN/
 .env.test.local
 .env.production.local
 .env.production
+
+# Design
+Design/*

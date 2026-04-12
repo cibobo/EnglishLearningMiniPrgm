@@ -1,48 +1,85 @@
 <!-- pages/login/login.wxml -->
 <view class="container">
-  <!-- Logo 区域 -->
-  <view class="hero">
-    <view class="logo-circle">
-      <text class="logo-emoji">📚</text>
-    </view>
-    <text class="app-title">英语跟读</text>
-    <text class="app-subtitle">跟着老师，大声读英语！</text>
-  </view>
 
-  <!-- 普通登录 -->
-  <view wx:if="{{!needCode}}" class="login-section">
-    <button
-      class="btn-wechat"
-      loading="{{loading}}"
-      disabled="{{loading}}"
-      bindtap="onLogin"
-    >
-      <text class="btn-icon">💬</text>
-      <text>使用微信一键登录</text>
-    </button>
-    <text wx:if="{{errorMsg}}" class="error-msg">{{errorMsg}}</text>
-  </view>
+  <!-- 背景装饰元素 -->
+  <view class="bg-deco bg-deco--cloud-tl"></view>
+  <view class="bg-deco bg-deco--cloud-tr"></view>
+  <view class="bg-deco bg-deco--star-bl"></view>
+  <view class="bg-deco bg-deco--cloud-br"></view>
 
-  <!-- 学生码绑定 -->
-  <view wx:else class="code-section">
-    <text class="code-title">请输入老师给你的学生码</text>
-    <text class="code-hint">首次登录需要绑定账号</text>
-    <view class="input-wrapper">
-      <input
-        class="code-input"
-        placeholder="输入 6 位学生码（如：AB1234）"
-        maxlength="6"
-        value="{{studentCode}}"
-        bindinput="onCodeInput"
-        type="text"
+  <!-- 主内容区 -->
+  <view class="main-canvas">
+
+    <!-- 头部美术字 -->
+    <view class="header">
+      <image
+        class="logo-art"
+        src="/images/duyidu3.png"
+        mode="widthFix"
       />
     </view>
-    <text wx:if="{{errorMsg}}" class="error-msg">{{errorMsg}}</text>
-    <button
-      class="btn-primary"
-      loading="{{loading}}"
-      disabled="{{loading || studentCode.length !== 6}}"
-      bindtap="onBindAndLogin"
-    >确认绑定</button>
+
+    <!-- ===== 状态1：已有账号，微信一键登录 ===== -->
+    <view wx:if="{{!needCode}}" class="card card--go-only">
+      <!-- 卡片角装饰 -->
+      <view class="card-deco card-deco--tr"></view>
+
+      <!-- 错误提示 -->
+      <text wx:if="{{errorMsg}}" class="error-msg">⚠️ {{errorMsg}}</text>
+
+      <!-- GO! 按钮 -->
+      <button
+        class="btn-go bouncy"
+        loading="{{loading}}"
+        disabled="{{loading}}"
+        bindtap="onLogin"
+      >
+        <text class="btn-go__text">GO! 🚀</text>
+      </button>
+
+      <!-- 底部小字 -->
+      <text class="footer-hint">使用微信账号安全登录</text>
+    </view>
+
+
+    <!-- ===== 状态2：输入学生码 ===== -->
+    <view wx:else class="card">
+      <!-- 卡片角装饰 -->
+      <view class="card-deco card-deco--tr"></view>
+
+      <text class="section-label">Magic Number ✨</text>
+      <text class="code-hint">请输入老师给你的学生码</text>
+
+      <!-- 输入框 -->
+      <view class="input-wrapper">
+        <input
+          class="code-input"
+          placeholder="输入 6 位学生码（如：AB1234）"
+          placeholder-class="input-placeholder"
+          maxlength="6"
+          value="{{studentCode}}"
+          bindinput="onCodeInput"
+          type="text"
+        />
+      </view>
+
+      <!-- 错误提示 -->
+      <text wx:if="{{errorMsg}}" class="error-msg">⚠️ {{errorMsg}}</text>
+
+      <!-- 确认绑定按钮 -->
+      <button
+        class="btn-go bouncy"
+        loading="{{loading}}"
+        disabled="{{loading || studentCode.length !== 6}}"
+        bindtap="onBindAndLogin"
+      >
+        <text class="btn-go__text">确认绑定 🚀</text>
+      </button>
+
+      <text class="footer-hint">首次登录需要绑定账号</text>
+    </view>
+
+
+
   </view>
 </view>

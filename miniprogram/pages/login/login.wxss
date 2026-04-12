@@ -1,115 +1,311 @@
-/* pages/login/login.wxss */
+﻿/* pages/login/login.wxss */
+/* =============================================
+   设计系统 Tokens — "The Tactile Playground"
+   ============================================= */
+
+/* 色彩 */
+/* primary         #ffba38 (golden orange)      */
+/* primary-dark    #604100 (3D shadow/border)   */
+/* secondary       #006688 (sky blue)           */
+/* tertiary        #a03b56 (soft pink)          */
+/* surface         #eefdf2 (mint green bg)      */
+/* surface-card    #ffffff (white card)         */
+/* surface-input   #e8f7ec (light mint input)  */
+
+/* =============================================
+   全局容器 —— 锁死屏幕高度，禁止滚动
+   ============================================= */
 .container {
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60rpx 48rpx;
-  background: linear-gradient(160deg, #EEF2FF 0%, #E0E7FF 50%, #C7D2FE 100%);
+  background-color: #eefdf2;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(194, 232, 255, 0.45) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(255, 217, 223, 0.40) 0%, transparent 40%);
+  padding: 0 48rpx;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 80rpx;
+/* =============================================
+   背景装饰云 & 星星
+   ============================================= */
+.bg-deco {
+  position: fixed;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.55);
 }
 
-.logo-circle {
+.bg-deco--cloud-tl {
+  width: 160rpx;
+  height: 120rpx;
+  top: 30rpx;
+  left: -30rpx;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  opacity: 0.7;
+}
+
+.bg-deco--cloud-tr {
+  width: 220rpx;
+  height: 160rpx;
+  top: 120rpx;
+  right: -60rpx;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  opacity: 0.5;
+}
+
+.bg-deco--star-bl {
+  width: 380rpx;
+  height: 380rpx;
+  bottom: -160rpx;
+  left: -140rpx;
+  background: rgba(0, 102, 136, 0.08);
+  border-radius: 40%;
+  transform: rotate(12deg);
+}
+
+.bg-deco--cloud-br {
   width: 180rpx;
-  height: 180rpx;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #4F46E5, #7C3AED);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 12rpx 40rpx rgba(79, 70, 229, 0.4);
-  margin-bottom: 32rpx;
+  height: 120rpx;
+  bottom: 60rpx;
+  right: -30rpx;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  opacity: 0.6;
 }
 
-.logo-emoji {
-  font-size: 88rpx;
-}
-
-.app-title {
-  font-size: 60rpx;
-  font-weight: 900;
-  color: #3730A3;
-  letter-spacing: 4rpx;
-}
-
-.app-subtitle {
-  font-size: 28rpx;
-  color: #6366F1;
-  margin-top: 16rpx;
-}
-
-/* 登录按钮 */
-.login-section, .code-section {
+/* =============================================
+   主内容区 —— flex 弹性布局，自适应高度
+   ============================================= */
+.main-canvas {
+  position: relative;
+  z-index: 10;
   width: 100%;
-}
-
-.btn-wechat {
-  background: linear-gradient(135deg, #07C160, #09BB66);
-  color: #fff;
-  border-radius: 60rpx;
-  font-size: 36rpx;
-  font-weight: 700;
-  padding: 32rpx;
-  width: 100%;
-  border: none;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 16rpx;
-  box-shadow: 0 8rpx 30rpx rgba(7, 193, 96, 0.4);
+  /* 不以固定 gap 撑高，改用 margin 控制 */
 }
 
-.btn-icon {
-  font-size: 40rpx;
-}
-
-/* 学生码区域 */
-.code-title {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #1F2937;
+/* =============================================
+   Header / Logo
+   ============================================= */
+.header {
   text-align: center;
-  display: block;
-  margin-bottom: 12rpx;
+  margin-bottom: 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logo-art {
+  width: 700rpx;
+  max-width: 95vw;
+  filter: drop-shadow(0 10rpx 20rpx rgba(0, 0, 0, 0.10));
+}
+
+/* =============================================
+   卡片容器（"云朵"卡片）
+   ============================================= */
+.card {
+  background: #ffffff;
+  width: 100%;
+  border-radius: 40rpx;
+  padding: 48rpx 48rpx;
+  box-shadow: 0 16rpx 60rpx rgba(18, 30, 24, 0.07);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+/* GO 按钮专属卡片：变窄变高更像卡片 */
+.card--go-only {
+  width: 580rpx;
+  padding: 80rpx 48rpx;
+  gap: 40rpx;
+}
+
+/* 卡片右上角粉色气泡装饰 */
+.card-deco {
+  position: absolute;
+  width: 56rpx;
+  height: 56rpx;
+  background: #ffd9df;
+  border-radius: 50%;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.card-deco--tr {
+  top: -14rpx;
+  right: -14rpx;
+}
+
+/* =============================================
+   标签 / 提示文字
+   ============================================= */
+.section-label {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #474747;
+  text-align: center;
+  align-self: flex-start;
+}
+
+.hint-box {
+  width: 100%;
+  background: #e8f7ec;
+  border-radius: 999rpx;
+  padding: 22rpx 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hint-text {
+  font-size: 26rpx;
+  color: #004d67;
+  text-align: center;
+  line-height: 1.5;
 }
 
 .code-hint {
-  font-size: 26rpx;
-  color: #9CA3AF;
+  font-size: 28rpx;
+  color: #474747;
   text-align: center;
-  display: block;
-  margin-bottom: 40rpx;
 }
 
+/* =============================================
+   输入框
+   ============================================= */
 .input-wrapper {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 0 32rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06);
+  width: 100%;
+  background: #e8f7ec;
+  border-radius: 999rpx;
+  padding: 0 44rpx;
+  height: 92rpx;
+  display: flex;
+  align-items: center;
 }
 
 .code-input {
   width: 100%;
-  height: 100rpx;
+  height: 92rpx;
   font-size: 40rpx;
-  font-weight: 700;
-  letter-spacing: 8rpx;
+  font-weight: 800;
+  letter-spacing: 12rpx;
   text-align: center;
-  color: #4F46E5;
+  color: #004d67;
+  background: transparent;
 }
 
+.input-placeholder {
+  color: rgba(119, 119, 119, 0.5);
+  font-size: 28rpx;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* =============================================
+   GO! 按钮（3D "gummy" 效果）
+   ============================================= */
+.btn-go {
+  width: 100%;
+  background: linear-gradient(180deg, #ffcc55 0%, #ffba38 100%);
+  border-radius: 999rpx;
+  padding: 32rpx 0;
+  box-shadow:
+    0 7rpx 0 0 #604100,
+    0 14rpx 28rpx rgba(126, 87, 0, 0.22);
+  border: 4rpx solid #604100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.btn-go[disabled] {
+  background: linear-gradient(180deg, #e0d9cc 0%, #c8c2b5 100%);
+  box-shadow:
+    0 7rpx 0 0 #a09888,
+    0 14rpx 28rpx rgba(0, 0, 0, 0.1);
+  border-color: #a09888;
+}
+
+.btn-go__text {
+  font-size: 48rpx;
+  font-weight: 900;
+  color: #604100;
+  letter-spacing: 4rpx;
+}
+
+/* 按压动效 */
+.bouncy {
+  transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              box-shadow 0.15s ease;
+}
+
+.bouncy:active {
+  transform: translateY(7rpx) scale(0.97);
+  box-shadow:
+    0 0 0 0 #604100,
+    0 4rpx 14rpx rgba(126, 87, 0, 0.15);
+}
+
+/* =============================================
+   错误信息
+   ============================================= */
 .error-msg {
-  color: #EF4444;
-  font-size: 26rpx;
+  color: #a03b56;
+  font-size: 24rpx;
   text-align: center;
+  background: #ffd9df;
+  border-radius: 16rpx;
+  padding: 12rpx 28rpx;
+  width: 100%;
   display: block;
-  margin-bottom: 24rpx;
+}
+
+/* =============================================
+   底部小字
+   ============================================= */
+.footer-hint {
+  font-size: 24rpx;
+  color: rgba(71, 71, 71, 0.65);
+  text-align: center;
+}
+
+/* =============================================
+   底部装饰图标气泡（保留样式，WXML 已移除节点）
+   ============================================= */
+.bottom-icons {
+  display: flex;
+  gap: 28rpx;
+  margin-top: 48rpx;
+}
+
+.icon-bubble {
+  width: 92rpx;
+  height: 92rpx;
+  background: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6rpx 20rpx rgba(18, 30, 24, 0.1);
+}
+
+.icon-bubble--rotated-neg  { transform: rotate(-12deg); }
+.icon-bubble--rotated-pos  { transform: rotate(12deg); }
+.icon-bubble--rotated-neg2 { transform: rotate(-6deg); }
+
+.icon-emoji {
+  font-size: 48rpx;
 }
