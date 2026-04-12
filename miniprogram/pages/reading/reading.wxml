@@ -66,7 +66,7 @@
               wx:for-index="sIdx"
               wx:key="id"
               id="sentence-{{group.indices[sIdx]}}"
-              class="bouncy-sentence-card {{group.indices[sIdx] === currentIndex ? ('card-active' + (playingIndex === currentIndex ? ' card-playing' : '')) : (recordings[group.indices[sIdx]] ? 'card-completed' : 'card-locked')}}"
+              class="bouncy-sentence-card {{group.indices[sIdx] === currentIndex ? ('card-active' + ((playingIndex === currentIndex || isRecording) ? ' card-playing' : '')) : (recordings[group.indices[sIdx]] ? 'card-completed' : 'card-locked')}}"
               bindtap="onSentenceTap"
               data-index="{{group.indices[sIdx]}}"
             >

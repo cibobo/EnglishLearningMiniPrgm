@@ -379,6 +379,15 @@ Page({
   // ─── Record Button (Long Press) ────────────────────────────────────────────
   onRecordStart() {
     this._wantToRecord = true;  // Set intent flag BEFORE async call
+
+    // Synchronously stop any playing audio BEFORE the async getSetting call.
+    // This prevents the brief flash where playingIndex is still set while
+    // isRecording is still false, which would wrongly show the speaker icon.
+    if (this.data.playingIndex !== -1) {
+      this._audio.pause();
+      this.setData({ playingIndex: -1 });
+    }
+
     wx.getSetting({
       success: (res) => {
         if (!this._wantToRecord) return;  // User already released - abort
@@ -386,12 +395,6 @@ Page({
         if (res.authSetting['scope.record'] === false) {
           wx.openSetting();
           return;
-        }
-
-        // Stop audio playback to not record device output
-        if (this.data.playingIndex !== -1) {
-          this._audio.pause();
-          this.setData({ playingIndex: -1 });
         }
 
         recorderManager.start({
