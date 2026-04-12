@@ -38,15 +38,36 @@
    Header (Top Glass Card)
    ============================================= */
 .top-header-glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
-  padding: 100rpx 40rpx 32rpx;
+  position: relative;
+  overflow: hidden;
+  padding: 180rpx 40rpx 32rpx;
   border-bottom-left-radius: 48rpx;
   border-bottom-right-radius: 48rpx;
   box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.06);
   z-index: 50;
   flex-shrink: 0;
   border-bottom: 2rpx solid rgba(255,255,255,0.8);
+}
+
+.header-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  filter: blur(4px);
+  transform: scale(1.1);
+}
+
+.header-bg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background: rgba(255, 255, 255, 0.75); /* High opacity white to make text pop over the blurred image */
 }
 
 .header-content {
@@ -116,6 +137,30 @@
   border-radius: 999rpx;
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* =============================================
+   Header Themes
+   ============================================= */
+/* Theme Primary (Orange/Yellow) */
+.top-header-glass.theme-primary .header-bg-overlay { background: rgba(255, 222, 172, 0.85); }
+.top-header-glass.theme-primary .header-thumb { border-color: #ffd9df; }
+.top-header-glass.theme-primary .header-title { color: #604100; }
+.top-header-glass.theme-primary .progress-text { color: #604100; }
+.top-header-glass.theme-primary .header-progress-fill { background: #ffba38; }
+
+/* Theme Secondary (Sky Blue) */
+.top-header-glass.theme-secondary .header-bg-overlay { background: rgba(194, 232, 255, 0.85); }
+.top-header-glass.theme-secondary .header-thumb { border-color: #ffdeac; }
+.top-header-glass.theme-secondary .header-title { color: #004d67; }
+.top-header-glass.theme-secondary .progress-text { color: #004d67; }
+.top-header-glass.theme-secondary .header-progress-fill { background: #75d1ff; }
+
+/* Theme Tertiary (Soft Pink) */
+.top-header-glass.theme-tertiary .header-bg-overlay { background: rgba(255, 217, 223, 0.85); }
+.top-header-glass.theme-tertiary .header-thumb { border-color: #c2e8ff; }
+.top-header-glass.theme-tertiary .header-title { color: #81233f; }
+.top-header-glass.theme-tertiary .progress-text { color: #81233f; }
+.top-header-glass.theme-tertiary .header-progress-fill { background: #ffb1c0; }
 
 /* =============================================
    List Content & Groups

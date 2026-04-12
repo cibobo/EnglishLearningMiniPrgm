@@ -12,7 +12,11 @@
 
   <block wx:else>
     <!-- 顶部状态小卡片 (Header) -->
-    <view class="top-header-glass">
+    <view class="top-header-glass {{colorTheme}}">
+      <!-- 课程封面作为虚化背景 -->
+      <image wx:if="{{lesson.imageUrl}}" class="header-bg-img" src="{{lesson.imageUrl}}" mode="aspectFill"/>
+      <view class="header-bg-overlay"></view>
+
       <view class="header-content">
          <view class="header-left">
            <image wx:if="{{lesson.imageUrl}}" class="header-thumb" src="{{lesson.imageUrl}}" mode="aspectFill"/>

@@ -39,6 +39,7 @@
       class="bouncy-card {{item.colorTheme}}"
       bindtap="onLessonTap"
       data-id="{{item.id}}"
+      data-theme="{{item.colorTheme}}"
       hover-class="card-hover"
     >
       <view class="card-deco">

@@ -32,8 +32,11 @@ Page({
   },
 
   onLoad(options) {
-    const { lessonId } = options;
-    this.setData({ lessonId });
+    const { lessonId, theme } = options;
+    this.setData({ 
+      lessonId,
+      colorTheme: theme || 'theme-primary'
+    });
     // Create a fresh audio context per page visit to avoid using a destroyed instance
     this._audio = wx.createInnerAudioContext();
     this._setupRecorder();

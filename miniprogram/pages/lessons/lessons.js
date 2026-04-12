@@ -61,8 +61,8 @@ Page({
   },
 
   onLessonTap(e) {
-    const { id } = e.currentTarget.dataset;
-    wx.navigateTo({ url: `/pages/reading/reading?lessonId=${id}` });
+    const { id, theme } = e.currentTarget.dataset;
+    wx.navigateTo({ url: `/pages/reading/reading?lessonId=${id}&theme=${theme || 'theme-primary'}` });
   },
 
   onLogout() {
