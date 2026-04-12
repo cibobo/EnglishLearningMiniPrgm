@@ -9,9 +9,14 @@ Page({
     errorMsg: '',
   },
 
-  async onLoad() {
-    // 无论有无本地 Token，都自动向服务器校验绑定状态
-    // 已绑定 → 直接跳转；未绑定（404）→ 显示学生码输入；网络错误 → 显示 GO 按钮供重试
+  async onLoad(options) {
+    // 主动退出登录时跳过自动校验，直接显示 GO 按钮
+    if (options && options.from === 'logout') {
+      this.setData({ loading: false });
+      return;
+    }
+    // 其他情况（首次打开、Token 过期跳转）自动向服务器校验绑定状态
+    // 已绑定 → 直接跳转；未绑定（404）→ 显示学生码输入；网络错误 → 显示 GO 按钮
     try {
       const user = await wechatLogin();
       wx.reLaunch({ url: `/pages/lessons/lessons?classId=${user.classId}` });

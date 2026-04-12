@@ -37,7 +37,7 @@ const logout = () => {
   wx.removeStorageSync('access_token');
   wx.removeStorageSync('refresh_token');
   wx.removeStorageSync('user_info');
-  wx.reLaunch({ url: '/pages/login/login' });
+  wx.reLaunch({ url: '/pages/login/login?from=logout' });
 };
 
 const getUserInfo = () => getStorageSync('user_info');
