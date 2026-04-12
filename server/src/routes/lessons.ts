@@ -39,6 +39,7 @@ router.get('/', async (req, res) => {
       include: {
         _count: { select: { sentences: true } },
         classLessons: { select: { classId: true } },
+        lessonGroupItems: { select: { groupId: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -138,6 +139,42 @@ router.delete('/:id', requireTeacher, async (req, res) => {
     res.json({ message: '课程已删除' });
   } catch {
     res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+// ─── POST /lessons/:id/groups ──────────────────────────────────────────────────
+router.post('/:id/groups', requireTeacher, async (req, res) => {
+  try {
+    const lessonId = req.params.id as string;
+    const { groupIds } = req.body as { groupIds: string[] };
+
+    const lesson = await prisma.lesson.findFirst({
+      where: { id: lessonId, teacherId: req.user!.id }
+    });
+    if (!lesson) {
+       res.status(404).json({ message: '课程不存在' });
+       return;
+    }
+
+    // Replace all groups with the new ones
+    await prisma.$transaction([
+      prisma.lessonGroupItem.deleteMany({
+        where: { lessonId }
+      }),
+      ...(groupIds && groupIds.length > 0 ? [
+        prisma.lessonGroupItem.createMany({
+          data: groupIds.map(groupId => ({
+            lessonId,
+            groupId
+          }))
+        })
+      ] : [])
+    ]);
+    
+    res.json({ message: '分组已更新' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: '指派课程分组失败' });
   }
 });
 

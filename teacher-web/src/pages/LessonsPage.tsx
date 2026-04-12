@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   Button, Modal, Form, Input, Upload, Card, Tag, Tooltip, Popover,
   message, Popconfirm, Typography, List, Image, Divider, Empty, Spin,
+  Tabs, Collapse, Checkbox, Space
 } from 'antd';
 import {
   PlusOutlined, UploadOutlined, EyeOutlined,
-  DeleteOutlined, EditOutlined, PlayCircleOutlined, PauseCircleOutlined
+  DeleteOutlined, EditOutlined, PlayCircleOutlined, PauseCircleOutlined,
+  FolderOpenOutlined, AppstoreOutlined, FolderOutlined
 } from '@ant-design/icons';
 import api from '../lib/api';
 
@@ -18,6 +20,12 @@ interface Lesson {
   masterAudioUrl?: string | null;
   _count: { sentences: number };
   classLessons: { classId: string }[];
+  lessonGroupItems?: { groupId: string }[];
+}
+
+interface LessonGroup {
+  id: string;
+  name: string;
 }
 
 interface Sentence {
@@ -52,6 +60,16 @@ const LessonsPage: React.FC = () => {
   const [detailModal, setDetailModal] = useState<{ open: boolean; lesson: LessonDetail | null }>({ open: false, lesson: null });
   const [form] = Form.useForm();
 
+  // ----- Lesson Groups State -----
+  const [groups, setGroups] = useState<LessonGroup[]>([]);
+  const [groupModal, setGroupModal] = useState<{ open: boolean; } & Partial<LessonGroup>>({ open: false });
+  const [groupForm] = Form.useForm();
+  
+  const [assignGroupModal, setAssignGroupModal] = useState<{ open: boolean; lessonId: string | null; selectedGroups: string[] }>({ 
+    open: false, lessonId: null, selectedGroups: [] 
+  });
+  // ------------------------------
+
   const masterAudioUrl = Form.useWatch('masterAudioUrl', form);
   const audioRef = React.useRef<HTMLAudioElement>(null);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
@@ -84,7 +102,19 @@ const LessonsPage: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchLessons(); }, []);
+  useEffect(() => { 
+    fetchLessons(); 
+    fetchGroups();
+  }, []);
+
+  const fetchGroups = async () => {
+    try {
+      const { data } = await api.get('/lesson-groups');
+      setGroups(data);
+    } catch {
+      message.error('获取分组失败');
+    }
+  };
 
   const fetchLessons = async () => {
     setLoading(true);
@@ -92,6 +122,54 @@ const LessonsPage: React.FC = () => {
       const { data } = await api.get('/lessons');
       setLessons(data);
     } finally { setLoading(false); }
+  };
+
+  // ─── Group Management ──────────────────────────────────────────────────────────
+  const handleSaveGroup = async () => {
+    try {
+      const vals = await groupForm.validateFields();
+      if (groupModal.id) {
+        await api.put(`/lesson-groups/${groupModal.id}`, vals);
+        message.success('分组已更新');
+      } else {
+        await api.post('/lesson-groups', vals);
+        message.success('分组已创建');
+      }
+      setGroupModal({ open: false });
+      fetchGroups();
+    } catch {
+      message.error('保存分组失败');
+    }
+  };
+
+  const handleDeleteGroup = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent panel toggle
+    try {
+      await api.delete(`/lesson-groups/${id}`);
+      message.success('分组已删除');
+      fetchGroups();
+    } catch {
+      message.error('删除分组失败');
+    }
+  };
+
+  const openAssignGroupModal = (lesson: Lesson) => {
+    const selected = lesson.lessonGroupItems?.map(i => i.groupId) || [];
+    setAssignGroupModal({ open: true, lessonId: lesson.id, selectedGroups: selected });
+  };
+
+  const handleAssignGroups = async () => {
+    if (!assignGroupModal.lessonId) return;
+    try {
+      await api.post(`/lessons/${assignGroupModal.lessonId}/groups`, {
+        groupIds: assignGroupModal.selectedGroups
+      });
+      message.success('分组指派已更新');
+      setAssignGroupModal({ open: false, lessonId: null, selectedGroups: [] });
+      fetchLessons(); // reload lessons to mirror groups
+    } catch {
+      message.error('指派分组失败');
+    }
   };
 
   // ─── Upload helper ───────────────────────────────────────────────────────────
@@ -274,72 +352,145 @@ const LessonsPage: React.FC = () => {
   const updateSentence = (i: number, update: Partial<SentenceForm>) => 
     setSentences(prev => prev.map((s, idx) => idx === i ? { ...s, ...update } : s));
 
+  const renderLessonCard = (lesson: Lesson) => (
+    <Card
+      key={lesson.id}
+      hoverable
+      style={{ width: 220 }}
+      cover={
+        <Image
+          src={lesson.imageUrl}
+          alt={lesson.title}
+          height={140}
+          style={{ objectFit: 'cover' }}
+          preview={false}
+          fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='140'%3E%3Crect width='220' height='140' fill='%23f5f5f5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23bbb' font-size='14'%3E暂无图片%3C/text%3E%3C/svg%3E"
+        />
+      }
+      actions={[
+        <Tooltip title="查看详情" key="view">
+          <EyeOutlined onClick={() => openDetail(lesson)} />
+        </Tooltip>,
+        <Tooltip title="指派分组" key="assignGroup">
+          <FolderOpenOutlined onClick={() => openAssignGroupModal(lesson)} style={{ color: '#ff385c' }} />
+        </Tooltip>,
+        <Tooltip title="编辑" key="edit">
+          <EditOutlined onClick={() => openEditModal(lesson)} style={{ color: '#1677ff' }} />
+        </Tooltip>,
+        <Popconfirm
+          key="delete"
+          title="删除后无法恢复，确定删除？"
+          onConfirm={() => deleteLesson(lesson.id)}
+          okText="删除" cancelText="取消"
+        >
+          <Tooltip title="删除课程">
+            <DeleteOutlined style={{ color: '#ff4d4f' }} />
+          </Tooltip>
+        </Popconfirm>,
+      ]}
+    >
+      <Card.Meta
+        title={<Text ellipsis={{ tooltip: lesson.title }}>{lesson.title}</Text>}
+        description={
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+            <Tag color="blue">{lesson._count.sentences} 句</Tag>
+            {lesson.classLessons.length > 0 && (
+              <Tag color="green">已分配 {lesson.classLessons.length} 班级</Tag>
+            )}
+          </div>
+        }
+      />
+    </Card>
+  );
+
   return (
     <div>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <Title level={4} style={{ margin: 0 }}>课程库</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
-          新建课程
-        </Button>
+        <Space>
+          <Button type="default" icon={<FolderOutlined />} onClick={() => {
+            groupForm.resetFields();
+            setGroupModal({ open: true });
+          }}>
+            新建分组
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+            新建课程
+          </Button>
+        </Space>
       </div>
 
-      {/* Lesson grid */}
-      <Spin spinning={loading}>
-        {lessons.length === 0 && !loading ? (
-          <Empty description="课程库为空，点击「新建课程」开始创建" style={{ marginTop: 80 }} />
-        ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-            {lessons.map(lesson => (
-              <Card
-                key={lesson.id}
-                hoverable
-                style={{ width: 220 }}
-                cover={
-                  <Image
-                    src={lesson.imageUrl}
-                    alt={lesson.title}
-                    height={140}
-                    style={{ objectFit: 'cover' }}
-                    preview={false}
-                    fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='140'%3E%3Crect width='220' height='140' fill='%23f5f5f5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23bbb' font-size='14'%3E暂无图片%3C/text%3E%3C/svg%3E"
-                  />
-                }
-                actions={[
-                  <Tooltip title="查看详情" key="view">
-                    <EyeOutlined onClick={() => openDetail(lesson)} />
-                  </Tooltip>,
-                  <Tooltip title="编辑" key="edit">
-                    <EditOutlined onClick={() => openEditModal(lesson)} style={{ color: '#1677ff' }} />
-                  </Tooltip>,
-                  <Popconfirm
-                    key="delete"
-                    title="删除后无法恢复，确定删除？"
-                    onConfirm={() => deleteLesson(lesson.id)}
-                    okText="删除" cancelText="取消"
+      <Tabs defaultActiveKey="all" style={{ marginBottom: 24 }}>
+        <Tabs.TabPane tab={<Space><AppstoreOutlined /> 全部课程</Space>} key="all">
+          <Spin spinning={loading}>
+            {lessons.length === 0 && !loading ? (
+              <Empty description="课程库为空，点击「新建课程」开始创建" style={{ marginTop: 80 }} />
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+                {lessons.map(renderLessonCard)}
+              </div>
+            )}
+          </Spin>
+        </Tabs.TabPane>
+        
+        <Tabs.TabPane tab={<Space><FolderOpenOutlined /> 分组浏览</Space>} key="grouped">
+          {groups.length === 0 ? (
+            <Empty description="暂无分组，点击右上角「新建分组」开始组织您的课程" style={{ marginTop: 80 }} />
+          ) : (
+            <Collapse defaultActiveKey={groups.map(g => g.id)} ghost>
+              {groups.map(group => {
+                const groupLessons = lessons.filter(l => l.lessonGroupItems?.some(gi => gi.groupId === group.id));
+                return (
+                  <Collapse.Panel 
+                    key={group.id} 
+                    header={
+                      <Space>
+                        <FolderOutlined style={{ color: '#ff385c' }} />
+                        <Text strong style={{ fontSize: 16 }}>{group.name}</Text>
+                        <Tag color="red">{groupLessons.length} 课</Tag>
+                      </Space>
+                    }
+                    extra={
+                      <Space>
+                        <Tooltip title="编辑分组名称">
+                          <Button 
+                            type="text" 
+                            size="small" 
+                            icon={<EditOutlined />} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              groupForm.setFieldsValue({ name: group.name });
+                              setGroupModal({ open: true, id: group.id, name: group.name });
+                            }} 
+                          />
+                        </Tooltip>
+                        <Popconfirm 
+                          title="确定要删除该分组吗？（仅删除分组，组内课程不会被删除）" 
+                          onConfirm={(e) => handleDeleteGroup(group.id, e as React.MouseEvent)} 
+                          onCancel={(e) => e?.stopPropagation()}
+                          okText="删除" cancelText="取消"
+                        >
+                          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={(e) => e.stopPropagation()} />
+                        </Popconfirm>
+                      </Space>
+                    }
+                    style={{ background: '#f2f2f2', borderRadius: 12, marginBottom: 16, border: 'none' }}
                   >
-                    <Tooltip title="删除课程">
-                      <DeleteOutlined style={{ color: '#ff4d4f' }} />
-                    </Tooltip>
-                  </Popconfirm>,
-                ]}
-              >
-                <Card.Meta
-                  title={<Text ellipsis={{ tooltip: lesson.title }}>{lesson.title}</Text>}
-                  description={
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-                      <Tag color="blue">{lesson._count.sentences} 句</Tag>
-                      {lesson.classLessons.length > 0 && (
-                        <Tag color="green">已分配 {lesson.classLessons.length} 个班级</Tag>
-                      )}
-                    </div>
-                  }
-                />
-              </Card>
-            ))}
-          </div>
-        )}
-      </Spin>
+                    {groupLessons.length === 0 ? (
+                      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="该分组下暂无课程" />
+                    ) : (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+                        {groupLessons.map(renderLessonCard)}
+                      </div>
+                    )}
+                  </Collapse.Panel>
+                );
+              })}
+            </Collapse>
+          )}
+        </Tabs.TabPane>
+      </Tabs>
 
       {/* ── Create/Edit Lesson Modal ──────────────────────────────────────────── */}
       <Modal
@@ -548,6 +699,63 @@ const LessonsPage: React.FC = () => {
               )}
             />
           </>
+        )}
+      </Modal>
+
+      {/* ── Create/Edit Group Modal ───────────────────────────────────────────── */}
+      <Modal
+        title={groupModal.id ? "编辑分组" : "新建分组"}
+        open={groupModal.open}
+        onOk={handleSaveGroup}
+        onCancel={() => setGroupModal({ open: false })}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Form form={groupForm} layout="vertical">
+          <Form.Item name="name" label="分组名称" rules={[{ required: true, message: '请输入分组名称' }]}>
+            <Input placeholder="例如：一年级绘本" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ── Assign Groups to Lesson Modal ─────────────────────────────────────── */}
+      <Modal
+        title="指派课程到分组"
+        open={assignGroupModal.open}
+        onOk={handleAssignGroups}
+        onCancel={() => setAssignGroupModal({ open: false, lessonId: null, selectedGroups: [] })}
+        okText="确认"
+        cancelText="取消"
+      >
+        {groups.length === 0 ? (
+          <Empty description="暂无分组，请先在右上角新建分组" />
+        ) : (
+          <Checkbox.Group
+            style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}
+            value={assignGroupModal.selectedGroups}
+            onChange={(checkedValues) => {
+              setAssignGroupModal(prev => ({ ...prev, selectedGroups: checkedValues as string[] }));
+            }}
+          >
+            {groups.map(g => (
+              <div 
+                key={g.id}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  padding: '12px 16px', 
+                  border: '1px solid rgba(0,0,0,0.04)', 
+                  borderRadius: 6,
+                  background: assignGroupModal.selectedGroups.includes(g.id) ? 'rgba(255,56,92,0.05)' : '#ffffff',
+                  transition: 'all 0.3s'
+                }}
+              >
+                <Checkbox value={g.id}>
+                  <Text strong style={{ marginLeft: 8 }}>{g.name}</Text>
+                </Checkbox>
+              </div>
+            ))}
+          </Checkbox.Group>
         )}
       </Modal>
     </div>

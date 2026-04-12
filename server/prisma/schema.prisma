@@ -21,6 +21,7 @@ model Teacher {
 
   classes Class[]
   lessons Lesson[]  // 教师拥有的课程库
+  lessonGroups LessonGroup[] // 教师创建的课程分组
 
   @@map("teachers")
 }
@@ -54,6 +55,7 @@ model Lesson {
   classLessons         ClassLesson[]        // 通过关联表访问班级
   sentences            Sentence[]
   recordingSubmissions RecordingSubmission[]
+  lessonGroupItems     LessonGroupItem[]    // 通过关联表访问分组
 
   @@map("lessons")
 }
@@ -117,4 +119,30 @@ model RecordingSubmission {
   sentence Sentence? @relation(fields: [sentenceId], references: [id])
 
   @@map("recording_submissions")
+}
+
+// 课程分组（类似文件夹分类系统，一个课程可存在于多个分组）
+model LessonGroup {
+  id        String   @id @default(uuid())
+  teacherId String   @map("teacher_id")
+  name      String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  teacher   Teacher  @relation(fields: [teacherId], references: [id])
+  lessons   LessonGroupItem[]
+
+  @@map("lesson_groups")
+}
+
+model LessonGroupItem {
+  groupId  String   @map("group_id")
+  lessonId String   @map("lesson_id")
+  addedAt  DateTime @default(now()) @map("added_at")
+
+  group    LessonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  lesson   Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, lessonId])
+  @@map("lesson_group_items")
 }
