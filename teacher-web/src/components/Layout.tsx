@@ -21,9 +21,11 @@ const Layout: React.FC = () => {
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
       <Sider
+        breakpoint="lg"
+        collapsedWidth="0"
         width={220}
         theme="dark"
-        style={{ background: 'linear-gradient(180deg, #312E81 0%, #1E1B4B 100%)' }}
+        style={{ background: 'linear-gradient(180deg, #312E81 0%, #1E1B4B 100%)', zIndex: 10 }}
       >
         {/* Logo */}
         <div style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
@@ -69,13 +71,28 @@ const Layout: React.FC = () => {
       </Sider>
 
       <AntLayout>
-        <Header style={{ background: '#fff', padding: '0 32px', borderBottom: '1px solid #F3F4F6', height: 56, lineHeight: '56px' }}>
+        <Header style={{ 
+          background: '#fff', 
+          padding: '0 16px', 
+          borderBottom: '1px solid #F3F4F6', 
+          height: 56, 
+          lineHeight: '56px',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
           <Text style={{ fontWeight: 700, fontSize: 18, color: '#1F2937' }}>
             {menuItems.find(m => m.key === location.pathname)?.label || '控制面板'}
           </Text>
         </Header>
-        <Content style={{ margin: '24px', overflow: 'auto' }}>
-          <Outlet />
+        <Content style={{ 
+          margin: '16px', 
+          overflow: 'auto',
+          background: '#fff', // Optional: if content needs a background
+          borderRadius: 8
+        }}>
+          <div style={{ padding: '0' /* If we have internal padding we want to keep */ }}>
+            <Outlet />
+          </div>
         </Content>
       </AntLayout>
     </AntLayout>
