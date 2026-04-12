@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   Table, Button, Modal, Form, Input, Select, Space, Tag,
-  message, Popconfirm, Typography, Avatar
+  message, Popconfirm, Typography, Avatar, List, Card, Divider, Grid
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 interface Student {
   id: string; name: string; studentCode: string;
@@ -19,6 +20,9 @@ interface Class { id: string; name: string; }
 
 const StudentsPage: React.FC = () => {
   const navigate = useNavigate();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
+
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
@@ -123,11 +127,18 @@ const StudentsPage: React.FC = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: isMobile ? 'column' : 'row', 
+        justifyContent: 'space-between', 
+        alignItems: isMobile ? 'stretch' : 'center', 
+        marginBottom: 20, 
+        gap: 16 
+      }}>
         <Title level={4} style={{ margin: 0 }}>学生管理</Title>
-        <Space>
+        <Space style={{ display: 'flex', justifyContent: 'space-between' }}>
           <Select
-            placeholder="按班级筛选" allowClear style={{ width: 180 }}
+            placeholder="按班级筛选" allowClear style={{ flex: 1, minWidth: 120 }}
             onChange={onFilterChange}
             options={classes.map(c => ({ label: c.name, value: c.id }))}
           />
@@ -135,7 +146,49 @@ const StudentsPage: React.FC = () => {
         </Space>
       </div>
 
-      <Table dataSource={students} columns={columns} rowKey="id" loading={loading} />
+      {isMobile ? (
+        <List
+          dataSource={students}
+          loading={loading}
+          renderItem={(r: Student) => (
+            <List.Item style={{ padding: '8px 0' }}>
+              <Card size="small" style={{ width: '100%', borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Space>
+                    <Avatar style={{ background: '#4F46E5' }}>{r.name[0]}</Avatar>
+                    <div>
+                      <Text strong>{r.name}</Text>
+                      <div><Text type="secondary" style={{ fontSize: 12 }}>学生码：{r.studentCode}</Text></div>
+                    </div>
+                  </Space>
+                  {r.studentCode ? <Tag color="orange" style={{ margin: 0 }}>待绑定</Tag> : <Tag color="green" style={{ margin: 0 }}>已绑定</Tag>}
+                </div>
+
+                <div style={{ marginTop: 12, marginBottom: 12 }}>
+                  <Space split={<Divider type="vertical" />} wrap>
+                    <Text type="secondary" style={{ fontSize: 13 }}>
+                      班级: {r.class?.name ? <Tag color="blue" style={{ margin: 0, marginLeft: 6 }}>{r.class.name}</Tag> : '未分班'}
+                    </Text>
+                    <Text type="secondary" style={{ fontSize: 13 }}>
+                      录音: <Tag color="green" style={{ margin: 0, marginLeft: 6 }}>{r._count.recordingSubmissions} 条</Tag>
+                    </Text>
+                  </Space>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/students/${r.id}`)}>详情</Button>
+                  <Button size="small" icon={<EditOutlined />} onClick={() => openModal(r)} />
+                  <Popconfirm title="确认删除？录音保留" onConfirm={() => deleteStudent(r.id)} okText="删除" cancelText="取消">
+                    <Button size="small" icon={<DeleteOutlined />} danger />
+                  </Popconfirm>
+                </div>
+              </Card>
+            </List.Item>
+          )}
+        />
+      ) : (
+        <Table dataSource={students} columns={columns} rowKey="id" loading={loading} />
+      )}
 
       <Modal
         title={editing ? '编辑学生' : '添加学生'}
