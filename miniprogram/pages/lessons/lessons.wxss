@@ -1,60 +1,93 @@
 /* pages/lessons/lessons.wxss */
 .page {
   min-height: 100vh;
-  background: #F5F7FA;
+  background: #eefdf2;
   display: flex;
   flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  box-sizing: border-box;
 }
 
-/* Header */
+/* =============================================
+   Header 沉浸式风格
+   ============================================= */
 .header {
-  background: linear-gradient(135deg, #4F46E5, #7C3AED);
-  padding: 48rpx 40rpx 60rpx;
+  padding: 100rpx 40rpx 20rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: #eefdf2;
 }
 
-.header-left { flex: 1; }
+.header-left { 
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.icon-bubble {
+  background: #c2e8ff;
+  border-radius: 999rpx;
+  padding: 12rpx 16rpx;
+  font-size: 32rpx;
+}
 
 .greeting {
-  display: block;
   font-size: 40rpx;
   font-weight: 800;
-  color: #fff;
-}
-
-.class-name {
-  display: block;
-  font-size: 26rpx;
-  color: rgba(255,255,255,0.75);
-  margin-top: 8rpx;
+  color: #7e5700;
 }
 
 .logout-btn {
-  padding: 12rpx 28rpx;
-  background: rgba(255,255,255,0.2);
-  border-radius: 40rpx;
-  color: #fff;
+  padding: 12rpx 32rpx;
+  background: rgba(255, 255, 255, 0.6);
+  border: 4rpx solid #fff;
+  border-radius: 999rpx;
+  color: #004d67;
   font-size: 26rpx;
+  font-weight: 700;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.03);
 }
 
-/* Skeleton */
-.skeleton-list { padding: 32rpx; }
+.logout-hover {
+  transform: scale(0.95);
+  transition: transform 0.2s;
+}
+
+/* =============================================
+   Intro
+   ============================================= */
+.intro-section {
+  padding: 0 40rpx 60rpx;
+  text-align: center;
+}
+
+.intro-title {
+  display: block;
+  font-size: 60rpx;
+  font-weight: 800;
+  color: #7e5700;
+  margin-bottom: 12rpx;
+}
+
+.intro-desc {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #006688;
+}
+
+/* =============================================
+   Empty State / Loading
+   ============================================= */
+.skeleton-list { padding: 40rpx; }
 .skeleton-card {
-  height: 200rpx;
-  background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 24rpx;
-  margin-bottom: 24rpx;
-}
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  height: 300rpx;
+  background: rgba(255,255,255,0.4);
+  border-radius: 48rpx;
+  margin-bottom: 32rpx;
 }
 
-/* Empty */
 .empty-state {
   flex: 1;
   display: flex;
@@ -64,55 +97,193 @@
   padding: 80rpx 0;
 }
 .empty-icon { font-size: 100rpx; margin-bottom: 24rpx; }
-.empty-text { font-size: 34rpx; font-weight: 700; color: #374151; }
-.empty-hint { font-size: 26rpx; color: #9CA3AF; margin-top: 12rpx; }
+.empty-text { font-size: 34rpx; font-weight: 700; color: #474747; }
+.empty-hint { font-size: 26rpx; color: #777; margin-top: 12rpx; }
 
-/* Lesson List */
+/* =============================================
+   Lesson List & Bouncy Cards
+   ============================================= */
 .lesson-list {
   flex: 1;
-  padding: 24rpx 32rpx 40rpx;
-  margin-top: -28rpx;
+  padding: 0 40rpx;
 }
 
-.lesson-card {
-  background: #fff;
-  border-radius: 24rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.07);
-  margin-bottom: 24rpx;
+.bouncy-card {
+  position: relative;
+  background: #ffffff;
+  border: 8rpx solid #ffffff;
+  border-radius: 48rpx;
+  padding: 48rpx;
+  margin-bottom: 40rpx;
+  box-shadow: 0 20rpx 40rpx rgba(0,0,0,0.06);
   display: flex;
-  align-items: center;
+  flex-direction: column;
   overflow: hidden;
-  transition: transform 0.1s;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.lesson-card:active { transform: scale(0.98); }
-
-.lesson-image {
-  width: 180rpx;
-  height: 160rpx;
-  flex-shrink: 0;
-  background: #E0E7FF;
+.card-hover {
+  transform: scale(0.95) rotate(-1deg);
 }
 
-.lesson-info {
+/* Base Decoration Images */
+.card-deco {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.15;
+  pointer-events: none;
+}
+.deco-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Card Content Structure */
+.card-content {
+  position: relative;
+  z-index: 10;
   flex: 1;
-  padding: 28rpx 24rpx;
 }
 
-.lesson-title {
+.card-header {
+  margin-bottom: 24rpx;
+}
+
+.status-badge {
+  background: rgba(255,255,255,0.5);
+  padding: 8rpx 24rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: inherit; /* will be overridden by theme */
+}
+
+.card-title {
   display: block;
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #1F2937;
-  line-height: 1.4;
+  font-size: 52rpx;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 16rpx;
 }
 
-.lesson-meta { margin-top: 12rpx; }
-.sentence-count { font-size: 24rpx; color: #9CA3AF; }
+.card-desc {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  opacity: 0.8;
+}
 
-.arrow {
-  font-size: 48rpx;
-  color: #D1D5DB;
-  padding-right: 28rpx;
-  font-weight: 300;
+/* Card Bottom actions */
+.card-bottom {
+  position: relative;
+  z-index: 10;
+  margin-top: 60rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.progress-section {
+  flex: 1;
+  margin-right: 32rpx;
+}
+
+.progress-text-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12rpx;
+}
+
+.progress-label {
+  font-size: 22rpx;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+  opacity: 0.7;
+}
+
+.progress-value {
+  font-size: 40rpx;
+  font-weight: 800;
+}
+
+.progress-track {
+  width: 100%;
+  height: 24rpx;
+  background: rgba(0,0,0,0.1);
+  border-radius: 999rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #ffffff;
+  border-radius: 999rpx;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-play {
+  padding: 24rpx 40rpx;
+  border-radius: 999rpx;
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #fff;
+  background: #000; /* overridden by theme */
+  box-shadow: 0 8rpx 0 0 rgba(0,0,0,0.2);
+}
+
+/* =============================================
+   Themes (The Candy Palette)
+   ============================================= */
+
+/* Theme Primary (Orange/Yellow) */
+.theme-primary {
+  background: #ffdeac;
+  border-color: #ffffff;
+}
+.theme-primary .status-badge { color: #7e5700; background: #ffeac7; border: 2rpx solid rgba(126,87,0,0.1); }
+.theme-primary .card-title { color: #604100; }
+.theme-primary .card-desc { color: #604100; }
+.theme-primary .progress-label { color: #604100; }
+.theme-primary .progress-value { color: #604100; }
+.theme-primary .progress-fill { background: #ffba38; }
+.theme-primary .btn-play { 
+  background: #7e5700;
+  box-shadow: 0 8rpx 0 0 #604100;
+}
+
+/* Theme Secondary (Sky Blue) */
+.theme-secondary {
+  background: #c2e8ff;
+  border-color: #ffffff;
+}
+.theme-secondary .status-badge { color: #004d67; background: #dbf1ff; border: 2rpx solid rgba(0,77,103,0.1); }
+.theme-secondary .card-title { color: #004d67; }
+.theme-secondary .card-desc { color: #004d67; }
+.theme-secondary .progress-label { color: #004d67; }
+.theme-secondary .progress-value { color: #004d67; }
+.theme-secondary .progress-fill { background: #75d1ff; }
+.theme-secondary .btn-play { 
+  background: #006688;
+  box-shadow: 0 8rpx 0 0 #004d67;
+}
+
+/* Theme Tertiary (Soft Pink) */
+.theme-tertiary {
+  background: #ffd9df;
+  border-color: #ffffff;
+}
+.theme-tertiary .status-badge { color: #81233f; background: #ffe8eb; border: 2rpx solid rgba(129,35,63,0.1); }
+.theme-tertiary .card-title { color: #81233f; }
+.theme-tertiary .card-desc { color: #81233f; }
+.theme-tertiary .progress-label { color: #81233f; }
+.theme-tertiary .progress-value { color: #81233f; }
+.theme-tertiary .progress-fill { background: #ffb1c0; }
+.theme-tertiary .btn-play { 
+  background: #a03b56;
+  box-shadow: 0 8rpx 0 0 #81233f;
 }

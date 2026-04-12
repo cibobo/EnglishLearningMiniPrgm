@@ -32,7 +32,28 @@ Page({
     this.setData({ loading: true });
     try {
       const lessons = await request({ url: `/lessons?class_id=${classId}` });
-      this.setData({ lessons, loading: false });
+
+      const themes = ['theme-primary', 'theme-secondary', 'theme-tertiary'];
+      const enrichedLessons = lessons.map((l, index) => {
+        const totalSentences = l._count?.sentences || 0;
+        
+        // 读取本地存储中的分句跟读记录
+        const localRecordings = wx.getStorageSync(`lesson_recordings_${l.id}`) || {};
+        // 已完成的句子数等于存储的有效录音记录数
+        const completed = Object.keys(localRecordings).length;
+
+        const progressPercent = totalSentences > 0 ? Math.round((completed / totalSentences) * 100) : 0;
+        
+        return {
+          ...l,
+          totalSentences,
+          completedSentences: completed,
+          progressPercent,
+          colorTheme: themes[index % themes.length]
+        };
+      });
+
+      this.setData({ lessons: enrichedLessons, loading: false });
     } catch (err) {
       this.setData({ loading: false });
       wx.showToast({ title: err.message || '加载失败，请重试', icon: 'none' });

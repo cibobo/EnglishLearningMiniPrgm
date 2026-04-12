@@ -1,14 +1,22 @@
 <!-- pages/lessons/lessons.wxml -->
 <view class="page">
-  <!-- 顶部用户栏 -->
+  <!-- 顶部沉浸式 Header -->
   <view class="header">
     <view class="header-left">
-      <text class="greeting">你好，{{userInfo.name}} 👋</text>
-      <text class="class-name">{{userInfo.className || '我的课程'}}</text>
+      <view class="icon-bubble">
+        <text class="emoji-icon">👋</text>
+      </view>
+      <text class="greeting">Hi, {{userInfo.name}}</text>
     </view>
-    <view class="logout-btn" bindtap="onLogout">
+    <view class="logout-btn" bindtap="onLogout" hover-class="logout-hover">
       <text>退出</text>
     </view>
+  </view>
+
+  <!-- 欢迎介绍栏 -->
+  <view class="intro-section">
+    <text class="intro-title">Where should we go?</text>
+    <text class="intro-desc">Pick an adventure to start learning!</text>
   </view>
 
   <!-- 加载中骨架 -->
@@ -23,23 +31,44 @@
     <text class="empty-hint">请等待老师上传跟读材料</text>
   </view>
 
-  <!-- 课程列表 -->
+  <!-- 课程列表 (Bouncy Cards) -->
   <scroll-view wx:else scroll-y class="lesson-list" enhanced show-scrollbar="{{false}}">
     <view
       wx:for="{{lessons}}"
       wx:key="id"
-      class="lesson-card"
+      class="bouncy-card {{item.colorTheme}}"
       bindtap="onLessonTap"
       data-id="{{item.id}}"
+      hover-class="card-hover"
     >
-      <image class="lesson-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
-      <view class="lesson-info">
-        <text class="lesson-title">{{item.title}}</text>
-        <view class="lesson-meta">
-          <text class="sentence-count">📝 {{item._count.sentences}} 句</text>
+      <view class="card-deco">
+        <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill" class="deco-bg-img" lazy-load />
+      </view>
+
+      <view class="card-content">
+        <view class="card-header">
+           <text class="status-badge">Lesson {{index + 1}}</text>
+        </view>
+        <text class="card-title">{{item.title}}</text>
+        <text class="card-desc">📝 {{item.totalSentences}} sentences</text>
+      </view>
+
+      <view class="card-bottom">
+        <view class="progress-section">
+          <view class="progress-text-row">
+            <text class="progress-label">PROGRESS</text>
+            <text class="progress-value">{{item.completedSentences}} / {{item.totalSentences}}</text>
+          </view>
+          <!-- 胶囊进度条 -->
+          <view class="progress-track">
+            <view class="progress-fill" style="width: {{item.progressPercent}}%"></view>
+          </view>
+        </view>
+        <view class="btn-play">
+          <text>GO!</text>
         </view>
       </view>
-      <view class="arrow">›</view>
     </view>
+    <view style="height: 100rpx;"></view> <!-- Bottom spacing -->
   </scroll-view>
 </view>
