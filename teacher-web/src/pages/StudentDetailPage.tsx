@@ -58,13 +58,13 @@ const StudentDetailPage: React.FC = () => {
 
   useEffect(() => { fetchProgress(); }, [id]);
 
-  const fetchProgress = async () => {
-    setLoading(true);
+  const fetchProgress = async (showUI = true) => {
+    if (showUI) setLoading(true);
     try {
       const { data } = await api.get(`/students/${id}/progress`);
       setProgress(data);
     } catch { message.error('加载失败'); }
-    finally { setLoading(false); }
+    finally { if (showUI) setLoading(false); }
   };
 
   const handleScore = async (recordingId: string, score: number | null) => {
@@ -72,10 +72,10 @@ const StudentDetailPage: React.FC = () => {
     try {
       await api.patch(`/recordings/${recordingId}/score`, { score });
       message.success(score !== null ? '打分成功' : '评分已清除');
-      fetchProgress();
+      fetchProgress(false);
     } catch {
       message.error('打分失败');
-      fetchProgress();
+      fetchProgress(false);
     }
   };
 
@@ -142,7 +142,7 @@ const StudentDetailPage: React.FC = () => {
         audioRef.current?.pause();
         setPlayingId(null);
       }
-      fetchProgress();
+      fetchProgress(false);
     } catch {
       message.error('删除失败');
     }
