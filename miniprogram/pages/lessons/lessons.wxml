@@ -46,11 +46,14 @@
         <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill" class="deco-bg-img" lazy-load />
       </view>
 
-      <!-- 奖杯角标 -->
-      <view wx:if="{{item.trophyLevel}}" class="trophy-badge trophy-{{item.trophyLevel}}">
-        <text class="trophy-emoji">
-          {{item.trophyLevel === 'gold' ? '🏆' : item.trophyLevel === 'silver' ? '🥈' : '🥉'}}
-        </text>
+      <!-- 完成标记 -->
+      <view wx:if="{{item.isLocked}}" class="completed-badge">
+        <text>COMPLETED</text>
+      </view>
+
+      <!-- 居中的奖杯图片 -->
+      <view wx:if="{{item.trophyLevel}}" class="trophy-center">
+        <image class="trophy-img" src="/images/{{item.trophyLevel}}.png" mode="aspectFit" />
       </view>
 
       <view class="card-content">
@@ -72,8 +75,11 @@
             <view class="progress-fill" style="width: {{item.progressPercent}}%"></view>
           </view>
         </view>
-        <view class="btn-play">
+        <view class="btn-play" wx:if="{{!item.isLocked}}">
           <text>GO!</text>
+        </view>
+        <view class="hundred-percent" wx:else>
+          <text>100%</text>
         </view>
       </view>
     </view>
