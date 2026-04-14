@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma';
 import { authenticate, requireTeacher, requireStudent } from '../middleware/auth';
+import { recalculateLessonScore } from '../lib/scoring';
 
 const router = Router();
 router.use(authenticate);
@@ -10,8 +11,8 @@ router.use(authenticate);
 router.post('/', requireStudent, async (req, res) => {
   try {
     const { lessonId, cloudId, sentenceId } = req.body;
-    if (!lessonId || !cloudId) {
-      res.status(400).json({ message: '缺少 lessonId 或 cloudId' });
+    if (!lessonId || !cloudId || !sentenceId) {
+      res.status(400).json({ message: '缺少 lessonId、cloudId 或 sentenceId' });
       return;
     }
 
@@ -21,19 +22,41 @@ router.post('/', requireStudent, async (req, res) => {
       return;
     }
 
+    // 锁定检查：LessonScore 存在 → 课程已锁，拒绝新录音
+    const locked = await prisma.lessonScore.findUnique({
+      where: { studentId_lessonId: { studentId: req.user!.id, lessonId } },
+    });
+    if (locked) {
+      res.status(403).json({ message: '课程已评分完成，无法继续跟读' });
+      return;
+    }
+
     // cloudId 格式: cloud://prod-xxx/recordings/lessonId/timestamp_index.aac
     // 直接存储，后续通过微信开放接口或 COS SDK 生成临时下载链接
-    const submission = await prisma.recordingSubmission.create({
-      data: {
+    const submission = await prisma.recordingSubmission.upsert({
+      where: { studentId_sentenceId: { studentId: req.user!.id, sentenceId } },
+      create: {
         studentId: req.user!.id,
         lessonId,
-        sentenceId: sentenceId || null,
+        sentenceId,
         audioUrl: cloudId,
         status: 'pending',
+        score: null,
+      },
+      update: {
+        audioUrl: cloudId,
+        status: 'pending',
+        score: null,
+        submittedAt: new Date(),
       },
     });
+
+    // 重录后旧分数被清除，重新计算（如果已有记录会被删除解锁）
+    await recalculateLessonScore(req.user!.id, lessonId);
+    
     res.status(201).json(submission);
-  } catch {
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ message: '服务器错误' });
   }
 });
@@ -82,6 +105,38 @@ router.get('/:id/url', requireTeacher, async (req, res) => {
     res.json({ url: recording.audioUrl, expires_in: 3600 });
   } catch {
     res.status(500).json({ message: '获取播放 URL 失败' });
+  }
+});
+
+// ─── PATCH /recordings/:id/score ────────────────────────────────────────────
+// 教师给录音打分
+router.patch('/:id/score', requireTeacher, async (req, res) => {
+  try {
+    const { score } = req.body;
+    if (score !== null && (!Number.isInteger(score) || score < 1 || score > 5)) {
+      res.status(400).json({ message: 'score 必须为 1-5 的整数或 null' });
+      return;
+    }
+    const recordingId = req.params.id as string;
+    
+    const recording = await prisma.recordingSubmission.findUnique({
+      where: { id: recordingId },
+    });
+    if (!recording) {
+      res.status(404).json({ message: '录音不存在' });
+      return;
+    }
+
+    const updated = await prisma.recordingSubmission.update({
+      where: { id: recordingId },
+      data: { score, status: 'reviewed' },
+    });
+    
+    await recalculateLessonScore(updated.studentId, updated.lessonId);
+    res.json(updated);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 

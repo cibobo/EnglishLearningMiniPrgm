@@ -88,20 +88,28 @@
                  
                  <!-- The Giant Microphone Button -->
                  <view class="giant-mic-container">
-                    <view 
-                      class="giant-mic-btn {{isRecording ? 'is-recording' : (playingIndex === currentIndex ? 'is-playing' : '')}}"
-                      bindtouchstart="onRecordStart"
-                      bindtouchend="onRecordStop"
-                      catch:touchmove="onRecordStop"
-                    >
-                      <view class="mic-inner">
-                        <text class="mic-icon" wx:if="{{isRecording}}">🔴</text>
-                        <text class="mic-icon playing-breathe" wx:elif="{{playingIndex === currentIndex}}">🔊</text>
-                        <text class="mic-icon" wx:else>🎙️</text>
-                      </view>
+                    <!-- 🔒 课程锁定：只显示提示，不显示录音按钮 -->
+                    <view wx:if="{{isLocked}}" class="locked-hint">
+                      <text class="locked-icon">🏆</text>
+                      <text class="locked-text">课程已完成评分，无法继续录音</text>
                     </view>
-                    <view class="mic-hint-badge">
-                      <text>{{isRecording ? 'RELEASE TO FINISH' : (playingIndex === currentIndex ? 'NOW PLAYING' : 'TAP &amp; HOLD TO RECORD')}}</text>
+
+                    <!-- 录音控件：未锁定时显示 -->
+                    <view wx:else class="giant-mic-container">
+                      <view class="giant-mic-btn {{isRecording ? 'is-recording' : ''}} {{playingIndex === currentIndex ? 'is-playing' : ''}}"
+                            bindtouchstart="onRecordStart" bindtouchend="onRecordStop" catch:touchmove="onRecordStop">
+                        <view class="mic-inner">
+                          <text class="mic-icon" wx:if="{{isRecording}}">🔴</text>
+                          <text class="mic-icon playing-breathe" wx:elif="{{playingIndex === currentIndex}}">🔊</text>
+                          <text class="mic-icon" wx:else>🎙️</text>
+                        </view>
+                      </view>
+                      
+                      <view class="mic-hint-badge">
+                        <text wx:if="{{isRecording}}">RELEASE TO FINISH</text>
+                        <text wx:elif="{{playingIndex === currentIndex}}">NOW PLAYING</text>
+                        <text wx:else>TAP & HOLD TO RECORD</text>
+                      </view>
                     </view>
                  </view>
               </view>
@@ -116,7 +124,7 @@
     </scroll-view>
 
     <!-- 底部 Change Adventure / Submit Action Area -->
-    <view class="bottom-action-bar" wx:if="{{recordedCount > 0}}">
+    <view class="bottom-action-bar" wx:if="{{recordedCount > 0 && !isLocked}}">
       <view 
         class="submit-adventure-btn {{submitting ? 'submitting' : ''}}"
         bindtap="onSubmit"

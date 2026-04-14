@@ -25,6 +25,22 @@ router.get('/', async (req, res) => {
       const lessons = classLessons
         .filter(cl => cl.lesson && !cl.lesson.deletedAt)
         .map(cl => cl.lesson);
+
+      if (req.user?.role === 'student') {
+        const lessonIds = lessons.map(l => l.id);
+        const scores = await prisma.lessonScore.findMany({
+          where: { studentId: req.user.id, lessonId: { in: lessonIds } },
+        });
+        const scoreMap = Object.fromEntries(scores.map(s => [s.lessonId, s]));
+        res.json(lessons.map(l => ({
+          ...l,
+          trophyLevel: scoreMap[l.id]?.trophyLevel ?? null,
+          scorePercent: scoreMap[l.id]?.scorePercent ?? null,
+          isLocked: !!scoreMap[l.id],
+        })));
+        return;
+      }
+
       res.json(lessons);
       return;
     }
@@ -65,6 +81,20 @@ router.get('/:id', async (req, res) => {
       res.status(404).json({ message: '课程不存在' });
       return;
     }
+    
+    if (req.user?.role === 'student') {
+      const score = await prisma.lessonScore.findUnique({
+        where: { studentId_lessonId: { studentId: req.user.id, lessonId } }
+      });
+      res.json({
+        ...lesson,
+        trophyLevel: score?.trophyLevel ?? null,
+        scorePercent: score?.scorePercent ?? null,
+        isLocked: !!score
+      });
+      return;
+    }
+
     res.json(lesson);
   } catch {
     res.status(500).json({ message: '服务器错误' });

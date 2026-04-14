@@ -149,15 +149,23 @@ router.get('/:id/progress', async (req, res) => {
 
     const completedLessons = new Set(submissions.map((s) => s.lessonId)).size;
 
+    const lessonScores = await prisma.lessonScore.findMany({
+      where: { studentId: req.params.id },
+    });
+    const scoreMap = Object.fromEntries(lessonScores.map(s => [s.lessonId, s]));
+
     // 构建每个课程的分组结构
     const lessonGroups = classLessons.map((cl) => {
       const lessonId = cl.lesson.id;
       const lessonSubmissions = submissions.filter((s) => s.lessonId === lessonId);
+      const score = scoreMap[lessonId];
       return {
         lessonId,
         lessonTitle: cl.lesson.title,
         sentenceCount: cl.lesson._count.sentences,
         submissionCount: lessonSubmissions.length,
+        trophyLevel: score?.trophyLevel ?? null,
+        scorePercent: score?.scorePercent ?? null,
         submissions: lessonSubmissions,
       };
     });

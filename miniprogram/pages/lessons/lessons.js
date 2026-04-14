@@ -49,7 +49,9 @@ Page({
           totalSentences,
           completedSentences: completed,
           progressPercent,
-          colorTheme: themes[index % themes.length]
+          colorTheme: themes[index % themes.length],
+          trophyLevel: l.trophyLevel || null,
+          isLocked: l.isLocked || false,
         };
       });
 

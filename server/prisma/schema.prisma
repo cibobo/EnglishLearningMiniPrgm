@@ -56,6 +56,7 @@ model Lesson {
   sentences            Sentence[]
   recordingSubmissions RecordingSubmission[]
   lessonGroupItems     LessonGroupItem[]    // 通过关联表访问分组
+  lessonScores         LessonScore[]
 
   @@map("lessons")
 }
@@ -85,6 +86,7 @@ model Student {
 
   class                Class?                @relation(fields: [classId], references: [id])
   recordingSubmissions RecordingSubmission[]
+  lessonScores         LessonScore[]
 
   @@map("students")
 }
@@ -109,16 +111,36 @@ model RecordingSubmission {
   id          String   @id @default(uuid())
   studentId   String   @map("student_id")
   lessonId    String   @map("lesson_id")
-  sentenceId  String?  @map("sentence_id")  // nullable for backward compat
+  sentenceId  String   @map("sentence_id")
   audioUrl    String   @map("audio_url") @db.VarChar(500)
   status      String   @default("pending") @db.VarChar(20)
+  score       Int?
   submittedAt DateTime @default(now()) @map("submitted_at")
 
   student  Student   @relation(fields: [studentId], references: [id])
   lesson   Lesson    @relation(fields: [lessonId], references: [id])
-  sentence Sentence? @relation(fields: [sentenceId], references: [id])
+  sentence Sentence  @relation(fields: [sentenceId], references: [id])
 
+  @@unique([studentId, sentenceId])
   @@map("recording_submissions")
+}
+
+model LessonScore {
+  id           String   @id @default(uuid())
+  studentId    String   @map("student_id")
+  lessonId     String   @map("lesson_id")
+  totalScore   Int      @map("total_score")
+  maxScore     Int      @map("max_score")
+  scorePercent Int      @map("score_percent")
+  trophyLevel  String   @map("trophy_level")
+  calculatedAt DateTime @default(now()) @map("calculated_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  student Student @relation(fields: [studentId], references: [id])
+  lesson  Lesson  @relation(fields: [lessonId], references: [id])
+
+  @@unique([studentId, lessonId])
+  @@map("lesson_scores")
 }
 
 // 课程分组（类似文件夹分类系统，一个课程可存在于多个分组）

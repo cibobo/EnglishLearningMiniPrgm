@@ -241,8 +241,32 @@
 }
 
 /* =============================================
-   Themes (The Candy Palette)
+   Themes (The Candy Palette) & Trophy
    ============================================= */
+
+.trophy-badge {
+  position: absolute;
+  top: 28rpx;
+  right: 28rpx;
+  z-index: 20;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.18);
+  animation: trophy-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.trophy-emoji { font-size: 52rpx; }
+.trophy-gold   { background: linear-gradient(135deg, #fff7e0, #ffd700); }
+.trophy-silver { background: linear-gradient(135deg, #f0f0f0, #c0c0c0); }
+.trophy-bronze { background: linear-gradient(135deg, #fde8d8, #cd7f32); }
+
+@keyframes trophy-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
 
 /* Theme Primary (Orange/Yellow) */
 .theme-primary {

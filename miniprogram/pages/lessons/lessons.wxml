@@ -46,6 +46,13 @@
         <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill" class="deco-bg-img" lazy-load />
       </view>
 
+      <!-- 奖杯角标 -->
+      <view wx:if="{{item.trophyLevel}}" class="trophy-badge trophy-{{item.trophyLevel}}">
+        <text class="trophy-emoji">
+          {{item.trophyLevel === 'gold' ? '🏆' : item.trophyLevel === 'silver' ? '🥈' : '🥉'}}
+        </text>
+      </view>
+
       <view class="card-content">
         <view class="card-header">
            <text class="status-badge">Lesson {{index + 1}}</text>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Card, Descriptions, Progress, Tag, Button, Space,
-  Typography, Skeleton, message, Collapse, Popconfirm, Spin,
+  Typography, Skeleton, message, Collapse, Popconfirm, Spin, Rate
 } from 'antd';
 import {
   ArrowLeftOutlined, PlayCircleOutlined, PauseCircleOutlined,
@@ -21,6 +21,7 @@ interface Submission {
   status: string;
   submittedAt: string;
   audioUrl?: string;
+  score?: number | null;
   sentence?: { id: string; text: string; orderIndex: number } | null;
   lesson: { id: string; title: string; sentences: Sentence[] };
 }
@@ -29,6 +30,8 @@ interface LessonGroup {
   lessonTitle: string;
   sentenceCount: number;
   submissionCount: number;
+  trophyLevel?: string | null;
+  scorePercent?: number | null;
   submissions: Submission[];
 }
 interface Progress_ {
@@ -50,6 +53,7 @@ const StudentDetailPage: React.FC = () => {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({});
   const [listenedIds, setListenedIds] = useState<Set<string>>(new Set());
+  const [localScores, setLocalScores] = useState<Record<string, number | null>>({});
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => { fetchProgress(); }, [id]);
@@ -61,6 +65,18 @@ const StudentDetailPage: React.FC = () => {
       setProgress(data);
     } catch { message.error('加载失败'); }
     finally { setLoading(false); }
+  };
+
+  const handleScore = async (recordingId: string, score: number | null) => {
+    setLocalScores(prev => ({ ...prev, [recordingId]: score }));
+    try {
+      await api.patch(`/recordings/${recordingId}/score`, { score });
+      message.success(score !== null ? '打分成功' : '评分已清除');
+      fetchProgress();
+    } catch {
+      message.error('打分失败');
+      fetchProgress();
+    }
   };
 
   const handlePlay = async (recordingId: string) => {
@@ -176,16 +192,27 @@ const StudentDetailPage: React.FC = () => {
           <Text type="secondary">该学生暂无录音记录</Text>
         ) : (
           <Collapse defaultActiveKey={lessonGroups.filter(g => g.submissionCount > 0).map(g => g.lessonId)}>
-            {lessonGroups.map(group => (
+            {lessonGroups.map(group => {
+              const trophyEmoji =
+                group.trophyLevel === 'gold' ? '🏆' :
+                group.trophyLevel === 'silver' ? '🥈' :
+                group.trophyLevel === 'bronze' ? '🥉' : null;
+
+              return (
               <Panel
                 key={group.lessonId}
                 header={
                   <Space>
                     <SoundOutlined />
                     <Text strong>{group.lessonTitle}</Text>
-                    <Tag color={group.submissionCount > 0 ? 'blue' : 'default'}>
+                    <Tag color={group.submissionCount >= group.sentenceCount ? 'blue' : 'default'}>
                       {group.submissionCount} / {group.sentenceCount} 句已提交
                     </Tag>
+                    {trophyEmoji && (
+                      <Tag color={group.trophyLevel === 'gold' ? 'gold' : group.trophyLevel === 'silver' ? 'default' : 'volcano'}>
+                        {trophyEmoji} {group.scorePercent}%
+                      </Tag>
+                    )}
                   </Space>
                 }
               >
@@ -233,15 +260,26 @@ const StudentDetailPage: React.FC = () => {
                             <Text style={{ fontSize: 13 }}>{sentenceText}</Text>
                           </div>
 
-                          {/* Meta */}
-                          <Space size={6} style={{ flexShrink: 0 }}>
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              {new Date(sub.submittedAt).toLocaleString('zh-CN')}
-                            </Text>
-                            {sub.status === 'reviewed'
-                              ? <Tag color="green">已听</Tag>
-                              : <Tag color="orange">未听</Tag>
-                            }
+                          {/* Meta & Actions */}
+                          <Space size={16} style={{ flexShrink: 0 }}>
+                            <Space size={6}>
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                {new Date(sub.submittedAt).toLocaleString('zh-CN')}
+                              </Text>
+                              {sub.status === 'reviewed'
+                                ? <Tag color="green">已听</Tag>
+                                : <Tag color="orange">未听</Tag>
+                              }
+                            </Space>
+
+                            <Rate
+                              count={5}
+                              value={localScores[sub.id] !== undefined ? localScores[sub.id]! : (sub.score ?? 0)}
+                              onChange={(val) => handleScore(sub.id, val || null)}
+                              allowClear
+                              style={{ fontSize: 14, color: '#faad14' }}
+                            />
+
                             <Popconfirm
                               title="确认删除这条录音？此操作不可恢复"
                               onConfirm={() => handleDelete(sub.id)}
@@ -260,7 +298,7 @@ const StudentDetailPage: React.FC = () => {
                   </div>
                 )}
               </Panel>
-            ))}
+            )})}
           </Collapse>
         )}
       </Card>
