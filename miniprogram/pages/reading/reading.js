@@ -572,29 +572,14 @@ Page({
         const entry = pendingEntries[i];
         wx.showLoading({ title: `上传录音 ${i + 1}/${pendingEntries.length}…`, mask: true });
 
-        // 改用 wx.uploadFile 调取服务器的真实上传接口，由服务端将其存入云托管 COS
+        // 直传云存储（wx.cloud.uploadFile 不受 uploadFile 合法域名限制）
+        const cloudPath = `recordings/${lessonId}/${entry.sentenceId || entry.sentenceIndex}_${Date.now()}.aac`;
         const uploadRes = await new Promise((resolve, reject) => {
-          const token = wx.getStorageSync('access_token');
-          wx.uploadFile({
-            url: `https://express-u5ne-242771-4-1419482792.sh.run.tcloudbase.com/api/v1/upload/file?category=recording`,
+          wx.cloud.uploadFile({
+            cloudPath,
             filePath: entry.tempPath,
-            name: 'file',
-            header: {
-              'Authorization': `Bearer ${token}`
-            },
-            success: (res) => {
-              if (res.statusCode >= 200 && res.statusCode < 300) {
-                try {
-                  const data = JSON.parse(res.data);
-                  resolve(data);
-                } catch (e) {
-                  reject(new Error('上传返回数据解析失败'));
-                }
-              } else {
-                reject(new Error(`上传失败(${res.statusCode}): ${res.data}`));
-              }
-            },
-            fail: (err) => reject(new Error(err.errMsg || '上传请求发送失败'))
+            success: (res) => resolve({ cloudID: res.fileID }),
+            fail: (err) => reject(new Error(err.errMsg || '云存储上传失败'))
           });
         });
 
@@ -603,7 +588,7 @@ Page({
           method: 'POST',
           data: {
             lessonId,
-            cloudId: uploadRes.public_url,   // 服务端存入 COS 后返回的公有 url
+            cloudId: uploadRes.cloudID,   // wx.cloud.uploadFile 返回的 fileID (cloud://...)
             sentenceId: entry.sentenceId,
           },
         });
