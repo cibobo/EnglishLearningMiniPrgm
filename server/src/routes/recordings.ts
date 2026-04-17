@@ -100,9 +100,17 @@ router.get('/:id/url', requireTeacher, async (req, res) => {
     }
 
     // 新格式：cloud:// CloudID，直接返回给教师端。
-    // 教师端通过 wx.cloud.getTempFileURL 转换为临时播放链接。
-    // 旧格式：http URL（Oracle 服务器时期的历史数据），直接返回。
-    res.json({ url: recording.audioUrl, expires_in: 3600 });
+    // 教师端是 Web 页面，无法直接播放 cloud:// 协议音频，由于云托管的 COS 桶配置为 public-read，
+    // 我们直接将其转换为可公开访问的 HTTPS 链接。
+    let finalUrl = recording.audioUrl;
+    if (finalUrl && finalUrl.startsWith('cloud://')) {
+      const match = finalUrl.match(/^cloud:\/\/[^/]+\.([^/]+)\/(.+)$/);
+      if (match) {
+        finalUrl = `https://${match[1]}.tcb.qcloud.la/${match[2]}`;
+      }
+    }
+
+    res.json({ url: finalUrl, expires_in: 3600 });
   } catch {
     res.status(500).json({ message: '获取播放 URL 失败' });
   }
