@@ -321,6 +321,7 @@
   flex-direction: column;
   align-items: center;
   gap: 32rpx;
+  position: relative; /* 为 hit-area 提供定位参考 */
 }
 
 .giant-mic-btn {
@@ -436,6 +437,22 @@
 }
 
 /* =============================================
+   Giant Mic Hit Area
+   完全透明的触摸拦截层，位置固定不变，用来接收所有触摸手势，
+   防止录音时 DOM 重建导致的丢失 touchend 事件问题。
+   ============================================= */
+.giant-mic-hit-area {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280rpx; /* 故意比可视按钮 240rpx 更大，增加触发区域 */
+  height: 280rpx;
+  z-index: 100;
+  background: transparent;
+}
+
+/* =============================================
    Bottom Sticky Bar (Submit / Change Adventure)
    ============================================= */
 .bottom-spacer {
@@ -514,3 +531,4 @@
   pointer-events: none;
   text-shadow: 0 4rpx 12rpx rgba(250, 204, 21, 0.8);
 }
+

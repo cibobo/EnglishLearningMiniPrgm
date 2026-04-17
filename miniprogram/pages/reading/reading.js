@@ -21,6 +21,7 @@ Page({
 
     // Recording state
     isRecording: false,
+    recordingUI: false,   // 视觉状态：先于 isRecording 变化，避免 DOM 重建吞掉 touchend
     recordings: {},       // { [sentenceIndex]: tempFilePath }
     recordedCount: 0,
 
@@ -38,8 +39,8 @@ Page({
   onLoad(options) {
     const { lessonId, theme } = options;
     const menuButton = wx.getMenuButtonBoundingClientRect();
-    
-    this.setData({ 
+
+    this.setData({
       lessonId,
       colorTheme: theme || 'theme-primary',
       navTop: menuButton.top,
@@ -250,6 +251,8 @@ Page({
   // ─── Recorder Setup ────────────────────────────────────────────────────────
   _setupRecorder() {
     recorderManager.onStart(() => {
+      console.log('[Recorder] onStart fired — setting isRecording=true');
+      // recordingUI 已经在 onRecordStart 里提前设置好了，这里只更新实际状态
       this.setData({ isRecording: true });
     });
 
@@ -261,8 +264,9 @@ Page({
       const recordedCount = Object.keys(updated).length;
       const allDone = recordedCount >= sentences.length;
 
-      // Instantly update button visual to unpressed
-      this.setData({ isRecording: false });
+      // 先重置实际录音状态，再恢复视觉UI（顺序与 onRecordStart 相反）
+      console.log('[Recorder] onStop fired — resetting isRecording & recordingUI');
+      this.setData({ isRecording: false, recordingUI: false });
 
       const handleAdvance = () => {
         this.setData({
@@ -378,25 +382,39 @@ Page({
 
   // ─── Record Button (Long Press) ────────────────────────────────────────────
   onRecordStart() {
+    console.log('[Touch] touchstart — onRecordStart called');
     this._wantToRecord = true;  // Set intent flag BEFORE async call
+    this._startCalled = false;
 
     // Synchronously stop any playing audio BEFORE the async getSetting call.
-    // This prevents the brief flash where playingIndex is still set while
-    // isRecording is still false, which would wrongly show the speaker icon.
     if (this.data.playingIndex !== -1) {
       this._audio.pause();
       this.setData({ playingIndex: -1 });
     }
 
+    // 【关键】先立刻更新 UI 视觉状态（按钮扶正、变成红点），
+    // 让 DOM 在这一帧就稳定下来，之后的 touchend 不会因 DOM 重建而丢失。
+    // isRecording 的更新留到 recorderManager.onStart 回调里再做。
+    this.setData({ recordingUI: true });
+    console.log('[Touch] recordingUI=true set synchronously');
+
     wx.getSetting({
       success: (res) => {
-        if (!this._wantToRecord) return;  // User already released - abort
+        if (!this._wantToRecord) {
+          // 用户已经松手，中止录音指令，同时恢复 UI
+          console.log('[Touch] _wantToRecord=false on getSetting return — aborting, restoring UI');
+          this.setData({ recordingUI: false });
+          return;
+        }
 
         if (res.authSetting['scope.record'] === false) {
+          this.setData({ recordingUI: false });
           wx.openSetting();
           return;
         }
 
+        this._startCalled = true;
+        console.log('[Recorder] calling recorderManager.start()');
         recorderManager.start({
           format: 'aac',
           sampleRate: 16000,
@@ -409,10 +427,26 @@ Page({
   },
 
   onRecordStop() {
+    console.log('[Touch] touchend/touchmove — onRecordStop called, isRecording=', this.data.isRecording, '_startCalled=', this._startCalled, '_wantToRecord=', this._wantToRecord);
     this._wantToRecord = false;  // Clear intent flag
-    if (this.data.isRecording) {
+
+    // 【顺序】先停止录音（状态先改），再让 onStop 回调恢复 UI。
+    // 这样 UI 的恢复（扶正→倾斜，红点→麦克风）发生在录音停止之后，
+    // 而不是在 touchend 绑定的 DOM 节点还没稳定时。
+    if (this.data.isRecording || this._startCalled) {
+      console.log('[Recorder] calling recorderManager.stop()');
+      this._startCalled = false;
       recorderManager.stop();
+      // recordingUI 会由 recorderManager.onStop 回调里的 setData 恢复为 false
+    } else {
+      // 录音根本没有发出指令（getSetting 还没回来），直接恢复 UI
+      console.log('[Touch] no recording started yet — restoring UI directly');
+      this.setData({ recordingUI: false });
     }
+  },
+
+  preventBubbling() {
+    // Empty function to catch and prevent tap events from bubbling up and triggering page interactions
   },
 
   // ─── Interactions ──────────────────────────────────────────────────────────
