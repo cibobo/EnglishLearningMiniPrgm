@@ -13,6 +13,7 @@ Page({
     activeGroupIndex: 0,
     currentIndex: 0,
     playingIndex: -1, // Tracks which sentence is currently outputting audio
+    playingUserAudio: false, // Tracks if user's own recording is playing
     loading: true,
 
     // Dynamic Navigation
@@ -61,6 +62,10 @@ Page({
     if (this._audio) {
       this._audio.destroy();
       this._audio = null;
+    }
+    if (this._userAudio) {
+      this._userAudio.destroy();
+      this._userAudio = null;
     }
     if (this.data.isRecording) recorderManager.stop();
   },
@@ -388,6 +393,10 @@ Page({
       this._audio.pause();
       this.setData({ playingIndex: -1 });
     }
+    if (this.data.playingUserAudio) {
+      if (this._userAudio) this._userAudio.pause();
+      this.setData({ playingUserAudio: false });
+    }
 
     // 【关键】先立刻更新 UI 视觉状态（按钮扶正、变成红点），
     // 让 DOM 在这一帧就稳定下来，之后的 touchend 不会因 DOM 重建而丢失。
@@ -472,6 +481,11 @@ Page({
       return;
     }
 
+    if (this.data.playingUserAudio) {
+      if (this._userAudio) this._userAudio.pause();
+      this.setData({ playingUserAudio: false });
+    }
+
     // Prepare for new play structure
     this.setData({
       playingIndex: targetIdx,
@@ -511,6 +525,55 @@ Page({
       wx.showToast({ title: '无法播放：该句子暂无音频信息', icon: 'none' });
       this.setData({ playingIndex: -1 });
     }
+  },
+
+  onPlayUserRecording() {
+    const { currentIndex, recordings, playingUserAudio } = this.data;
+    
+    // If we're currently playing user audio, stop it
+    if (playingUserAudio) {
+      if (this._userAudio) this._userAudio.pause();
+      this.setData({ playingUserAudio: false });
+      return;
+    }
+
+    // Stop standard sentence audio if playing
+    if (this.data.playingIndex !== -1) {
+      this._audio.pause();
+      this.setData({ playingIndex: -1 });
+    }
+
+    const rec = recordings[currentIndex];
+    if (!rec) return;
+
+    let pathToPlay = '';
+    if (typeof rec === 'string') {
+      pathToPlay = rec;
+    } else if (rec.tempPath) {
+      pathToPlay = rec.tempPath;
+    }
+
+    if (!pathToPlay) {
+      wx.showToast({ title: '暂无该录音的本地缓存', icon: 'none' });
+      return;
+    }
+
+    // Lazy load user audio context so we don't conflict with master audio / seek
+    if (!this._userAudio) {
+      this._userAudio = wx.createInnerAudioContext();
+      this._userAudio.onEnded(() => {
+        this.setData({ playingUserAudio: false });
+      });
+      this._userAudio.onError((err) => {
+        console.error('[User Audio Error]', err);
+        this.setData({ playingUserAudio: false });
+        wx.showToast({ title: '回放失败', icon: 'none' });
+      });
+    }
+
+    this._userAudio.src = pathToPlay;
+    this.setData({ playingUserAudio: true });
+    this._userAudio.play();
   },
 
   _scrollToNode(selector) {

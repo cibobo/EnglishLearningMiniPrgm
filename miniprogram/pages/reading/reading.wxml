@@ -96,12 +96,32 @@
 
                     <!-- 录音控件：未锁定时显示 -->
                     <view wx:else class="giant-mic-container">
-                      <!-- 视觉按钮：没有任何事件，专门负责UI动效 -->
-                      <view class="giant-mic-btn {{recordingUI ? 'is-recording' : ''}} {{playingIndex === currentIndex ? 'is-playing' : ''}}">
-                        <view class="mic-inner">
-                          <text class="mic-icon" wx:if="{{recordingUI}}">🔴</text>
-                          <text class="mic-icon playing-breathe" wx:elif="{{playingIndex === currentIndex}}">🔊</text>
-                          <text class="mic-icon" wx:else>🎙️</text>
+                      
+                      <view class="mic-btn-wrapper">
+                        <!-- 视觉按钮：没有任何事件，专门负责UI动效 -->
+                        <view class="giant-mic-btn {{recordingUI ? 'is-recording' : ''}} {{playingIndex === currentIndex ? 'is-playing' : ''}}">
+                          <view class="mic-inner">
+                            <text class="mic-icon" wx:if="{{recordingUI}}">🔴</text>
+                            <text class="mic-icon playing-breathe" wx:elif="{{playingIndex === currentIndex}}">🔊</text>
+                            <text class="mic-icon" wx:else>🎙️</text>
+                          </view>
+                        </view>
+
+                        <!-- 用户回放自己录音的红色喇叭按钮 -->
+                        <view 
+                          wx:if="{{recordings[currentIndex] && !recordingUI && playingIndex !== currentIndex}}"
+                          class="user-playback-btn {{playingUserAudio ? 'playing' : ''}}"
+                          catchtap="onPlayUserRecording"
+                        >
+                          <view class="icon-speaker"></view>
+                        </view>
+
+                        <!-- 隐形的触摸感应层：覆盖在主按钮上方，负责受控区域的录音事件 -->
+                        <view class="giant-mic-hit-area"
+                              catch:touchstart="onRecordStart" 
+                              catch:touchend="onRecordStop" 
+                              catch:touchcancel="onRecordStop"
+                              catch:tap="preventBubbling">
                         </view>
                       </view>
                       
@@ -111,13 +131,6 @@
                         <text wx:else>TAP & HOLD TO RECORD</text>
                       </view>
 
-                      <!-- 隐形的触摸感应层：覆盖在按钮上方，负责所有触摸事件。它自身的类名和位置绝对不会动态改变！ -->
-                      <view class="giant-mic-hit-area"
-                            catch:touchstart="onRecordStart" 
-                            catch:touchend="onRecordStop" 
-                            catch:touchcancel="onRecordStop"
-                            catch:tap="preventBubbling">
-                      </view>
                     </view>
                  </view>
               </view>

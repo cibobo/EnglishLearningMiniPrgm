@@ -321,7 +321,57 @@
   flex-direction: column;
   align-items: center;
   gap: 32rpx;
-  position: relative; /* 为 hit-area 提供定位参考 */
+}
+
+.mic-btn-wrapper {
+  position: relative;
+  width: 240rpx;
+  height: 240rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-playback-btn {
+  position: absolute;
+  right: -60rpx;
+  bottom: 0rpx;
+  width: 80rpx;
+  height: 80rpx;
+  background: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 16rpx rgba(255, 77, 79, 0.25);
+  z-index: 110;
+  transition: all 0.2s;
+  border: 4rpx solid #ff4d4f;
+}
+
+.user-playback-btn.playing {
+  background: #ff4d4f;
+  transform: scale(1.1);
+  box-shadow: 0 8rpx 20rpx rgba(255, 77, 79, 0.4);
+}
+
+.user-playback-btn:active {
+  transform: scale(0.9);
+}
+
+.icon-speaker {
+  width: 44rpx;
+  height: 44rpx;
+  background-color: #ff4d4f;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z'/%3E%3C/svg%3E") no-repeat center;
+  mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z'/%3E%3C/svg%3E") no-repeat center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.user-playback-btn.playing .icon-speaker {
+  background-color: #ffffff;
+  animation: mic-breathe 1.5s ease-in-out infinite;
 }
 
 .giant-mic-btn {
@@ -443,9 +493,9 @@
    ============================================= */
 .giant-mic-hit-area {
   position: absolute;
-  top: 0;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   width: 280rpx; /* 故意比可视按钮 240rpx 更大，增加触发区域 */
   height: 280rpx;
   z-index: 100;
