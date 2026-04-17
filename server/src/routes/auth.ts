@@ -3,7 +3,7 @@ import axios from 'axios';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
-import { generateAccessToken, generateRefreshToken, AuthPayload } from '../middleware/auth';
+import { generateAccessToken, generateRefreshToken, AuthPayload, authenticate } from '../middleware/auth';
 
 const router = Router();
 
@@ -153,6 +153,84 @@ router.post('/refresh', async (req, res) => {
     res.json({ access_token: newAccess });
   } catch {
     res.status(401).json({ message: 'Refresh token 无效或已过期' });
+  }
+});
+
+// ─── POST /auth/me/checkin ──────────────────────────────────────────────────
+router.post('/me/checkin', authenticate, async (req, res) => {
+  try {
+    const studentId = (req as any).user.id;
+    const role = (req as any).user.role;
+    
+    if (role !== 'student') {
+      res.status(403).json({ message: '仅学生可打卡' });
+      return;
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId }
+    });
+
+    if (!student) {
+      res.status(404).json({ message: '学生不存在' });
+      return;
+    }
+
+    // 计算累计句子数
+    const totalSentences = await prisma.recordingSubmission.count({
+      where: { studentId }
+    });
+
+    const now = new Date();
+    // 转换为北京时间 (UTC+8) 的 YYYY-MM-DD 字符串
+    const getBeijingDateStr = (d: Date) => {
+      const beijingTime = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+      return beijingTime.toISOString().split('T')[0];
+    };
+
+    const beijingNowStr = getBeijingDateStr(now);
+    const beijingYesterdayStr = getBeijingDateStr(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+    
+    let streak = student.loginStreak || 0;
+    let isFirstLoginToday = false;
+
+    if (!student.lastLoginAt) {
+      streak = 1;
+      isFirstLoginToday = true;
+    } else {
+      const lastLoginStr = getBeijingDateStr(student.lastLoginAt);
+      if (lastLoginStr === beijingNowStr) {
+        // 今天已打卡
+        isFirstLoginToday = false;
+      } else if (lastLoginStr === beijingYesterdayStr) {
+        // 昨天打过卡，连续打卡
+        streak += 1;
+        isFirstLoginToday = true;
+      } else {
+        // 断签
+        streak = 1;
+        isFirstLoginToday = true;
+      }
+    }
+
+    if (isFirstLoginToday) {
+      await prisma.student.update({
+        where: { id: studentId },
+        data: {
+          lastLoginAt: now,
+          loginStreak: streak
+        }
+      });
+    }
+
+    res.json({
+      isFirstLoginToday,
+      streak,
+      totalSentences
+    });
+  } catch (err) {
+    console.error('[checkin]', err);
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 

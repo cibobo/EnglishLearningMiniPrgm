@@ -7,6 +7,9 @@
         <text class="emoji-icon">👋</text>
       </view>
       <text class="greeting">Hi, {{userInfo.name}}</text>
+      <view class="checkin-trigger" bindtap="onShowCheckin" hover-class="checkin-trigger-hover">
+        <text>🏅 打卡</text>
+      </view>
     </view>
     <view class="logout-btn" bindtap="onLogout" hover-class="logout-hover">
       <text>退出</text>
@@ -85,4 +88,14 @@
     </view>
     <view style="height: 100rpx;"></view> <!-- Bottom spacing -->
   </scroll-view>
+
+  <!-- 打卡奖励弹窗组件 -->
+  <checkin 
+    show="{{showCheckinModal}}" 
+    streak="{{streak}}" 
+    totalSentences="{{totalSentences}}" 
+    avatarUrl="{{userInfo.avatarUrl}}" 
+    bind:close="onCloseCheckin" 
+    bind:start="onCloseCheckin"
+  />
 </view>

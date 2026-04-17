@@ -38,6 +38,22 @@
   color: #7e5700;
 }
 
+.checkin-trigger {
+  padding: 10rpx 24rpx;
+  background: #ffba38;
+  border-radius: 999rpx;
+  color: #604100;
+  font-size: 26rpx;
+  font-weight: 800;
+  box-shadow: 0 4rpx 0 #7e5700;
+  margin-left: 10rpx;
+}
+
+.checkin-trigger-hover {
+  transform: translateY(2rpx);
+  box-shadow: 0 2rpx 0 #7e5700;
+}
+
 .logout-btn {
   padding: 12rpx 32rpx;
   background: rgba(255, 255, 255, 0.6);

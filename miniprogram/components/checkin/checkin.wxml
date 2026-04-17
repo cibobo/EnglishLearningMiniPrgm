@@ -1,0 +1,51 @@
+<view class="checkin-overlay" wx:if="{{show}}">
+  <view class="checkin-modal">
+    <!-- Top Section: Celebratory Illustration -->
+    <view class="top-section">
+      <view class="confetti left-confetti">✨</view>
+      <view class="confetti right-confetti">🌟</view>
+      
+      <view class="avatar-container">
+        <image class="avatar-img" src="{{avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAnBCHVl8YQ-r6-pP3vK6I7I4q2rXmZ_M7zD5t_U6gXk4v2A'}}" mode="aspectFill"></image>
+      </view>
+      
+      <view class="title">Amazing Work!</view>
+    </view>
+
+    <!-- Middle Section: Stats Grid -->
+    <view class="stats-section">
+      <view class="stats-grid">
+        <!-- Streak Card -->
+        <view class="stat-card streak-card">
+          <view class="icon-box primary-box"><text class="icon">💎</text></view>
+          <text class="stat-value">{{streak}} Days</text>
+          <text class="stat-label">Streak</text>
+        </view>
+        
+        <!-- Sentences Card -->
+        <view class="stat-card sentences-card">
+          <view class="icon-box secondary-box"><text class="icon">📖</text></view>
+          <text class="stat-value">{{totalSentences}}</text>
+          <text class="stat-label">Sentences</text>
+        </view>
+      </view>
+      
+      <view class="subtitle">
+        <text>You are doing fantastic! Ready for more?</text>
+      </view>
+    </view>
+
+    <!-- Bottom Section: Primary Action -->
+    <view class="action-section">
+      <view class="primary-btn" bindtap="onStart" hover-class="primary-btn-hover">
+        <text class="btn-text">Start Today's Adventure!</text>
+        <text class="btn-icon">🚀</text>
+      </view>
+    </view>
+
+    <!-- Footer Close Action -->
+    <view class="footer-section">
+      <text class="close-text" bindtap="onClose">Not now, maybe later</text>
+    </view>
+  </view>
+</view>

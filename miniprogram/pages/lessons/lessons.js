@@ -8,6 +8,9 @@ Page({
     loading: true,
     userInfo: null,
     classId: null,
+    showCheckinModal: false,
+    streak: 0,
+    totalSentences: 0,
   },
 
   onLoad(options) {
@@ -25,7 +28,33 @@ Page({
   onShow() {
     // 每次显示时刷新（跟读完成后返回可更新状态）
     const { classId } = this.data;
-    if (classId) this.loadLessons(classId);
+    if (classId) {
+      this.loadLessons(classId);
+      this.checkDailyLogin();
+    }
+  },
+
+  async checkDailyLogin() {
+    try {
+      const res = await request({ url: '/auth/me/checkin', method: 'POST' });
+      this.setData({
+        streak: res.streak,
+        totalSentences: res.totalSentences
+      });
+      if (res.isFirstLoginToday) {
+        this.setData({ showCheckinModal: true });
+      }
+    } catch (err) {
+      console.error('[Checkin Error]', err);
+    }
+  },
+
+  onShowCheckin() {
+    this.setData({ showCheckinModal: true });
+  },
+
+  onCloseCheckin() {
+    this.setData({ showCheckinModal: false });
   },
 
   async loadLessons(classId) {

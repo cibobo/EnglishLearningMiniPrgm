@@ -83,6 +83,8 @@ model Student {
   classId     String?   @map("class_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   deletedAt   DateTime? @map("deleted_at")
+  lastLoginAt DateTime? @map("last_login_at")
+  loginStreak Int       @default(0) @map("login_streak")
 
   class                Class?                @relation(fields: [classId], references: [id])
   recordingSubmissions RecordingSubmission[]
