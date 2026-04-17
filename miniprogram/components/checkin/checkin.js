@@ -18,6 +18,9 @@ Component({
     }
   },
   methods: {
+    catchModalTap() {
+      // Prevent bubbling
+    },
     onClose() {
       this.setData({ show: false });
       this.triggerEvent('close');

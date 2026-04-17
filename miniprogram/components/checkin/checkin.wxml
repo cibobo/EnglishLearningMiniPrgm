@@ -1,5 +1,5 @@
-<view class="checkin-overlay" wx:if="{{show}}">
-  <view class="checkin-modal">
+<view class="checkin-overlay" wx:if="{{show}}" bindtap="onClose">
+  <view class="checkin-modal" catchtap="catchModalTap">
     <!-- Top Section: Celebratory Illustration -->
     <view class="top-section">
       <view class="confetti left-confetti">✨</view>
