@@ -46,7 +46,7 @@
 }
 
 .right-confetti {
-  top: 40px;
+  top: 50px;
   right: 40px;
   transform: rotate(12deg);
 }

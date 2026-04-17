@@ -17,14 +17,14 @@
       <view class="stats-grid">
         <!-- Streak Card -->
         <view class="stat-card streak-card">
-          <view class="icon-box primary-box"><text class="icon">💎</text></view>
+          <view class="icon-box primary-box"><text class="icon">✔️</text></view>
           <text class="stat-value">{{streak}} Days</text>
           <text class="stat-label">Streak</text>
         </view>
         
         <!-- Sentences Card -->
         <view class="stat-card sentences-card">
-          <view class="icon-box secondary-box"><text class="icon">📖</text></view>
+          <view class="icon-box secondary-box"><text class="icon">⭐</text></view>
           <text class="stat-value">{{totalSentences}}</text>
           <text class="stat-label">Sentences</text>
         </view>
@@ -39,7 +39,6 @@
     <view class="action-section">
       <view class="primary-btn" bindtap="onStart" hover-class="primary-btn-hover">
         <text class="btn-text">Start Today's Adventure!</text>
-        <text class="btn-icon">🚀</text>
       </view>
     </view>
 
