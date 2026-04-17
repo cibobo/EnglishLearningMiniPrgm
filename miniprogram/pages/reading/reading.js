@@ -251,7 +251,6 @@ Page({
   // ─── Recorder Setup ────────────────────────────────────────────────────────
   _setupRecorder() {
     recorderManager.onStart(() => {
-      console.log('[Recorder] onStart fired — setting isRecording=true');
       // recordingUI 已经在 onRecordStart 里提前设置好了，这里只更新实际状态
       this.setData({ isRecording: true });
     });
@@ -265,7 +264,6 @@ Page({
       const allDone = recordedCount >= sentences.length;
 
       // 先重置实际录音状态，再恢复视觉UI（顺序与 onRecordStart 相反）
-      console.log('[Recorder] onStop fired — resetting isRecording & recordingUI');
       this.setData({ isRecording: false, recordingUI: false });
 
       const handleAdvance = () => {
@@ -382,7 +380,6 @@ Page({
 
   // ─── Record Button (Long Press) ────────────────────────────────────────────
   onRecordStart() {
-    console.log('[Touch] touchstart — onRecordStart called');
     this._wantToRecord = true;  // Set intent flag BEFORE async call
     this._startCalled = false;
 
@@ -396,13 +393,11 @@ Page({
     // 让 DOM 在这一帧就稳定下来，之后的 touchend 不会因 DOM 重建而丢失。
     // isRecording 的更新留到 recorderManager.onStart 回调里再做。
     this.setData({ recordingUI: true });
-    console.log('[Touch] recordingUI=true set synchronously');
 
     wx.getSetting({
       success: (res) => {
         if (!this._wantToRecord) {
           // 用户已经松手，中止录音指令，同时恢复 UI
-          console.log('[Touch] _wantToRecord=false on getSetting return — aborting, restoring UI');
           this.setData({ recordingUI: false });
           return;
         }
@@ -414,7 +409,6 @@ Page({
         }
 
         this._startCalled = true;
-        console.log('[Recorder] calling recorderManager.start()');
         recorderManager.start({
           format: 'aac',
           sampleRate: 16000,
@@ -427,20 +421,17 @@ Page({
   },
 
   onRecordStop() {
-    console.log('[Touch] touchend/touchmove — onRecordStop called, isRecording=', this.data.isRecording, '_startCalled=', this._startCalled, '_wantToRecord=', this._wantToRecord);
     this._wantToRecord = false;  // Clear intent flag
 
     // 【顺序】先停止录音（状态先改），再让 onStop 回调恢复 UI。
     // 这样 UI 的恢复（扶正→倾斜，红点→麦克风）发生在录音停止之后，
     // 而不是在 touchend 绑定的 DOM 节点还没稳定时。
     if (this.data.isRecording || this._startCalled) {
-      console.log('[Recorder] calling recorderManager.stop()');
       this._startCalled = false;
       recorderManager.stop();
       // recordingUI 会由 recorderManager.onStop 回调里的 setData 恢复为 false
     } else {
       // 录音根本没有发出指令（getSetting 还没回来），直接恢复 UI
-      console.log('[Touch] no recording started yet — restoring UI directly');
       this.setData({ recordingUI: false });
     }
   },
