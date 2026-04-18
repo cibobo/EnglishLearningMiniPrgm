@@ -4,7 +4,8 @@
   <view class="header">
     <view class="header-left">
       <view class="icon-bubble">
-        <text class="emoji-icon">👋</text>
+        <image wx:if="{{userInfo.avatarUrl}}" src="{{userInfo.avatarUrl}}" class="header-avatar" mode="aspectFill" />
+        <text wx:else class="emoji-icon">👋</text>
       </view>
       <text class="greeting">Hi, {{userInfo.name}}</text>
       <view class="checkin-trigger" bindtap="onShowCheckin" hover-class="checkin-trigger-hover">

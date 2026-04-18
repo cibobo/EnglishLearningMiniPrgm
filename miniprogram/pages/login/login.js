@@ -1,5 +1,5 @@
 // pages/login/login.js
-const { wechatLogin, isLoggedIn, getUserInfo } = require('../../utils/auth');
+const { wechatLogin, isLoggedIn, getUserInfo, setStorageSync } = require('../../utils/auth');
 
 Page({
   data: {
@@ -7,6 +7,10 @@ Page({
     needCode: false,    // 是否需要输入学生码
     studentCode: '',
     errorMsg: '',
+    showAvatarPicker: false,
+    avatars: [],
+    selectedAvatar: null,
+    currentUser: null,
   },
 
   async onLoad(options) {
@@ -19,7 +23,7 @@ Page({
     // 已绑定 → 直接跳转；未绑定（404）→ 显示学生码输入；网络错误 → 显示 GO 按钮
     try {
       const user = await wechatLogin();
-      wx.reLaunch({ url: `/pages/lessons/lessons?classId=${user.classId}` });
+      this.handleLoginSuccess(user);
     } catch (err) {
       if (err && (err.code === 404 || err.message === 'NEED_STUDENT_CODE')) {
         wx.removeStorageSync('access_token');
@@ -38,7 +42,7 @@ Page({
     this.setData({ loading: true, errorMsg: '' });
     try {
       const user = await wechatLogin();
-      wx.reLaunch({ url: `/pages/lessons/lessons?classId=${user.classId}` });
+      this.handleLoginSuccess(user);
     } catch (err) {
       if (err?.message === 'NEED_STUDENT_CODE' || err?.code === 404) {
         this.setData({ needCode: true, loading: false });
@@ -65,12 +69,45 @@ Page({
     this.setData({ loading: true, errorMsg: '' });
     try {
       const user = await wechatLogin(studentCode);
-      wx.reLaunch({ url: `/pages/lessons/lessons?classId=${user.classId}` });
+      this.handleLoginSuccess(user);
     } catch (err) {
       this.setData({
         loading: false,
         errorMsg: err?.message || '绑定失败，请检查学生码',
       });
     }
+  },
+
+  handleLoginSuccess(user) {
+    if (!user.avatarUrl) {
+      // First time login, prompt for avatar
+      const avatars = Array.from({length: 12}, (_, i) => `/images/avatars/avatar_${i+1}.png`);
+      this.setData({
+        showAvatarPicker: true,
+        avatars,
+        loading: false,
+        currentUser: user,
+      });
+    } else {
+      // Has avatar, go to lessons
+      wx.reLaunch({ url: `/pages/lessons/lessons?classId=${user.classId}` });
+    }
+  },
+
+  onSelectAvatar(e) {
+    const { url } = e.currentTarget.dataset;
+    this.setData({ selectedAvatar: url });
+  },
+
+  onConfirmAvatar() {
+    const { selectedAvatar, currentUser } = this.data;
+    if (!selectedAvatar) return;
+    
+    // Save to user object and local storage
+    currentUser.avatarUrl = selectedAvatar;
+    setStorageSync('user_info', currentUser);
+
+    // Proceed to app
+    wx.reLaunch({ url: `/pages/lessons/lessons?classId=${currentUser.classId}` });
   },
 });

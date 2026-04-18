@@ -80,5 +80,33 @@
 
 
 
+
+  </view>
+
+  <!-- Avatar Picker Overlay -->
+  <view class="overlay" wx:if="{{showAvatarPicker}}">
+    <view class="avatar-card">
+      <text class="avatar-title">Choose Your Avatar</text>
+      
+      <view class="avatar-grid">
+        <view
+          wx:for="{{avatars}}"
+          wx:key="*this"
+          class="avatar-item {{selectedAvatar === item ? 'avatar-item--selected' : ''}}"
+          data-url="{{item}}"
+          bindtap="onSelectAvatar"
+        >
+          <image src="{{item}}" mode="aspectFill" class="avatar-img" />
+        </view>
+      </view>
+      
+      <button
+        class="btn-go bouncy"
+        disabled="{{!selectedAvatar}}"
+        bindtap="onConfirmAvatar"
+      >
+        <text class="btn-go__text">Let's GO!</text>
+      </button>
+    </view>
   </view>
 </view>
