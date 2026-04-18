@@ -4,8 +4,8 @@
   <view class="header">
     <view class="header-left">
       <view class="icon-bubble">
-        <image wx:if="{{userInfo.avatarUrl}}" src="{{userInfo.avatarUrl}}" class="header-avatar" mode="aspectFill" />
-        <text wx:else class="emoji-icon">👋</text>
+        <image wx:if="{{userInfo.avatarUrl}}" src="{{userInfo.avatarUrl}}" class="header-avatar" mode="aspectFill" bindtap="onChangeAvatar" />
+        <text wx:else class="emoji-icon" bindtap="onChangeAvatar">👋</text>
       </view>
       <text class="greeting">Hi, {{userInfo.name}}</text>
       <view class="checkin-trigger" bindtap="onShowCheckin" hover-class="checkin-trigger-hover">
@@ -99,4 +99,33 @@
     bind:close="onCloseCheckin" 
     bind:start="onCloseCheckin"
   />
+
+  <!-- Avatar Picker Overlay -->
+  <view class="overlay" wx:if="{{showAvatarPicker}}">
+    <view class="avatar-card">
+      <view class="card-close" bindtap="onCloseAvatarPicker">✕</view>
+      <text class="avatar-title">更换头像</text>
+      
+      <view class="avatar-grid">
+        <view
+          wx:for="{{avatars}}"
+          wx:key="*this"
+          class="avatar-item {{selectedAvatar === item ? 'avatar-item--selected' : ''}}"
+          data-url="{{item}}"
+          bindtap="onSelectAvatar"
+        >
+          <image src="{{item}}" mode="aspectFill" class="avatar-img" />
+        </view>
+      </view>
+      
+      <button
+        class="btn-go bouncy"
+        disabled="{{!selectedAvatar}}"
+        bindtap="onConfirmAvatar"
+      >
+        <text class="btn-go__text">保存</text>
+      </button>
+    </view>
+  </view>
+
 </view>

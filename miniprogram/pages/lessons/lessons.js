@@ -11,6 +11,9 @@ Page({
     showCheckinModal: false,
     streak: 0,
     totalSentences: 0,
+    showAvatarPicker: false,
+    avatars: [],
+    selectedAvatar: null,
   },
 
   onLoad(options) {
@@ -102,5 +105,46 @@ Page({
       content: '确定要退出吗？',
       success: (res) => { if (res.confirm) logout(); },
     });
+  },
+
+  onChangeAvatar() {
+    const avatars = Array.from({length: 12}, (_, i) => `/images/avatars/avatar_${i+1}.png`);
+    this.setData({
+      showAvatarPicker: true,
+      avatars,
+      selectedAvatar: this.data.userInfo?.avatarUrl || null,
+    });
+  },
+
+  onCloseAvatarPicker() {
+    this.setData({ showAvatarPicker: false });
+  },
+
+  onSelectAvatar(e) {
+    const { url } = e.currentTarget.dataset;
+    this.setData({ selectedAvatar: url });
+  },
+
+  async onConfirmAvatar() {
+    const { selectedAvatar, userInfo } = this.data;
+    if (!selectedAvatar) return;
+
+    // Save locally
+    const { setStorageSync, getStorageSync } = require('../../utils/auth');
+    if (userInfo) {
+      userInfo.avatarUrl = selectedAvatar;
+      setStorageSync('user_info', userInfo);
+      setStorageSync(`user_avatar_${userInfo.id}`, selectedAvatar);
+      
+      this.setData({ 
+        userInfo,
+        showAvatarPicker: false 
+      });
+
+      // Try backend sync
+      try {
+        await request({ url: '/auth/me', method: 'PUT', data: { avatarUrl: selectedAvatar } });
+      } catch(e) {}
+    }
   },
 });
