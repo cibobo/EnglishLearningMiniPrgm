@@ -28,21 +28,41 @@ Page({
     }
   },
 
-  onShow() {
+  async onShow() {
     // 每次显示时刷新（跟读完成后返回可更新状态）
+    // 先加载课程（含本地录音统计），再打卡，保证句子数来源一致
     const { classId } = this.data;
     if (classId) {
-      this.loadLessons(classId);
+      await this.loadLessons(classId);
       this.checkDailyLogin();
     }
+  },
+
+  // 从本地存储汇总所有课程的已读句子数
+  getLocalTotalSentences() {
+    const { lessons } = this.data;
+    if (lessons && lessons.length > 0) {
+      // lessons 已经包含从本地计算好的 completedSentences
+      return lessons.reduce((sum, l) => sum + (l.completedSentences || 0), 0);
+    }
+    // 若 lessons 尚未加载，直接扫本地存储
+    const allKeys = wx.getStorageInfoSync().keys || [];
+    return allKeys
+      .filter(k => k.startsWith('lesson_recordings_'))
+      .reduce((sum, k) => {
+        const recs = wx.getStorageSync(k) || {};
+        return sum + Object.keys(recs).length;
+      }, 0);
   },
 
   async checkDailyLogin() {
     try {
       const res = await request({ url: '/auth/me/checkin', method: 'POST' });
+      // 只使用服务器的打卡连续天数，句子数改用本地数据保持与课程页一致
+      const localTotal = this.getLocalTotalSentences();
       this.setData({
         streak: res.streak,
-        totalSentences: res.totalSentences
+        totalSentences: localTotal
       });
       if (res.isFirstLoginToday) {
         this.setData({ showCheckinModal: true });
@@ -87,7 +107,9 @@ Page({
         };
       });
 
-      this.setData({ lessons: enrichedLessons, loading: false });
+      // 更新课程列表后，同步刷新本地句子总数（供打卡弹窗使用）
+      const localTotal = enrichedLessons.reduce((sum, l) => sum + (l.completedSentences || 0), 0);
+      this.setData({ lessons: enrichedLessons, loading: false, totalSentences: localTotal });
     } catch (err) {
       this.setData({ loading: false });
       wx.showToast({ title: err.message || '加载失败，请重试', icon: 'none' });
