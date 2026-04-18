@@ -99,13 +99,24 @@ Page({
     this.setData({ selectedAvatar: url });
   },
 
-  onConfirmAvatar() {
+  async onConfirmAvatar() {
     const { selectedAvatar, currentUser } = this.data;
     if (!selectedAvatar) return;
     
     // Save to user object and local storage
     currentUser.avatarUrl = selectedAvatar;
     setStorageSync('user_info', currentUser);
+    
+    // Persist independently so it survives logouts
+    setStorageSync(`user_avatar_${currentUser.id}`, selectedAvatar);
+
+    // Give best effort to send it to the backend natively if the endpoint exists.
+    try {
+      const { request } = require('../../utils/request');
+      await request({ url: '/auth/me', method: 'PUT', data: { avatarUrl: selectedAvatar } });
+    } catch(e) {
+      // Ignore API error as backend might not support it yet, local storage will handle it.
+    }
 
     // Proceed to app
     wx.reLaunch({ url: `/pages/lessons/lessons?classId=${currentUser.classId}` });

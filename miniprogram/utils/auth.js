@@ -22,6 +22,15 @@ const wechatLogin = (studentCode) => {
           });
           setStorageSync('access_token', data.access_token);
           setStorageSync('refresh_token', data.refresh_token);
+          
+          // Merge local avatar preference if backend doesn't return one
+          if (data.user && !data.user.avatarUrl) {
+            const localAvatar = getStorageSync(`user_avatar_${data.user.id}`);
+            if (localAvatar) {
+              data.user.avatarUrl = localAvatar;
+            }
+          }
+          
           setStorageSync('user_info', data.user);
           resolve(data.user);
         } catch (err) {
