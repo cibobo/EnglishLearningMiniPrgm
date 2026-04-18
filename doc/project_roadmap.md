@@ -21,22 +21,22 @@ gantt
     title 儿童英语跟读系统开发计划
     dateFormat  YYYY-MM-DD
     section Phase 1 基础设施
-    注册微信小程序/开发者账号   :p1a, 2026-03-16, 3d
-    搭建服务器+数据库+COS       :p1b, 2026-03-16, 5d
-    Prisma Schema + Migration   :p1c, after p1b, 3d
-    CI/CD 基础流水线            :p1d, after p1b, 3d
+    注册微信小程序/开发者账号   :done, p1a, 2026-03-16, 3d
+    搭建服务器+数据库+COS       :done, p1b, 2026-03-16, 5d
+    Prisma Schema + Migration   :done, p1c, after p1b, 3d
+    CI/CD 基础流水线            :done, p1d, after p1b, 3d
 
     section Phase 2 后端核心 API
-    微信登录 + 教师登录 API     :p2a, after p1c, 4d
-    班级/学生 CRUD API          :p2b, after p2a, 5d
-    课程/句子 CRUD API          :p2c, after p2b, 4d
-    COS 预签名 + 录音提交 API   :p2d, after p2c, 4d
+    微信登录 + 教师登录 API     :done, p2a, after p1c, 4d
+    班级/学生 CRUD API          :done, p2b, after p2a, 5d
+    课程/句子 CRUD API          :done, p2c, after p2b, 4d
+    COS 预签名 + 录音提交 API   :done, p2d, after p2c, 4d
 
     section Phase 3 学生端小程序
-    项目初始化 + 登录页         :p3a, after p2a, 3d
-    课程列表页                  :p3b, after p2b, 4d
-    跟读页（核心功能）          :p3c, after p2c, 6d
-    录音上传 + 提交             :p3d, after p2d, 4d
+    项目初始化 + 登录页         :done, p3a, after p2a, 3d
+    课程列表页                  :done, p3b, after p2b, 4d
+    跟读页（核心功能）          :done, p3c, after p2c, 6d
+    录音上传 + 提交             :done, p3d, after p2d, 4d
 
     section Phase 4 教师管理端
     项目初始化 + 登录           :p4a, after p2a, 2d
@@ -104,18 +104,18 @@ gantt
 
 | 优先级 | 任务 | 说明 |
 |--------|------|------|
-| P0 | 小程序项目初始化（`project.config.json`，AppID 配置） | 先决条件 |
-| P0 | 封装 `utils/request.js`（统一 HTTPS 请求 + Token 注入） | 所有请求基础 |
-| P0 | 登录页（`wx.login()` → code → JWT 存储） | 入口 |
-| P0 | 课程列表页（卡片 UI，`scroll-view` 滑动） | 核心展示 |
-| P0 | 跟读页 — 句子滚动显示逻辑 | 核心交互 |
-| P0 | 跟读页 — `RecorderManager` 按住录音 / 松开停止 | 最核心录音功能 |
-| P0 | 录音本地暂存（各句覆盖式存储） | 用户体验 |
-| P0 | 结束并发送：预签名 URL → `wx.uploadFile` → 提交 | 完整价值链路 |
-| P1 | 参考音频播放（"听范读"按钮） | 教学功能 |
-| P1 | 麦克风权限引导 UI | 合规 + 体验 |
-| P1 | 提交成功动画页 | 正向激励 |
-| P2 | 录音加载骨架屏 | 体验优化 |
+| P0 | 小程序项目初始化（`project.config.json`，AppID 配置） | ✅ 已完成 |
+| P0 | 封装 `utils/request.js`（统一 HTTPS 请求 + Token 注入） | ✅ 已完成 |
+| P0 | 登录页（`wx.login()` → code → JWT 存储） | ✅ 已完成 |
+| P0 | 课程列表页（卡片 UI，`scroll-view` 滑动） | ✅ 已完成 |
+| P0 | 跟读页 — 句子滚动显示逻辑 | ✅ 已完成 |
+| P0 | 跟读页 — `RecorderManager` 按住录音 / 松开停止 | ✅ 已完成 |
+| P0 | 录音本地暂存（各句覆盖式存储） | ✅ 已完成 |
+| P0 | 结束并发送：预签名 URL → `wx.uploadFile` → 提交 | ✅ 已实现 (云开发版) |
+| P1 | 参考音频播放（"听范读"按钮） | ✅ 已完成 |
+| P1 | 麦克风权限引导 UI | ✅ 已完成 |
+| P1 | 提交成功动画页 | ✅ 已实现 (打卡弹窗/星光动画) |
+| P2 | 录音加载骨架屏 | ✅ 已完成 |
 | P2 | 离线提示（无网络时友好提示） | 鲁棒性 |
 
 **里程碑验收**: 真机（iOS + Android）上完整跑通"登录 → 看课程 → 跟读 → 提交"
