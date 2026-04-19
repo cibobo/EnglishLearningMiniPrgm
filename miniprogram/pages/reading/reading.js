@@ -149,6 +149,7 @@ Page({
 
       if (lesson.masterAudioUrl) {
         this._audio.src = lesson.masterAudioUrl;
+        this._hasPlayedMaster = false;
       }
 
       setTimeout(() => this._measureGroupOffsets(), 400);
@@ -542,17 +543,25 @@ Page({
       if (this._audio.src !== lesson.masterAudioUrl) {
         this._audio.src = lesson.masterAudioUrl;
         this._audio.startTime = sentence.startTime;
+        this._hasPlayedMaster = true;
         this._audio.play();
       } else {
-        this.isSeeking = true;
-        if (this.seekTimeout) clearTimeout(this.seekTimeout);
-        this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
-        this._audio.seek(sentence.startTime);
-        this._audio.play();
+        if (!this._hasPlayedMaster) {
+          this._audio.startTime = sentence.startTime;
+          this._hasPlayedMaster = true;
+          this._audio.play();
+        } else {
+          this.isSeeking = true;
+          if (this.seekTimeout) clearTimeout(this.seekTimeout);
+          this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
+          this._audio.seek(sentence.startTime);
+          this._audio.play();
+        }
       }
     } else if (sentence.audioUrl) {
       if (this._audio.src !== sentence.audioUrl) {
         this._audio.src = sentence.audioUrl;
+        this._audio.startTime = 0;
       } else {
         this.isSeeking = true;
         if (this.seekTimeout) clearTimeout(this.seekTimeout);
