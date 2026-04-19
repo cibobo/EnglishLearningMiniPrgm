@@ -305,19 +305,42 @@ Page({
 
   // ─── 解析评测结果 ─────────────────────────────────────────────────────────
   _handleEvalResult(res) {
-    const { currentIndex, sentenceEvals, lessonId } = this.data;
+    const { currentIndex, sentenceEvals, lessonId, sentences } = this.data;
+    const sentenceText = sentences[currentIndex].text;
 
     // API 返回结构：{ code, result: { PronAccuracy, Words: [...] }, final }
     const resultData = res.result || {};
     const wordList = resultData.Words || [];
 
-    const evalWords = wordList.map(w => ({
-      // ReferenceWord 格式为 "word_index"（如 "go_1"），取下划线前的部分
-      text: (w.ReferenceWord || w.Word || '').replace(/_\d+$/, ''),
-      score: Math.round(w.PronAccuracy || 0),
-      isError: (w.PronAccuracy || 0) < 60,
-      isWarning: (w.PronAccuracy || 0) >= 60 && (w.PronAccuracy || 0) < 80,
-    }));
+    // 将原始句子拆分为 单词 和 非单词（标点/空格）
+    const tokens = [];
+    // 匹配单词（包括带有撇号的单词，如 don't）和非单词序列
+    const regex = /([a-zA-Z0-9']+)|([^a-zA-Z0-9']+)/g;
+    let match;
+    let wordIndex = 0;
+
+    while ((match = regex.exec(sentenceText)) !== null) {
+      if (match[1]) {
+        // 这是单词
+        const wordData = wordList[wordIndex] || {};
+        const score = Math.round(wordData.PronAccuracy || 0);
+        tokens.push({
+          text: match[1], // 保持原始首字母大小写
+          isWord: true,
+          score: score,
+          isError: score < 60,
+          isWarning: score >= 60 && score < 80,
+          isOk: score >= 80
+        });
+        wordIndex++;
+      } else if (match[2]) {
+        // 这是标点或空格
+        tokens.push({
+          text: match[2],
+          isWord: false
+        });
+      }
+    }
 
     const overallScore = Math.round(resultData.SuggestedScore || resultData.PronAccuracy || 0);
     let stars = 0;
@@ -328,7 +351,7 @@ Page({
     const evalResult = {
       overallScore,
       stars,
-      words: evalWords,
+      tokens,
     };
 
     const oldEval = sentenceEvals[currentIndex];

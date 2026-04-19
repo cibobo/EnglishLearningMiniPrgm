@@ -90,11 +90,13 @@
                    <!-- 有评测结果：逐词着色 + 总分徽章 -->
                    <view wx:else class="eval-words-wrap">
                      <view class="eval-words-row">
+                       <text class="eval-punctuation">“</text>
                        <text
-                         wx:for="{{evalResult.words}}"
+                         wx:for="{{evalResult.tokens}}"
                          wx:key="index"
-                         class="eval-word {{item.isError ? 'word-error' : (item.isWarning ? 'word-warning' : 'word-ok')}}"
-                       >{{item.text}} </text>
+                         class="{{item.isWord ? 'eval-word ' + (item.isError ? 'word-error' : (item.isWarning ? 'word-warning' : 'word-ok')) : 'eval-punctuation'}}"
+                       >{{item.text}}</text>
+                       <text class="eval-punctuation">”</text>
                      </view>
                      <view class="score-stars-row">
                        <view class="star {{evalResult.stars >= 1 ? 'star-active' : ''}}"></view>

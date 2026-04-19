@@ -611,20 +611,31 @@
   transition: color 0.3s ease;
 }
 
+/* 标点和空格基础样式（无颜色变化） */
+.eval-punctuation {
+  font-size: 44rpx;
+  font-weight: 800;
+  padding: 4rpx 0;
+  color: #1e293b;
+}
+
 /* 绿色：发音正确（score >= 80） */
 .eval-word.word-ok {
+  font-weight: 800;
   color: #389f5a;
 }
 
 /* 黄色：发音尚可（60–79 分） */
 .eval-word.word-warning {
-  color: #c97a00;
+  font-weight: 800;
+  color: #d97706;
   border-bottom: 4rpx solid #c97a00;
 }
 
 /* 红色：发音有误（< 60 分） */
 .eval-word.word-error {
-  color: #d93636;
+  font-weight: 800;
+  color: #dc2626;
   border-bottom: 4rpx solid #d93636;
 }
 
