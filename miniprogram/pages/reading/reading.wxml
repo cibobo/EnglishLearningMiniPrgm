@@ -155,8 +155,8 @@
                       <view class="mic-hint-badge" wx:if="{{!isEvaluating}}">
                         <text wx:if="{{recordingUI}}">RELEASE TO FINISH</text>
                         <text wx:elif="{{playingIndex === currentIndex}}">NOW PLAYING</text>
-                        <text wx:elif="{{evalResult}}">TAP ANOTHER SENTENCE OR RE-RECORD</text>
-                        <text wx:else>TAP &amp; HOLD TO RECORD</text>
+                        <text wx:elif="{{evalResult}}">TAP & HOLD TO RECORD</text>
+                        <text wx:else>TAP & HOLD TO RECORD</text>
                       </view>
 
                     </view>
