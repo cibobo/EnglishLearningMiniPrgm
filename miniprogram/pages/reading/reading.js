@@ -1,6 +1,6 @@
 // pages/reading/reading.js
 const { request } = require('../../utils/request');
-const soeConfig = require('../../utils/soe-config');
+const { getSoeCredential } = require('../../utils/soe-credential');
 
 // ─── RecorderManager（流式录音，每帧发送给评测引擎）────────────────────────────
 const recorderManager = wx.getRecorderManager();
@@ -441,7 +441,7 @@ Page({
     this.setData({ recordingUI: true, evalResult: null });
 
     wx.getSetting({
-      success: (res) => {
+      success: async (res) => {
         if (!this._wantToRecord) {
           this.setData({ recordingUI: false });
           return;
@@ -455,11 +455,22 @@ Page({
         const { currentIndex, sentences } = this.data;
         const refText = (sentences[currentIndex] || {}).text || '';
 
-        // 1. 先建立 WebSocket 评测连接
+        // 1. 先获取临时凭证，再建立 WebSocket 评测连接
+        let cred;
+        try {
+          cred = await getSoeCredential();
+        } catch (e) {
+          console.error('[SOE] 获取临时凭证失败', e);
+          this.setData({ recordingUI: false });
+          wx.showToast({ title: '评测服务暂不可用', icon: 'none' });
+          return;
+        }
+
         evaluationManager.start({
-          secretid: soeConfig.secretId,
-          secretkey: soeConfig.secretKey,
-          appid: soeConfig.appId,
+          secretid: cred.tmpSecretId,
+          secretkey: cred.tmpSecretKey,
+          token: cred.sessionToken,
+          appid: '1411543302',
           duration: 60000,
           frameSize: 0.32,
           server_engine_type: '16k_en',  // 英语
@@ -639,7 +650,7 @@ Page({
       wx.showModal({
         title: '还有句子未跟读',
         content: '有些句子还没有录音，确定要提交吗？',
-        success: (res) => { if (res.confirm) this._doSubmit(); },
+        success: async (res) => { if (res.confirm) this._doSubmit(); },
       });
       return;
     }

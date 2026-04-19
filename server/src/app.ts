@@ -14,6 +14,7 @@ import uploadRouter from './routes/upload';
 import transcribeRouter from './routes/transcribe';
 import dashboardRouter from './routes/dashboard';
 import lessonGroupsRouter from './routes/lesson-groups';
+import soeTokenRouter from './routes/soe-token';
 
 dotenv.config();
 
@@ -57,6 +58,7 @@ app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/transcribe', transcribeRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
 app.use('/api/v1/lesson-groups', lessonGroupsRouter);
+app.use('/api/v1/soe-token', soeTokenRouter);
 // ─── Global Error Handler ──────────────────────────────────────────────────────
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[Error]', err.message, err.stack);
