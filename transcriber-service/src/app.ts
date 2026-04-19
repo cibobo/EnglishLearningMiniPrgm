@@ -153,7 +153,7 @@ app.post('/api/transcribe', authenticate, upload.single('audio'), async (req: Re
                 allSentences.push({
                   text: currentSentence.join(' ').trim(),
                   startTime: curStartTime,
-                  endTime: endSecs,
+                  endTime: endSecs + 0.3,
                 });
                 currentSentence = [];
               }
@@ -166,7 +166,7 @@ app.post('/api/transcribe', authenticate, upload.single('audio'), async (req: Re
               allSentences.push({
                 text: currentSentence.join(' ').trim(),
                 startTime: curStartTime,
-                endTime: endSecs,
+                endTime: endSecs + 0.3,
               });
             }
           }
