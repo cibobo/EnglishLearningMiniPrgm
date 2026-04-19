@@ -31,8 +31,9 @@ Page({
     recordedCount: 0,
 
     // Pronunciation evaluation state
-    isEvaluating: false,  // 等待 SOE 服务器返回结果
-    evalResult: null,     // { overallScore, words: [{text, score, isError, isWarning}] }
+    isEvaluating: false,   // 等待 SOE 服务器返回结果
+    evalResult: null,      // 当前句子的评测结果（切换句子时从 sentenceEvals 恢复）
+    sentenceEvals: {},     // { [sentenceIndex]: evalResult } 所有句子的评测历史
 
     // Submit
     submitting: false,
@@ -112,6 +113,9 @@ Page({
       }
       const recordedCount = Object.keys(recordings).length;
 
+      // 读取持久化的评测结果
+      const sentenceEvals = wx.getStorageSync(`lesson_evals_${lessonId}`) || {};
+
       let startGroup = 0;
       let startIndex = 0;
       for (let i = 0; i < sentences.length; i++) {
@@ -128,7 +132,9 @@ Page({
         activeGroupIndex: startGroup,
         currentIndex: startIndex,
         loading: false, recordings, recordedCount,
-        allDone: recordedCount >= sentences.length
+        allDone: recordedCount >= sentences.length,
+        sentenceEvals,
+        evalResult: sentenceEvals[startIndex] || null,
       });
 
       if (startIndex > 0) {
@@ -262,10 +268,26 @@ Page({
     });
 
     recorderManager.onStop((res) => {
-      // 保存录音文件路径（用于后续上传到老师）
-      this._lastTempFilePath = res.tempFilePath || '';
+      const tempFilePath = res.tempFilePath || '';
+      this._lastTempFilePath = tempFilePath;
+
+      // 立即保存录音路径（不等评测结果），保证红色小喇叭可以回放
+      if (tempFilePath) {
+        const { currentIndex, lessonId, recordings, sentences } = this.data;
+        const updated = { ...recordings, [currentIndex]: tempFilePath };
+        const recordedCount = Object.keys(updated).length;
+        this.setData({
+          recordings: updated,
+          recordedCount,
+          allDone: recordedCount >= sentences.length,
+        });
+        const existingStorage = wx.getStorageSync(`lesson_recordings_${lessonId}`) || {};
+        existingStorage[currentIndex] = { uploaded: false, tempPath: tempFilePath };
+        wx.setStorageSync(`lesson_recordings_${lessonId}`, existingStorage);
+      }
+
       this.setData({ isRecording: false, recordingUI: false });
-      // 此时 isEvaluating 仍为 true，等 OnEvaluationComplete 回调
+      // isEvaluating 仍为 true，等 OnEvaluationComplete 回调
     });
 
     recorderManager.onError((err) => {
@@ -277,8 +299,7 @@ Page({
 
   // ─── 解析评测结果 ─────────────────────────────────────────────────────────
   _handleEvalResult(res) {
-    const { currentIndex, recordings, sentences } = this.data;
-    const isNewRecording = !recordings[currentIndex];
+    const { currentIndex, sentenceEvals, lessonId } = this.data;
 
     // API 返回结构：{ code, result: { PronAccuracy, Words: [...] }, final }
     const resultData = res.result || {};
@@ -297,23 +318,14 @@ Page({
       words: evalWords,
     };
 
-    // 更新录音记录（tempFilePath）
-    const tempFilePath = this._lastTempFilePath || '';
-    const updated = { ...recordings, [currentIndex]: tempFilePath };
-    const recordedCount = Object.keys(updated).length;
-    const allDone = recordedCount >= sentences.length;
+    // 持久化评测结果（按句子索引存储）
+    const updatedEvals = { ...sentenceEvals, [currentIndex]: evalResult };
+    this.setData({ evalResult, sentenceEvals: updatedEvals });
+    wx.setStorageSync(`lesson_evals_${lessonId}`, updatedEvals);
 
-    this.setData({ evalResult, recordings: updated, recordedCount, allDone });
-
-    // 持久化
-    if (tempFilePath) {
-      const existingStorage = wx.getStorageSync(`lesson_recordings_${this.data.lessonId}`) || {};
-      existingStorage[currentIndex] = { uploaded: false, tempPath: tempFilePath };
-      wx.setStorageSync(`lesson_recordings_${this.data.lessonId}`, existingStorage);
-    }
-
-    // 飞星动画（仅首次）
-    if (isNewRecording) this._triggerStarAnimation();
+    // 飞星动画（首次录音触发，recording 已在 onStop 里保存好了）
+    const isFirstEval = !sentenceEvals[currentIndex];
+    if (isFirstEval) this._triggerStarAnimation();
   },
 
   // ─── 飞星动画 ─────────────────────────────────────────────────────────────
@@ -453,7 +465,9 @@ Page({
     const sentence = sentences[targetIdx];
 
     if (targetIdx !== this.data.currentIndex) {
-      this.setData({ evalResult: null });
+      // 切换句子时从持久化缓存中恢复该句子的评测结果（如有）
+      const savedEval = this.data.sentenceEvals[targetIdx] || null;
+      this.setData({ evalResult: savedEval });
     }
 
     if (playingIndex === targetIdx) {
