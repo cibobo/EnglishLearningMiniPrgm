@@ -628,30 +628,31 @@
   border-bottom: 4rpx solid #d93636;
 }
 
-/* 总分徽章行 */
-.score-badge-row {
+/* 星星评分行 */
+.score-stars-row {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 12rpx;
 }
 
-.score-badge {
-  font-size: 28rpx;
-  font-weight: 800;
-  padding: 8rpx 32rpx;
-  border-radius: 999rpx;
-  letter-spacing: 2rpx;
+.star {
+  width: 56rpx;
+  height: 56rpx;
+  background-color: #f1f5f9;  /* 基础白色/浅灰色背景（代表空星） */
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'/%3E%3C/svg%3E") no-repeat center / contain;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'/%3E%3C/svg%3E") no-repeat center / contain;
+  opacity: 0.8;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: scale(0.9);
 }
-.score-badge.score-good {
-  background: #d4f5e2;
-  color: #1a6e3a;
-}
-.score-badge.score-ok {
-  background: #fff3d1;
-  color: #7a4800;
-}
-.score-badge.score-poor {
-  background: #ffe5e5;
-  color: #8b1a1a;
+
+.star.star-active {
+  background-color: #fbbf24; /* 黄色填充（点亮星） */
+  opacity: 1;
+  transform: scale(1.1);
+  filter: drop-shadow(0 4rpx 12rpx rgba(251, 191, 36, 0.6));
 }
 
 /* 检测中 Loading 状态 */

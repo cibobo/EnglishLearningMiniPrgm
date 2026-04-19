@@ -33,13 +33,13 @@
            <text class="header-title">{{lesson.title}}</text>
          </view>
          <view class="header-progress">
-           <text class="progress-text">{{recordedCount}} / {{sentences.length}}</text>
+           <text class="progress-text">{{totalStars}} / {{sentences.length * 3}}</text>
            <text class="star-icon">⭐</text>
          </view>
       </view>
       <!-- 进度条胶囊 -->
       <view class="header-progress-track">
-         <view class="header-progress-fill" style="width: {{sentences.length ? (recordedCount / sentences.length * 100) : 0}}%;"></view>
+         <view class="header-progress-fill" style="width: {{sentences.length ? (totalStars / (sentences.length * 3) * 100) : 0}}%;"></view>
       </view>
     </view>
 
@@ -96,10 +96,10 @@
                          class="eval-word {{item.isError ? 'word-error' : (item.isWarning ? 'word-warning' : 'word-ok')}}"
                        >{{item.text}} </text>
                      </view>
-                     <view class="score-badge-row">
-                       <text class="score-badge {{evalResult.overallScore >= 80 ? 'score-good' : (evalResult.overallScore >= 60 ? 'score-ok' : 'score-poor')}}">
-                         {{evalResult.overallScore}}分
-                       </text>
+                     <view class="score-stars-row">
+                       <view class="star {{evalResult.stars >= 1 ? 'star-active' : ''}}"></view>
+                       <view class="star {{evalResult.stars >= 2 ? 'star-active' : ''}}"></view>
+                       <view class="star {{evalResult.stars >= 3 ? 'star-active' : ''}}"></view>
                      </view>
                    </view>
                  </view>

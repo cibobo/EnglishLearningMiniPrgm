@@ -42,7 +42,8 @@ Page({
     // Animation
     flyingStars: [],
 
-    scrollToView: ''
+    scrollToView: '',
+    totalStars: 0
   },
 
   onLoad(options) {
@@ -115,6 +116,10 @@ Page({
 
       // 读取持久化的评测结果
       const sentenceEvals = wx.getStorageSync(`lesson_evals_${lessonId}`) || {};
+      let totalStars = 0;
+      for (let k in sentenceEvals) {
+        totalStars += (sentenceEvals[k].stars || 0);
+      }
 
       let startGroup = 0;
       let startIndex = 0;
@@ -135,6 +140,7 @@ Page({
         allDone: recordedCount >= sentences.length,
         sentenceEvals,
         evalResult: sentenceEvals[startIndex] || null,
+        totalStars
       });
 
       if (startIndex > 0) {
@@ -313,19 +319,42 @@ Page({
       isWarning: (w.PronAccuracy || 0) >= 60 && (w.PronAccuracy || 0) < 80,
     }));
 
+    const overallScore = Math.round(resultData.SuggestedScore || resultData.PronAccuracy || 0);
+    let stars = 0;
+    if (overallScore >= 80) stars = 3;
+    else if (overallScore >= 50) stars = 2;
+    else if (overallScore >= 20) stars = 1;
+
     const evalResult = {
-      overallScore: Math.round(resultData.SuggestedScore || resultData.PronAccuracy || 0),
+      overallScore,
+      stars,
       words: evalWords,
     };
 
-    // 持久化评测结果（按句子索引存储）
+    const oldEval = sentenceEvals[currentIndex];
+    const oldStars = oldEval ? (oldEval.stars || 0) : 0;
+    
+    // 更新持久化评测结果
     const updatedEvals = { ...sentenceEvals, [currentIndex]: evalResult };
-    this.setData({ evalResult, sentenceEvals: updatedEvals });
+    
+    // 重新计算总星星数
+    let newTotalStars = 0;
+    for (let k in updatedEvals) {
+      newTotalStars += (updatedEvals[k].stars || 0);
+    }
+
+    this.setData({ 
+      evalResult, 
+      sentenceEvals: updatedEvals,
+      totalStars: newTotalStars 
+    });
     wx.setStorageSync(`lesson_evals_${lessonId}`, updatedEvals);
 
-    // 飞星动画（首次录音触发，recording 已在 onStop 里保存好了）
-    const isFirstEval = !sentenceEvals[currentIndex];
-    if (isFirstEval) this._triggerStarAnimation();
+    // 飞星动画：如果这是该句子第一次评测，或者新评测的星星数 > 旧星星数
+    const isFirstEval = !oldEval;
+    if (isFirstEval || stars > oldStars) {
+      this._triggerStarAnimation();
+    }
   },
 
   // ─── 飞星动画 ─────────────────────────────────────────────────────────────
