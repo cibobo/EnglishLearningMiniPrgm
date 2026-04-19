@@ -280,17 +280,20 @@ Page({
     const { currentIndex, recordings, sentences } = this.data;
     const isNewRecording = !recordings[currentIndex];
 
-    // 解析逐词结果
-    const wordList = res.Words || res.words || [];
+    // API 返回结构：{ code, result: { PronAccuracy, Words: [...] }, final }
+    const resultData = res.result || {};
+    const wordList = resultData.Words || [];
+
     const evalWords = wordList.map(w => ({
-      text: w.ReferenceWord || w.Word || '',
+      // ReferenceWord 格式为 "word_index"（如 "go_1"），取下划线前的部分
+      text: (w.ReferenceWord || w.Word || '').replace(/_\d+$/, ''),
       score: Math.round(w.PronAccuracy || 0),
       isError: (w.PronAccuracy || 0) < 60,
       isWarning: (w.PronAccuracy || 0) >= 60 && (w.PronAccuracy || 0) < 80,
     }));
 
     const evalResult = {
-      overallScore: Math.round(res.PronAccuracy || 0),
+      overallScore: Math.round(resultData.SuggestedScore || resultData.PronAccuracy || 0),
       words: evalWords,
     };
 
