@@ -11,6 +11,12 @@
     "navigationBarTextStyle": "white",
     "backgroundColor": "#F5F7FA"
   },
+  "plugins": {
+    "soePlugin": {
+      "version": "2.0.6",
+      "provider": "wxe5a00a1780c8eb95"
+    }
+  },
   "style": "v2",
   "sitemapLocation": "sitemap.json",
   "permission": {

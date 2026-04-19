@@ -1,8 +1,12 @@
 // pages/reading/reading.js
 const { request } = require('../../utils/request');
+const soeConfig = require('../../utils/soe-config');
 
+// ─── RecorderManager（流式录音，每帧发送给评测引擎）────────────────────────────
 const recorderManager = wx.getRecorderManager();
-// this._audio is created per page instance in onLoad (see this._audio)
+
+// ─── SOE evaluationManager（在 Page onLoad 内初始化）────────────────────────
+let evaluationManager = null;
 
 Page({
   data: {
@@ -12,19 +16,23 @@ Page({
     groups: [],
     activeGroupIndex: 0,
     currentIndex: 0,
-    playingIndex: -1, // Tracks which sentence is currently outputting audio
-    playingUserAudio: false, // Tracks if user's own recording is playing
+    playingIndex: -1,
+    playingUserAudio: false,
     loading: true,
 
     // Dynamic Navigation
-    navTop: 50, // default fallback
+    navTop: 50,
     navHeight: 32,
 
     // Recording state
     isRecording: false,
-    recordingUI: false,   // 视觉状态：先于 isRecording 变化，避免 DOM 重建吞掉 touchend
-    recordings: {},       // { [sentenceIndex]: tempFilePath }
+    recordingUI: false,
+    recordings: {},
     recordedCount: 0,
+
+    // Pronunciation evaluation state
+    isEvaluating: false,  // 等待 SOE 服务器返回结果
+    evalResult: null,     // { overallScore, words: [{text, score, isError, isWarning}] }
 
     // Submit
     submitting: false,
@@ -33,7 +41,6 @@ Page({
     // Animation
     flyingStars: [],
 
-    // Scroller destination
     scrollToView: ''
   },
 
@@ -47,8 +54,8 @@ Page({
       navTop: menuButton.top,
       navHeight: menuButton.height
     });
-    // Create a fresh audio context per page visit to avoid using a destroyed instance
     this._audio = wx.createInnerAudioContext();
+    this._setupEvalManager();
     this._setupRecorder();
     this._setupAudioContext();
     this.loadLesson(lessonId);
@@ -68,6 +75,7 @@ Page({
       this._userAudio = null;
     }
     if (this.data.isRecording) recorderManager.stop();
+    evaluationManager = null;
   },
 
   async loadLesson(lessonId) {
@@ -75,46 +83,29 @@ Page({
       const lesson = await request({ url: `/lessons/${lessonId}` });
       const sentences = lesson.sentences || [];
 
-      // Group sentences logically by their illustrations
       const groups = [];
       let currentGroup = null;
-      let targetImgUrl = null;
 
       sentences.forEach((s, idx) => {
         if (s.imageUrl) {
-          // If the sentence explicitly has an image, start a new group
-          currentGroup = {
-            id: `group-${groups.length}`,
-            imageUrl: s.imageUrl,
-            sentences: [],
-            indices: []
-          };
+          currentGroup = { id: `group-${groups.length}`, imageUrl: s.imageUrl, sentences: [], indices: [] };
           groups.push(currentGroup);
         } else if (!currentGroup) {
-          // If the first sentence has no image, fallback to the course cover image
-          currentGroup = {
-            id: `group-${groups.length}`,
-            imageUrl: lesson.imageUrl,
-            sentences: [],
-            indices: []
-          };
+          currentGroup = { id: `group-${groups.length}`, imageUrl: lesson.imageUrl, sentences: [], indices: [] };
           groups.push(currentGroup);
         }
-
         currentGroup.sentences.push(s);
         currentGroup.indices.push(idx);
       });
 
-      // Load locally saved reading progress
       const savedStorage = wx.getStorageSync(`lesson_recordings_${lessonId}`) || {};
-      // Rebuild recordings map: uploaded entries count as done (truthy), pending as their tempPath
       const recordings = {};
       for (let key in savedStorage) {
         const entry = savedStorage[key];
         if (entry === true || (entry && entry.uploaded)) {
-          recordings[key] = entry; // already uploaded
+          recordings[key] = entry;
         } else if (entry && entry.tempPath) {
-          recordings[key] = entry.tempPath; // local file waiting to upload
+          recordings[key] = entry.tempPath;
         } else {
           recordings[key] = entry;
         }
@@ -133,29 +124,21 @@ Page({
       }
 
       this.setData({
-        lesson,
-        sentences,
-        groups,
+        lesson, sentences, groups,
         activeGroupIndex: startGroup,
         currentIndex: startIndex,
-        loading: false,
-        recordings,
-        recordedCount,
+        loading: false, recordings, recordedCount,
         allDone: recordedCount >= sentences.length
       });
 
       if (startIndex > 0) {
-        setTimeout(() => {
-          this._scrollToNode(`#group-${startGroup}`);
-        }, 500);
+        setTimeout(() => this._scrollToNode(`#group-${startGroup}`), 500);
       }
 
-      // Prime audio player with the master file
       if (lesson.masterAudioUrl) {
         this._audio.src = lesson.masterAudioUrl;
       }
 
-      // Measure group anchor positions after DOM settles
       setTimeout(() => this._measureGroupOffsets(), 400);
 
     } catch (err) {
@@ -164,7 +147,6 @@ Page({
     }
   },
 
-  // Measure Y position of each group anchor node (relative to scroll-view top)
   _measureGroupOffsets() {
     const { groups } = this.data;
     if (!groups || groups.length === 0) return;
@@ -173,24 +155,16 @@ Page({
     groups.forEach((g, idx) => {
       query.select(`#group-anchor-${idx}`).boundingClientRect();
     });
-    // Also need scroll-view top as reference
     query.select('.content-scroll').boundingClientRect();
 
     query.exec((rects) => {
       const scrollViewRect = rects[rects.length - 1];
       if (!scrollViewRect) return;
       const scrollViewTop = scrollViewRect.top;
-
-      // Store offsets as distances from the scroll-view container top
       this._groupOffsets = [];
       for (let i = 0; i < groups.length; i++) {
         const rect = rects[i];
-        if (rect) {
-          // How far down from scroll-view top is this anchor currently (at scrollTop=0)
-          this._groupOffsets[i] = rect.top - scrollViewTop;
-        } else {
-          this._groupOffsets[i] = 0;
-        }
+        this._groupOffsets[i] = rect ? rect.top - scrollViewTop : 0;
       }
     });
   },
@@ -199,41 +173,24 @@ Page({
     const scrollTop = e.detail.scrollTop;
     const offsets = this._groupOffsets;
     if (!offsets || offsets.length === 0) return;
-
-    // Find the last group whose anchor is above (or at) the current scroll position + small lookahead
     let activeIdx = 0;
     for (let i = 0; i < offsets.length; i++) {
-      if (scrollTop >= offsets[i] - 80) {
-        activeIdx = i;
-      }
+      if (scrollTop >= offsets[i] - 80) activeIdx = i;
     }
-
     if (activeIdx !== this.data.activeGroupIndex) {
       this.setData({ activeGroupIndex: activeIdx });
     }
   },
 
-  // ─── Audio Setup ───────────────────────────────────────────────────────────
+  // ─── Audio Context ─────────────────────────────────────────────────────────
   _setupAudioContext() {
-    this._audio.onPlay(() => {
-    });
-
-    this._audio.onSeeking(() => {
-      this.isSeeking = true;
-    });
-
-    this._audio.onSeeked(() => {
-      this.isSeeking = false;
-    });
-
+    this._audio.onSeeking(() => { this.isSeeking = true; });
+    this._audio.onSeeked(() => { this.isSeeking = false; });
     this._audio.onTimeUpdate(() => {
       if (this.isSeeking) return;
-
       const { playingIndex, sentences } = this.data;
       if (playingIndex === -1) return;
-
       const targetSentence = sentences[playingIndex];
-      // If we've reached the end timestamp for this chunk, automatically pause.
       if (targetSentence && typeof targetSentence.endTime === 'number') {
         if (this._audio.currentTime >= targetSentence.endTime && this._audio.currentTime > 0) {
           this._audio.pause();
@@ -241,154 +198,168 @@ Page({
         }
       }
     });
-
-    this._audio.onEnded(() => {
-      this.setData({ playingIndex: -1 });
-    });
-
+    this._audio.onEnded(() => { this.setData({ playingIndex: -1 }); });
     this._audio.onError((err) => {
       this.setData({ playingIndex: -1 });
       this.isSeeking = false;
-      console.error('[this._audio Error]', err);
+      console.error('[Audio Error]', err);
     });
   },
 
-  // ─── Recorder Setup ────────────────────────────────────────────────────────
+  // ─── SOE Evaluation Manager ────────────────────────────────────────────────
+  _setupEvalManager() {
+    try {
+      const plugin = requirePlugin('soePlugin');
+      evaluationManager = plugin.getOralEvaluation();
+    } catch (e) {
+      console.error('[SOE] 插件初始化失败，请确认已在 app.json 注册并在公众平台添加了插件', e);
+      wx.showToast({ title: '评测插件未就绪', icon: 'none', duration: 3000 });
+      return;
+    }
+
+    evaluationManager.OnEvaluationStart = (res) => {
+      console.log('[SOE] WebSocket 连接成功，开始发送音频帧');
+      this._evalReady = true;
+      // 将录音启动期间缓冲的帧一次性发送
+      if (this._audioBuffer && this._audioBuffer.length > 0) {
+        this._audioBuffer.forEach(frame => evaluationManager.write(frame));
+        this._audioBuffer = [];
+      }
+    };
+
+    evaluationManager.OnEvaluationResultChange = (res) => {
+      // 中间结果，暂不处理（可用于实时进度展示）
+    };
+
+    evaluationManager.OnEvaluationComplete = (res) => {
+      console.log('[SOE] 评测完成', res);
+      this.setData({ isEvaluating: false });
+      this._handleEvalResult(res);
+    };
+
+    evaluationManager.OnError = (err) => {
+      console.error('[SOE] 评测失败', err);
+      this.setData({ isRecording: false, recordingUI: false, isEvaluating: false });
+      wx.showToast({ title: '评测失败，请重试', icon: 'none' });
+    };
+  },
+
+  // ─── RecorderManager（流式） ────────────────────────────────────────────────
   _setupRecorder() {
     recorderManager.onStart(() => {
-      // recordingUI 已经在 onRecordStart 里提前设置好了，这里只更新实际状态
       this.setData({ isRecording: true });
     });
 
-    recorderManager.onStop((res) => {
-      const { currentIndex, recordings, sentences, groups, activeGroupIndex } = this.data;
-      const isNewRecording = !recordings[currentIndex];
-
-      const updated = { ...recordings, [currentIndex]: res.tempFilePath };
-      const recordedCount = Object.keys(updated).length;
-      const allDone = recordedCount >= sentences.length;
-
-      // 先重置实际录音状态，再恢复视觉UI（顺序与 onRecordStart 相反）
-      this.setData({ isRecording: false, recordingUI: false });
-
-      const handleAdvance = () => {
-        this.setData({
-          recordings: updated,
-          recordedCount,
-          allDone,
-        });
-
-        // Persist to storage: store tempFilePath for new recordings, preserve uploaded markers
-        const existingStorage = wx.getStorageSync(`lesson_recordings_${this.data.lessonId}`) || {};
-        const storageMask = { ...existingStorage };
-        for (let key in updated) {
-          const val = updated[key];
-          if (typeof val === 'string') {
-            // New local recording not yet uploaded
-            storageMask[key] = { uploaded: false, tempPath: val };
-          }
-          // If already { uploaded: true }, don't overwrite
-        }
-        wx.setStorageSync(`lesson_recordings_${this.data.lessonId}`, storageMask);
-
-        if (!allDone && currentIndex < sentences.length - 1) {
-          const nextIndex = currentIndex + 1;
-          let targetGroupIndex = activeGroupIndex;
-          for (let i = 0; i < groups.length; i++) {
-            if (groups[i].indices.includes(nextIndex)) {
-              targetGroupIndex = i;
-              break;
-            }
-          }
-
-          const isNewGroup = targetGroupIndex !== activeGroupIndex;
-          this.setData({
-            currentIndex: nextIndex,
-            activeGroupIndex: targetGroupIndex
-          });
-
-          setTimeout(() => {
-            if (isNewGroup) {
-              this._scrollToNode(`#group-${targetGroupIndex}`);
-            } else {
-              this._scrollToNode(`#sentence-${nextIndex}`);
-            }
-          }, 400);
-        }
-      };
-
-      if (isNewRecording) {
-        const query = wx.createSelectorQuery();
-        query.select('.giant-mic-btn').boundingClientRect();
-        query.select('.star-icon').boundingClientRect();
-
-        query.exec((rects) => {
-          const btnRect = rects[0];
-          const starRect = rects[1];
-
-          if (!btnRect || !starRect) {
-            // Query failed (e.g., node offscreen), fallback to immediate advance
-            handleAdvance();
-            return;
-          }
-
-          // Determine exact coordinates
-          const starId = Date.now();
-          const newStar = {
-            id: starId,
-            x: btnRect.left + btnRect.width / 2 - 15,
-            y: btnRect.top + btnRect.height / 2 - 15,
-            opacity: 1,
-            scale: 1.5
-          };
-
-          this.setData({ flyingStars: [...this.data.flyingStars, newStar] });
-
-          // Next frame, start the flight animation
-          setTimeout(() => {
-            const updatedStars = this.data.flyingStars.map(s => {
-              if (s.id === starId) {
-                return {
-                  ...s,
-                  x: starRect.left - 5,
-                  y: starRect.top - 5,
-                  scale: 0.8,
-                  opacity: 0.2
-                };
-              }
-              return s;
-            });
-            this.setData({ flyingStars: updatedStars });
-
-            // Wait for CSS transition (600ms) to hit the progress bar
-            setTimeout(() => {
-              // Clean up star
-              const filteredStars = this.data.flyingStars.filter(s => s.id !== starId);
-              this.setData({ flyingStars: filteredStars });
-              // Advance state, which expands progress bar width
-              handleAdvance();
-            }, 600);
-          }, 50);
-        });
+    recorderManager.onFrameRecorded((res) => {
+      if (!res.frameBuffer) return;
+      if (this._evalReady && evaluationManager) {
+        evaluationManager.write(res.frameBuffer);
       } else {
-        // User is just re-recording an already done sentence, no star granted!
-        handleAdvance();
+        // 在 WebSocket 建立前先缓冲
+        if (!this._audioBuffer) this._audioBuffer = [];
+        this._audioBuffer.push(res.frameBuffer);
       }
     });
 
+    recorderManager.onStop((res) => {
+      // 保存录音文件路径（用于后续上传到老师）
+      this._lastTempFilePath = res.tempFilePath || '';
+      this.setData({ isRecording: false, recordingUI: false });
+      // 此时 isEvaluating 仍为 true，等 OnEvaluationComplete 回调
+    });
+
     recorderManager.onError((err) => {
-      this.setData({ isRecording: false });
+      this.setData({ isRecording: false, recordingUI: false, isEvaluating: false });
       wx.showToast({ title: '录音失败，请重试', icon: 'none' });
       console.error('[Recorder Error]', err);
     });
   },
 
+  // ─── 解析评测结果 ─────────────────────────────────────────────────────────
+  _handleEvalResult(res) {
+    const { currentIndex, recordings, sentences } = this.data;
+    const isNewRecording = !recordings[currentIndex];
+
+    // 解析逐词结果
+    const wordList = res.Words || res.words || [];
+    const evalWords = wordList.map(w => ({
+      text: w.ReferenceWord || w.Word || '',
+      score: Math.round(w.PronAccuracy || 0),
+      isError: (w.PronAccuracy || 0) < 60,
+      isWarning: (w.PronAccuracy || 0) >= 60 && (w.PronAccuracy || 0) < 80,
+    }));
+
+    const evalResult = {
+      overallScore: Math.round(res.PronAccuracy || 0),
+      words: evalWords,
+    };
+
+    // 更新录音记录（tempFilePath）
+    const tempFilePath = this._lastTempFilePath || '';
+    const updated = { ...recordings, [currentIndex]: tempFilePath };
+    const recordedCount = Object.keys(updated).length;
+    const allDone = recordedCount >= sentences.length;
+
+    this.setData({ evalResult, recordings: updated, recordedCount, allDone });
+
+    // 持久化
+    if (tempFilePath) {
+      const existingStorage = wx.getStorageSync(`lesson_recordings_${this.data.lessonId}`) || {};
+      existingStorage[currentIndex] = { uploaded: false, tempPath: tempFilePath };
+      wx.setStorageSync(`lesson_recordings_${this.data.lessonId}`, existingStorage);
+    }
+
+    // 飞星动画（仅首次）
+    if (isNewRecording) this._triggerStarAnimation();
+  },
+
+  // ─── 飞星动画 ─────────────────────────────────────────────────────────────
+  _triggerStarAnimation() {
+    const query = wx.createSelectorQuery();
+    query.select('.giant-mic-btn').boundingClientRect();
+    query.select('.star-icon').boundingClientRect();
+
+    query.exec((rects) => {
+      const btnRect = rects[0];
+      const starRect = rects[1];
+      if (!btnRect || !starRect) return;
+
+      const starId = Date.now();
+      const newStar = {
+        id: starId,
+        x: btnRect.left + btnRect.width / 2 - 15,
+        y: btnRect.top + btnRect.height / 2 - 15,
+        opacity: 1, scale: 1.5
+      };
+      this.setData({ flyingStars: [...this.data.flyingStars, newStar] });
+
+      setTimeout(() => {
+        const updatedStars = this.data.flyingStars.map(s =>
+          s.id === starId ? { ...s, x: starRect.left - 5, y: starRect.top - 5, scale: 0.8, opacity: 0.2 } : s
+        );
+        this.setData({ flyingStars: updatedStars });
+
+        setTimeout(() => {
+          this.setData({ flyingStars: this.data.flyingStars.filter(s => s.id !== starId) });
+        }, 600);
+      }, 50);
+    });
+  },
+
   // ─── Record Button (Long Press) ────────────────────────────────────────────
   onRecordStart() {
-    this._wantToRecord = true;  // Set intent flag BEFORE async call
-    this._startCalled = false;
+    if (!evaluationManager) {
+      wx.showToast({ title: '评测插件未就绪', icon: 'none' });
+      return;
+    }
 
-    // Synchronously stop any playing audio BEFORE the async getSetting call.
+    this._wantToRecord = true;
+    this._startCalled = false;
+    this._evalReady = false;
+    this._audioBuffer = [];
+    this._lastTempFilePath = '';
+
+    // 停止任何正在播放的音频
     if (this.data.playingIndex !== -1) {
       this._audio.pause();
       this.setData({ playingIndex: -1 });
@@ -398,31 +369,45 @@ Page({
       this.setData({ playingUserAudio: false });
     }
 
-    // 【关键】先立刻更新 UI 视觉状态（按钮扶正、变成红点），
-    // 让 DOM 在这一帧就稳定下来，之后的 touchend 不会因 DOM 重建而丢失。
-    // isRecording 的更新留到 recorderManager.onStart 回调里再做。
-    this.setData({ recordingUI: true });
+    // 先更新视觉状态，清除上一次评测结果
+    this.setData({ recordingUI: true, evalResult: null });
 
     wx.getSetting({
       success: (res) => {
         if (!this._wantToRecord) {
-          // 用户已经松手，中止录音指令，同时恢复 UI
           this.setData({ recordingUI: false });
           return;
         }
-
         if (res.authSetting['scope.record'] === false) {
           this.setData({ recordingUI: false });
           wx.openSetting();
           return;
         }
 
+        const { currentIndex, sentences } = this.data;
+        const refText = (sentences[currentIndex] || {}).text || '';
+
+        // 1. 先建立 WebSocket 评测连接
+        evaluationManager.start({
+          secretid: soeConfig.secretId,
+          secretkey: soeConfig.secretKey,
+          appid: soeConfig.appId,
+          duration: 60000,
+          frameSize: 0.32,
+          server_engine_type: '16k_en',  // 英语
+          ref_text: refText,
+          eval_mode: 1,          // 1 = 句子模式
+          score_coeff: 1.0,
+          sentence_info_enabled: 1,
+        });
+
+        // 2. 同时启动录音（帧数据在 onFrameRecorded 里流式发送）
         this._startCalled = true;
         recorderManager.start({
-          format: 'aac',
+          format: 'PCM',
           sampleRate: 16000,
           numberOfChannels: 1,
-          encodeBitRate: 48000,
+          frameSize: 0.32,  // 每帧 0.32KB，与 evaluationManager 保持一致
           duration: 60000,
         });
       },
@@ -430,43 +415,33 @@ Page({
   },
 
   onRecordStop() {
-    this._wantToRecord = false;  // Clear intent flag
+    this._wantToRecord = false;
 
-    // 【顺序】先停止录音（状态先改），再让 onStop 回调恢复 UI。
-    // 这样 UI 的恢复（扶正→倾斜，红点→麦克风）发生在录音停止之后，
-    // 而不是在 touchend 绑定的 DOM 节点还没稳定时。
     if (this.data.isRecording || this._startCalled) {
       this._startCalled = false;
       recorderManager.stop();
-      // recordingUI 会由 recorderManager.onStop 回调里的 setData 恢复为 false
+      // 告知评测引擎音频发送完毕
+      if (evaluationManager && this._evalReady) {
+        evaluationManager.stop();
+      }
+      // 进入"检测中"等待状态
+      this.setData({ isEvaluating: true });
     } else {
-      // 录音根本没有发出指令（getSetting 还没回来），直接恢复 UI
       this.setData({ recordingUI: false });
     }
   },
 
-  preventBubbling() {
-    // Empty function to catch and prevent tap events from bubbling up and triggering page interactions
-  },
+  preventBubbling() {},
 
   // ─── Interactions ──────────────────────────────────────────────────────────
-
   onGroupTap(e) {
     const groupIndex = e.currentTarget.dataset.groupIndex;
-
     if (this.data.activeGroupIndex === groupIndex) {
       this.setData({ activeGroupIndex: -1 });
       return;
     }
-
-    // Set active group to trigger CSS max-height expansion/collapse
     this.setData({ activeGroupIndex: groupIndex });
-
-    // Wait for the previous group's CSS transition (400ms) to complete 
-    // before triggering native page scroll to prevent bounds violations
-    setTimeout(() => {
-      this._scrollToNode(`#group-${groupIndex}`);
-    }, 400);
+    setTimeout(() => this._scrollToNode(`#group-${groupIndex}`), 400);
   },
 
   onSentenceTap(e) {
@@ -474,7 +449,10 @@ Page({
     const { sentences, playingIndex, lesson } = this.data;
     const sentence = sentences[targetIdx];
 
-    // If clicking currently active sentence audio... STOP it.
+    if (targetIdx !== this.data.currentIndex) {
+      this.setData({ evalResult: null });
+    }
+
     if (playingIndex === targetIdx) {
       this._audio.pause();
       this.setData({ playingIndex: -1, currentIndex: targetIdx });
@@ -486,32 +464,21 @@ Page({
       this.setData({ playingUserAudio: false });
     }
 
-    // Prepare for new play structure
-    this.setData({
-      playingIndex: targetIdx,
-      currentIndex: targetIdx,
-    });
+    this.setData({ playingIndex: targetIdx, currentIndex: targetIdx });
 
-    // Handle playback via timeline if masterAudioUrl exists
     if (lesson.masterAudioUrl && typeof sentence.startTime === 'number') {
       if (this._audio.src !== lesson.masterAudioUrl) {
         this._audio.src = lesson.masterAudioUrl;
-        // WeChat InnerAudioContext allows setting 'startTime' directly before calling 'play'
         this._audio.startTime = sentence.startTime;
         this._audio.play();
       } else {
-        // Synchronously flag that we are seeking to avoid onTimeUpdate instantly stopping it.
         this.isSeeking = true;
-        // Fallback to clear isSeeking flag in case onSeeked somehow doesn't fire
         if (this.seekTimeout) clearTimeout(this.seekTimeout);
         this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
-
         this._audio.seek(sentence.startTime);
         this._audio.play();
       }
-    }
-    // Fallback to standalone sentence audioUrl
-    else if (sentence.audioUrl) {
+    } else if (sentence.audioUrl) {
       if (this._audio.src !== sentence.audioUrl) {
         this._audio.src = sentence.audioUrl;
       } else {
@@ -529,15 +496,13 @@ Page({
 
   onPlayUserRecording() {
     const { currentIndex, recordings, playingUserAudio } = this.data;
-    
-    // If we're currently playing user audio, stop it
+
     if (playingUserAudio) {
       if (this._userAudio) this._userAudio.pause();
       this.setData({ playingUserAudio: false });
       return;
     }
 
-    // Stop standard sentence audio if playing
     if (this.data.playingIndex !== -1) {
       this._audio.pause();
       this.setData({ playingIndex: -1 });
@@ -546,24 +511,15 @@ Page({
     const rec = recordings[currentIndex];
     if (!rec) return;
 
-    let pathToPlay = '';
-    if (typeof rec === 'string') {
-      pathToPlay = rec;
-    } else if (rec.tempPath) {
-      pathToPlay = rec.tempPath;
-    }
-
+    let pathToPlay = typeof rec === 'string' ? rec : (rec.tempPath || '');
     if (!pathToPlay) {
       wx.showToast({ title: '暂无该录音的本地缓存', icon: 'none' });
       return;
     }
 
-    // Lazy load user audio context so we don't conflict with master audio / seek
     if (!this._userAudio) {
       this._userAudio = wx.createInnerAudioContext();
-      this._userAudio.onEnded(() => {
-        this.setData({ playingUserAudio: false });
-      });
+      this._userAudio.onEnded(() => this.setData({ playingUserAudio: false }));
       this._userAudio.onError((err) => {
         console.error('[User Audio Error]', err);
         this.setData({ playingUserAudio: false });
@@ -583,22 +539,11 @@ Page({
 
     query.exec((res) => {
       if (!res[0] || !res[1]) return;
-
-      const targetRect = res[0];
-      const scrollInfo = res[1];
-
-      // We want to offset by sticking header height (230rpx)
       const systemInfo = wx.getWindowInfo();
       const pxPerRpx = systemInfo.screenWidth / 750;
       const offsetPx = 230 * pxPerRpx;
-
-      // Calculate absolute scroll destination
-      const targetTop = scrollInfo.scrollTop + targetRect.top - offsetPx;
-
-      wx.pageScrollTo({
-        scrollTop: targetTop,
-        duration: 300
-      });
+      const targetTop = res[1].scrollTop + res[0].top - offsetPx;
+      wx.pageScrollTo({ scrollTop: targetTop, duration: 300 });
     });
   },
 
@@ -609,7 +554,6 @@ Page({
   // ─── Submit All Recordings ─────────────────────────────────────────────────
   async onSubmit() {
     const { recordings, lessonId, sentences } = this.data;
-
     if (Object.keys(recordings).length < sentences.length) {
       wx.showModal({
         title: '还有句子未跟读',
@@ -631,13 +575,9 @@ Page({
       for (let key in recordings) {
         const val = recordings[key];
         const sentenceIndex = parseInt(key);
-        if (typeof val === 'string') {
+        if (typeof val === 'string' && val) {
           const sentence = sentences[sentenceIndex];
-          pendingEntries.push({
-            sentenceIndex,
-            tempPath: val,
-            sentenceId: sentence ? sentence.id : null,
-          });
+          pendingEntries.push({ sentenceIndex, tempPath: val, sentenceId: sentence ? sentence.id : null });
         }
       }
 
@@ -653,15 +593,13 @@ Page({
         return;
       }
 
-      wx.showLoading({ title: `上传录音 1/${pendingEntries.length}…`, mask: true });
       const storage = wx.getStorageSync(`lesson_recordings_${lessonId}`) || {};
 
       for (let i = 0; i < pendingEntries.length; i++) {
         const entry = pendingEntries[i];
         wx.showLoading({ title: `上传录音 ${i + 1}/${pendingEntries.length}…`, mask: true });
 
-        // 直传云存储（wx.cloud.uploadFile 不受 uploadFile 合法域名限制）
-        const cloudPath = `recordings/${lessonId}/${entry.sentenceId || entry.sentenceIndex}_${Date.now()}.aac`;
+        const cloudPath = `recordings/${lessonId}/${entry.sentenceId || entry.sentenceIndex}_${Date.now()}.pcm`;
         const uploadRes = await new Promise((resolve, reject) => {
           wx.cloud.uploadFile({
             cloudPath,
@@ -674,11 +612,7 @@ Page({
         await request({
           url: '/recordings',
           method: 'POST',
-          data: {
-            lessonId,
-            cloudId: uploadRes.cloudID,   // wx.cloud.uploadFile 返回的 fileID (cloud://...)
-            sentenceId: entry.sentenceId,
-          },
+          data: { lessonId, cloudId: uploadRes.cloudID, sentenceId: entry.sentenceId },
         });
 
         storage[entry.sentenceIndex] = { uploaded: true };
@@ -694,11 +628,7 @@ Page({
       });
     } catch (err) {
       wx.hideLoading();
-      wx.showModal({
-        title: '发送失败',
-        content: err.message || '请检查网络后重试',
-        showCancel: false,
-      });
+      wx.showModal({ title: '发送失败', content: err.message || '请检查网络后重试', showCancel: false });
     } finally {
       this.setData({ submitting: false });
     }

@@ -82,11 +82,29 @@
 
               <!-- 当前激活状态 UI -->
               <view class="active-content-layout" wx:else>
+
+                 <!-- ① 句子文字区：无结果时整句，有结果时逐词着色 -->
                  <view class="active-text-wrap">
-                    <text class="s-text-active">"{{sentence.text}}"</text>
+                   <!-- 无评测结果：整句显示 -->
+                   <text wx:if="{{!evalResult}}" class="s-text-active">"{{sentence.text}}"</text>
+                   <!-- 有评测结果：逐词着色 + 总分徽章 -->
+                   <view wx:else class="eval-words-wrap">
+                     <view class="eval-words-row">
+                       <text
+                         wx:for="{{evalResult.words}}"
+                         wx:key="index"
+                         class="eval-word {{item.isError ? 'word-error' : (item.isWarning ? 'word-warning' : 'word-ok')}}"
+                       >{{item.text}} </text>
+                     </view>
+                     <view class="score-badge-row">
+                       <text class="score-badge {{evalResult.overallScore >= 80 ? 'score-good' : (evalResult.overallScore >= 60 ? 'score-ok' : 'score-poor')}}">
+                         {{evalResult.overallScore}}分
+                       </text>
+                     </view>
+                   </view>
                  </view>
                  
-                 <!-- The Giant Microphone Button -->
+                 <!-- ② 麦克风 / 检测中 区域 -->
                  <view class="giant-mic-container">
                     <!-- 🔒 课程锁定：只显示提示，不显示录音按钮 -->
                     <view wx:if="{{isLocked}}" class="locked-hint">
@@ -96,8 +114,15 @@
 
                     <!-- 录音控件：未锁定时显示 -->
                     <view wx:else class="giant-mic-container">
-                      
-                      <view class="mic-btn-wrapper">
+
+                      <!-- 检测中 Loading 状态：禁止点击 -->
+                      <view wx:if="{{isEvaluating}}" class="eval-loading-wrap">
+                        <view class="eval-spinner"></view>
+                        <text class="eval-loading-text">正在检测发音…</text>
+                      </view>
+
+                      <!-- 正常录音按钮（未在检测中时显示） -->
+                      <view wx:else class="mic-btn-wrapper">
                         <!-- 视觉按钮：没有任何事件，专门负责UI动效 -->
                         <view class="giant-mic-btn {{recordingUI ? 'is-recording' : ''}} {{playingIndex === currentIndex ? 'is-playing' : ''}}">
                           <view class="mic-inner">
@@ -125,10 +150,11 @@
                         </view>
                       </view>
                       
-                      <view class="mic-hint-badge">
+                      <view class="mic-hint-badge" wx:if="{{!isEvaluating}}">
                         <text wx:if="{{recordingUI}}">RELEASE TO FINISH</text>
                         <text wx:elif="{{playingIndex === currentIndex}}">NOW PLAYING</text>
-                        <text wx:else>TAP & HOLD TO RECORD</text>
+                        <text wx:elif="{{evalResult}}">TAP ANOTHER SENTENCE OR RE-RECORD</text>
+                        <text wx:else>TAP &amp; HOLD TO RECORD</text>
                       </view>
 
                     </view>

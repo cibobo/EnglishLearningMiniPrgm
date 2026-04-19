@@ -65,3 +65,6 @@ Design/*
 
 # Local Scripts
 deploy.ps1
+
+# Secret
+miniprogram/utils/soe-config.js

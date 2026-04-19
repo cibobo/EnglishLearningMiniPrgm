@@ -582,3 +582,106 @@
   text-shadow: 0 4rpx 12rpx rgba(250, 204, 21, 0.8);
 }
 
+/* =============================================
+   Pronunciation Evaluation (SOE) Styles
+   ============================================= */
+
+/* 逐词评测结果容器 */
+.eval-words-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.eval-words-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8rpx 4rpx;
+  line-height: 1.6;
+}
+
+/* 单词基础样式 */
+.eval-word {
+  font-size: 44rpx;
+  font-weight: 800;
+  padding: 4rpx 4rpx;
+  border-radius: 8rpx;
+  transition: color 0.3s ease;
+}
+
+/* 绿色：发音正确（score >= 80） */
+.eval-word.word-ok {
+  color: #389f5a;
+}
+
+/* 黄色：发音尚可（60–79 分） */
+.eval-word.word-warning {
+  color: #c97a00;
+  border-bottom: 4rpx solid #c97a00;
+}
+
+/* 红色：发音有误（< 60 分） */
+.eval-word.word-error {
+  color: #d93636;
+  border-bottom: 4rpx solid #d93636;
+}
+
+/* 总分徽章行 */
+.score-badge-row {
+  display: flex;
+  justify-content: center;
+}
+
+.score-badge {
+  font-size: 28rpx;
+  font-weight: 800;
+  padding: 8rpx 32rpx;
+  border-radius: 999rpx;
+  letter-spacing: 2rpx;
+}
+.score-badge.score-good {
+  background: #d4f5e2;
+  color: #1a6e3a;
+}
+.score-badge.score-ok {
+  background: #fff3d1;
+  color: #7a4800;
+}
+.score-badge.score-poor {
+  background: #ffe5e5;
+  color: #8b1a1a;
+}
+
+/* 检测中 Loading 状态 */
+.eval-loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24rpx;
+  width: 240rpx;
+  height: 240rpx;
+}
+
+@keyframes soe-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.eval-spinner {
+  width: 80rpx;
+  height: 80rpx;
+  border: 8rpx solid rgba(0, 102, 136, 0.15);
+  border-top-color: #006688;
+  border-radius: 50%;
+  animation: soe-spin 0.9s linear infinite;
+}
+
+.eval-loading-text {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #006688;
+  letter-spacing: 1rpx;
+}
