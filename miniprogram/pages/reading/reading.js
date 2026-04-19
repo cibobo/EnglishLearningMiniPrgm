@@ -417,12 +417,15 @@ Page({
         });
 
         // 2. 同时启动录音（帧数据在 onFrameRecorded 里流式发送）
+        // WAV = PCM + 标准文件头
+        // - onFrameRecorded 发出原始 PCM 帧 → SOE 引擎可正确识别，评分准确
+        // - 最终 .wav 文件 → InnerAudioContext 可直接回放
         this._startCalled = true;
         recorderManager.start({
-          format: 'PCM',
+          format: 'wav',
           sampleRate: 16000,
           numberOfChannels: 1,
-          frameSize: 0.32,  // 每帧 0.32KB，与 evaluationManager 保持一致
+          frameSize: 0.32,
           duration: 60000,
         });
       },
@@ -616,7 +619,7 @@ Page({
         const entry = pendingEntries[i];
         wx.showLoading({ title: `上传录音 ${i + 1}/${pendingEntries.length}…`, mask: true });
 
-        const cloudPath = `recordings/${lessonId}/${entry.sentenceId || entry.sentenceIndex}_${Date.now()}.pcm`;
+        const cloudPath = `recordings/${lessonId}/${entry.sentenceId || entry.sentenceIndex}_${Date.now()}.wav`;
         const uploadRes = await new Promise((resolve, reject) => {
           wx.cloud.uploadFile({
             cloudPath,
