@@ -305,6 +305,7 @@
 
 .active-text-wrap {
   text-align: center;
+  pointer-events: none; /* 透传触摸事件，防止多段 <text> 触发原生文本长按行为而导致 tap 延迟 */
 }
 
 .s-text-active {
