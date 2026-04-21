@@ -357,10 +357,13 @@ Page({
 
     const oldEval = sentenceEvals[currentIndex];
     const oldStars = oldEval ? (oldEval.stars || 0) : 0;
-    
-    // 更新持久化评测结果
-    const updatedEvals = { ...sentenceEvals, [currentIndex]: evalResult };
-    
+    const isNewBest = !oldEval || stars >= oldStars;
+
+    // 只有新成绩 >= 旧成绩时才覆盖（保留最佳评测结果）
+    const updatedEvals = isNewBest
+      ? { ...sentenceEvals, [currentIndex]: evalResult }
+      : sentenceEvals;
+
     // 重新计算总星星数
     let newTotalStars = 0;
     for (let k in updatedEvals) {
@@ -372,7 +375,10 @@ Page({
       sentenceEvals: updatedEvals,
       totalStars: newTotalStars 
     });
-    wx.setStorageSync(`lesson_evals_${lessonId}`, updatedEvals);
+
+    if (isNewBest) {
+      wx.setStorageSync(`lesson_evals_${lessonId}`, updatedEvals);
+    }
 
     // 飞星动画：如果这是该句子第一次评测，或者新评测的星星数 > 旧星星数
     const isFirstEval = !oldEval;

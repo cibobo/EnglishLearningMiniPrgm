@@ -96,13 +96,26 @@ Page({
 
         const progressPercent = totalSentences > 0 ? Math.round((completed / totalSentences) * 100) : 0;
         
+        // 本地计算奖杯级别（全部跟读完才显示）
+        let trophyLevel = null;
+        if (totalSentences > 0 && completed >= totalSentences) {
+          const evals = wx.getStorageSync(`lesson_evals_${l.id}`) || {};
+          let earnedStars = 0;
+          for (let k in evals) { earnedStars += (evals[k].stars || 0); }
+          const maxStars = totalSentences * 3;
+          const ratio = earnedStars / maxStars;
+          if (ratio >= 0.8) trophyLevel = 'gold';
+          else if (ratio >= 0.5) trophyLevel = 'silver';
+          else trophyLevel = 'bronze';
+        }
+
         return {
           ...l,
           totalSentences,
           completedSentences: completed,
           progressPercent,
           colorTheme: themes[index % themes.length],
-          trophyLevel: l.trophyLevel || null,
+          trophyLevel,
           isLocked: l.isLocked || false,
         };
       });
