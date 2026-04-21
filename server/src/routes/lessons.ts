@@ -217,7 +217,11 @@ router.post('/:id/sentences', requireTeacher, async (req, res) => {
       res.status(400).json({ message: '句子列表不能为空' });
       return;
     }
-    await prisma.sentence.deleteMany({ where: { lessonId } });
+    // Must delete child records first due to FK constraint on sentence_id
+    await prisma.$transaction(async (tx) => {
+      await tx.recordingSubmission.deleteMany({ where: { lessonId } });
+      await tx.sentence.deleteMany({ where: { lessonId } });
+    });
     const created = await prisma.sentence.createMany({
       data: sentences.map((s: { text: string; audioUrl?: string; startTime?: number; endTime?: number; imageUrl?: string; }, i: number) => ({
         lessonId,
