@@ -39,6 +39,11 @@
 
       <!-- 底部小字 -->
       <text class="footer-hint">使用微信账号安全登录</text>
+
+      <!-- 解绑按钮 -->
+      <view class="unbind-wrapper" bindtap="onUnbind">
+        <text class="unbind-text">解绑学生码</text>
+      </view>
     </view>
 
 

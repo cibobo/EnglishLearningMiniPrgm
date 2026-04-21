@@ -49,7 +49,28 @@ const logout = () => {
   wx.reLaunch({ url: '/pages/login/login?from=logout' });
 };
 
+// 微信解绑：用新的微信 code 取消绑定
+const wechatUnbind = () => {
+  return new Promise((resolve, reject) => {
+    wx.login({
+      success: async ({ code }) => {
+        try {
+          await request({
+            url: '/auth/wechat-unbind',
+            method: 'POST',
+            data: { code },
+          });
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      },
+      fail: (err) => reject(err),
+    });
+  });
+};
+
 const getUserInfo = () => getStorageSync('user_info');
 const isLoggedIn = () => !!getStorageSync('access_token');
 
-module.exports = { wechatLogin, logout, getUserInfo, isLoggedIn, getStorageSync, setStorageSync };
+module.exports = { wechatLogin, logout, wechatUnbind, getUserInfo, isLoggedIn, getStorageSync, setStorageSync };

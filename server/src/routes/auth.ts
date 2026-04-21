@@ -234,4 +234,49 @@ router.post('/me/checkin', authenticate, async (req, res) => {
   }
 });
 
+// ─── POST /auth/wechat-unbind ───────────────────────────────────────────────
+// 学生端：根据微信 code 解绑当前的 openid
+router.post('/wechat-unbind', async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) {
+      res.status(400).json({ message: '缺少微信 code' });
+      return;
+    }
+
+    let openid: string;
+    if (!process.env.WECHAT_APPID || !process.env.WECHAT_SECRET) {
+      console.log('⚠️ 未配置微信 AppID/Secret，使用 Mock OpenID 绕过鉴权用于本地测试');
+      openid = `mock_openid_${code.substring(0, 10)}`;
+    } else {
+      const wxRes = await axios.get('https://api.weixin.qq.com/sns/jscode2session', {
+        params: {
+          appid: process.env.WECHAT_APPID,
+          secret: process.env.WECHAT_SECRET,
+          js_code: code,
+          grant_type: 'authorization_code',
+        },
+      });
+
+      const { errcode } = wxRes.data;
+      if (errcode || !wxRes.data.openid) {
+        res.status(401).json({ message: '微信鉴权失败，请重试' });
+        return;
+      }
+      openid = wxRes.data.openid;
+    }
+
+    // 查找并解绑所有匹配的 openid（正常情况唯一）
+    await prisma.student.updateMany({
+      where: { openid },
+      data: { openid: null }
+    });
+
+    res.json({ message: '解绑成功' });
+  } catch (err) {
+    console.error('[wechat-unbind]', err);
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
 export default router;

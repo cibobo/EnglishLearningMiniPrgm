@@ -352,3 +352,17 @@
   height: 100%;
   border-radius: 50%;
 }
+
+/* =============================================
+   解绑按钮
+   ============================================= */
+.unbind-wrapper {
+  margin-top: -24rpx;
+  padding: 16rpx 32rpx;
+}
+
+.unbind-text {
+  font-size: 24rpx;
+  color: rgba(71, 71, 71, 0.4);
+  text-decoration: underline;
+}

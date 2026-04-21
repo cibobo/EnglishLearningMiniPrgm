@@ -121,4 +121,29 @@ Page({
     // Proceed to app
     wx.reLaunch({ url: `/pages/lessons/lessons?classId=${currentUser.classId}` });
   },
+
+  async onUnbind() {
+    wx.showModal({
+      title: '解绑学生码',
+      content: '解绑后需要重新使用新的学生码和微信绑定，确定要解绑吗？',
+      confirmColor: '#a03b56',
+      success: async (res) => {
+        if (res.confirm) {
+          wx.showLoading({ title: '解绑中...' });
+          try {
+            const { wechatUnbind } = require('../../utils/auth');
+            await wechatUnbind();
+            wx.removeStorageSync('access_token');
+            wx.removeStorageSync('refresh_token');
+            wx.removeStorageSync('user_info');
+            this.setData({ needCode: true, loading: false });
+          } catch (err) {
+            wx.showToast({ title: err?.message || '解绑失败', icon: 'none' });
+          } finally {
+            wx.hideLoading();
+          }
+        }
+      }
+    });
+  },
 });
