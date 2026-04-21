@@ -230,7 +230,8 @@ router.post('/:id/sentences', requireTeacher, async (req, res) => {
       })),
     });
     res.json({ count: created.count, message: `已保存 ${created.count} 条句子` });
-  } catch {
+  } catch (err) {
+    console.error('[POST /lessons/:id/sentences] Error:', err);
     res.status(500).json({ message: '服务器错误' });
   }
 });

@@ -202,7 +202,16 @@ const LessonsPage: React.FC = () => {
       const { data } = await api.get(`/lessons/${lesson.id}`);
       const lessonDetail = data as LessonDetail;
       setEditingLessonId(lesson.id);
-      setSentences(lessonDetail.sentences.length > 0 ? lessonDetail.sentences : [{ text: '' }]);
+      // Strip DB-only fields (id, lessonId, orderIndex) so they aren't sent back to createMany
+      setSentences(lessonDetail.sentences.length > 0
+        ? lessonDetail.sentences.map(s => ({
+            text: s.text,
+            audioUrl: s.audioUrl ?? null,
+            startTime: s.startTime ?? null,
+            endTime: s.endTime ?? null,
+            imageUrl: s.imageUrl ?? null,
+          }))
+        : [{ text: '' }]);
       form.setFieldsValue({
         title: lessonDetail.title,
         masterAudioUrl: lessonDetail.masterAudioUrl,
@@ -288,12 +297,13 @@ const LessonsPage: React.FC = () => {
           if (s.imageUrl instanceof File) {
             sentenceImgUrl = await uploadFile(s.imageUrl, 'lesson_image');
           }
+          // Only send the fields expected by the API — never include id/lessonId/orderIndex
           return {
             text: s.text,
-            audioUrl,
-            startTime: s.startTime || null,
-            endTime: s.endTime || null,
-            imageUrl: sentenceImgUrl,
+            audioUrl: audioUrl ?? null,
+            startTime: s.startTime ?? null,
+            endTime: s.endTime ?? null,
+            imageUrl: sentenceImgUrl ?? null,
           };
         })
       );
