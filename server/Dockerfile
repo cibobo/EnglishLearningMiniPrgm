@@ -37,4 +37,4 @@ ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 EXPOSE 80
 
 # 启动服务
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx prisma db seed && node dist/app.js"]
+CMD ["node", "dist/app.js"]
