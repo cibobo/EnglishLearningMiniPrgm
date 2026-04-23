@@ -46,7 +46,7 @@ async function main() {
       create: {
         studentCode: s.studentCode,
         name: s.name,
-        classId: cls.id,
+        classes: { connect: [{ id: cls.id }] },
       },
     });
     console.log(`✅ 测试学生创建成功: ${student.name} / 学生码: ${student.studentCode}`);
