@@ -3,7 +3,7 @@ import {
   Table, Button, Modal, Form, Input, Space, Tag, Tooltip,
   message, Popconfirm, Typography, Select,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined } from '@ant-design/icons';
 import api from '../lib/api';
 
 const { Title, Text } = Typography;
@@ -23,6 +23,12 @@ const TeachersPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Teacher | null>(null);
   const [form] = Form.useForm();
+
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [currentTeacher, setCurrentTeacher] = useState<Teacher | null>(null);
+  const [allLessons, setAllLessons] = useState<{ id: string, title: string, teachers?: {id: string}[] }[]>([]);
+  const [selectedLessonIds, setSelectedLessonIds] = useState<string[]>([]);
+  const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
     fetchTeachers();
@@ -73,6 +79,36 @@ const TeachersPage: React.FC = () => {
     }
   };
 
+  const openAssignModal = async (teacher: Teacher) => {
+    setCurrentTeacher(teacher);
+    try {
+      const { data } = await api.get('/lessons');
+      setAllLessons(data);
+      const assignedIds = data
+        .filter((l: any) => l.teachers && l.teachers.some((t: any) => t.id === teacher.id))
+        .map((l: any) => l.id);
+      setSelectedLessonIds(assignedIds);
+      setAssignModalOpen(true);
+    } catch (e) {
+      message.error('加载课程列表失败');
+    }
+  };
+
+  const saveAssignments = async () => {
+    if (!currentTeacher) return;
+    setAssigning(true);
+    try {
+      await api.put(`/teachers/${currentTeacher.id}/lessons`, { lessonIds: selectedLessonIds });
+      message.success('课程分配已更新');
+      setAssignModalOpen(false);
+      fetchTeachers();
+    } catch (e) {
+      message.error('课程分配保存失败');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
   const deleteTeacher = async (id: string) => {
     try {
       await api.delete(`/teachers/${id}`);
@@ -112,6 +148,9 @@ const TeachersPage: React.FC = () => {
       title: '操作', key: 'ops',
       render: (_: any, r: Teacher) => (
         <Space>
+          <Tooltip title="分配课程">
+            <Button size="small" icon={<AppstoreOutlined />} onClick={() => openAssignModal(r)} />
+          </Tooltip>
           <Tooltip title="编辑教师">
             <Button size="small" icon={<EditOutlined />} onClick={() => openModal(r)} />
           </Tooltip>
@@ -160,6 +199,31 @@ const TeachersPage: React.FC = () => {
             </Select>
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title={`分配课程 - ${currentTeacher?.name}`}
+        open={assignModalOpen}
+        onOk={saveAssignments}
+        onCancel={() => setAssignModalOpen(false)}
+        confirmLoading={assigning}
+        okText="保存分配"
+        cancelText="取消"
+        width={600}
+        destroyOnClose
+      >
+        <div style={{ marginBottom: 16 }}>请为该教师选择负责的课程（支持搜索）：</div>
+        <Select
+          mode="multiple"
+          style={{ width: '100%' }}
+          placeholder="点击选择或搜索课程"
+          value={selectedLessonIds}
+          onChange={setSelectedLessonIds}
+          options={allLessons.map(l => ({ label: l.title, value: l.id }))}
+          filterOption={(input, option) =>
+            ((option?.label as string) || '').toLowerCase().includes(input.toLowerCase())
+          }
+        />
       </Modal>
     </div>
   );

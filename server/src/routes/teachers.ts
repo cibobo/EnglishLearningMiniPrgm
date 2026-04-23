@@ -111,4 +111,35 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// ─── PUT /teachers/:id/lessons ────────────────────────────────────────────────
+router.put('/:id/lessons', async (req, res) => {
+  try {
+    const teacherId = req.params.id;
+    const { lessonIds } = req.body;
+
+    if (!Array.isArray(lessonIds)) {
+      res.status(400).json({ message: '参数错误，lessonIds 必须是数组' });
+      return;
+    }
+
+    const existing = await prisma.teacher.findUnique({ where: { id: teacherId } });
+    if (!existing || existing.deletedAt) {
+      res.status(404).json({ message: '教师不存在' });
+      return;
+    }
+
+    await prisma.teacher.update({
+      where: { id: teacherId },
+      data: {
+        lessons: { set: lessonIds.map(id => ({ id })) }
+      }
+    });
+
+    res.json({ message: '分配成功' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
 export default router;
