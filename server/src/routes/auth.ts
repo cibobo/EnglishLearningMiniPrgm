@@ -124,14 +124,14 @@ router.post('/teacher-login', async (req, res) => {
       return;
     }
 
-    const payload: AuthPayload = { id: teacher.id, role: 'teacher' };
+    const payload: AuthPayload = { id: teacher.id, role: (teacher.role as 'teacher' | 'superadmin') || 'teacher' };
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
     res.json({
       access_token: accessToken,
       refresh_token: refreshToken,
-      user: { id: teacher.id, name: teacher.name, username: teacher.username },
+      user: { id: teacher.id, name: teacher.name, username: teacher.username, role: teacher.role },
     });
   } catch (err) {
     console.error('[teacher-login]', err);

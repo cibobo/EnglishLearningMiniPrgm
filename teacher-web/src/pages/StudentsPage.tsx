@@ -6,6 +6,7 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { useAuthStore } from '../store/authStore';
 
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -13,12 +14,13 @@ const { useBreakpoint } = Grid;
 interface Student {
   id: string; name: string; studentCode: string;
   classId?: string;
-  class?: { id: string; name: string };
+  class?: { id: string; name: string; teacher?: { name: string } };
   _count: { recordingSubmissions: number };
 }
 interface Class { id: string; name: string; }
 
 const StudentsPage: React.FC = () => {
+  const { user } = useAuthStore();
   const navigate = useNavigate();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
@@ -101,6 +103,7 @@ const StudentsPage: React.FC = () => {
       title: '班级', dataIndex: ['class', 'name'], key: 'class',
       render: (v?: string) => v ? <Tag color="blue">{v}</Tag> : <Tag>未分班</Tag>,
     },
+    ...(user?.role === 'superadmin' ? [{ title: '所属教师', key: 'teacher', render: (_: any, r: Student) => r.class?.teacher?.name || '未知' }] : []),
     {
       title: '录音提交', key: 'recordings',
       render: (_: any, r: Student) => <Tag color="green">{r._count.recordingSubmissions} 条</Tag>,
@@ -168,6 +171,7 @@ const StudentsPage: React.FC = () => {
                   <Space split={<Divider type="vertical" />} wrap>
                     <Text type="secondary" style={{ fontSize: 13 }}>
                       班级: {r.class?.name ? <Tag color="blue" style={{ margin: 0, marginLeft: 6 }}>{r.class.name}</Tag> : '未分班'}
+                      {user?.role === 'superadmin' && r.class?.teacher?.name && <Tag color="purple" style={{ margin: 0, marginLeft: 6 }}>{r.class.teacher.name}</Tag>}
                     </Text>
                     <Text type="secondary" style={{ fontSize: 13 }}>
                       录音: <Tag color="green" style={{ margin: 0, marginLeft: 6 }}>{r._count.recordingSubmissions} 条</Tag>

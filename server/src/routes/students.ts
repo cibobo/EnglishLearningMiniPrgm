@@ -27,13 +27,27 @@ router.use(authenticate, requireTeacher);
 router.get('/', async (req, res) => {
   try {
     const { classId } = req.query;
-    const where: Record<string, unknown> = { deletedAt: null };
-    if (classId) where.classId = classId as string;
+    const where: any = { deletedAt: null };
+    if (classId) {
+      where.classId = classId as string;
+      if (req.user!.role !== 'superadmin') {
+         // ensure class belongs to teacher
+         const cls = await prisma.class.findUnique({where: {id: classId as string}});
+         if (!cls || cls.teacherId !== req.user!.id) {
+            res.status(403).json({message: '无权限访问该班级'});
+            return;
+         }
+      }
+    } else {
+      if (req.user!.role !== 'superadmin') {
+        where.class = { teacherId: req.user!.id };
+      }
+    }
 
     const students = await prisma.student.findMany({
       where,
       include: {
-        class: { select: { id: true, name: true } },
+        class: { select: { id: true, name: true, teacher: { select: { name: true } } } },
         _count: { select: { recordingSubmissions: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -53,6 +67,14 @@ router.post('/', async (req, res) => {
       return;
     }
 
+    if (classId && req.user!.role !== 'superadmin') {
+      const cls = await prisma.class.findUnique({ where: { id: classId } });
+      if (!cls || cls.teacherId !== req.user!.id) {
+        res.status(403).json({ message: '无权限：只能将学生添加到您的班级' });
+        return;
+      }
+    }
+
     const studentCode = await generateUniqueCode();
     const student = await prisma.student.create({
       data: { name, classId: classId || null, studentCode },
@@ -69,13 +91,27 @@ router.put('/:id', async (req, res) => {
   try {
     const existing = await prisma.student.findUnique({
       where: { id: req.params.id },
+      include: { class: true }
     });
     if (!existing || existing.deletedAt) {
       res.status(404).json({ message: '学生不存在' });
       return;
     }
+    if (req.user!.role !== 'superadmin' && existing.class?.teacherId !== req.user!.id) {
+      res.status(403).json({ message: '无权限修改该学生' });
+      return;
+    }
 
     const { name, classId } = req.body;
+    
+    if (classId && req.user!.role !== 'superadmin') {
+      const cls = await prisma.class.findUnique({ where: { id: classId } });
+      if (!cls || cls.teacherId !== req.user!.id) {
+        res.status(403).json({ message: '无权限：只能将学生移到您的班级' });
+        return;
+      }
+    }
+
     const student = await prisma.student.update({
       where: { id: req.params.id },
       data: { name, classId: classId || null },
@@ -90,11 +126,19 @@ router.put('/:id', async (req, res) => {
 // ─── DELETE /students/:id ─────────────────────────────────────────────────────
 router.delete('/:id', async (req, res) => {
   try {
-    const existing = await prisma.student.findUnique({ where: { id: req.params.id } });
+    const existing = await prisma.student.findUnique({ 
+       where: { id: req.params.id },
+       include: { class: true }
+    });
     if (!existing || existing.deletedAt) {
       res.status(404).json({ message: '学生不存在' });
       return;
     }
+    if (req.user!.role !== 'superadmin' && existing.class?.teacherId !== req.user!.id) {
+      res.status(403).json({ message: '无权限删除该学生' });
+      return;
+    }
+
     await prisma.student.update({
       where: { id: req.params.id },
       data: { deletedAt: new Date() },

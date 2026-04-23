@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Button, Modal, Form, Input, Upload, Card, Tag, Tooltip, Popover,
   message, Popconfirm, Typography, List, Image, Divider, Empty, Spin,
-  Tabs, Collapse, Checkbox, Space
+  Tabs, Collapse, Checkbox, Space, Select
 } from 'antd';
 import {
   PlusOutlined, UploadOutlined, EyeOutlined,
@@ -10,6 +10,7 @@ import {
   FolderOpenOutlined, AppstoreOutlined, FolderOutlined
 } from '@ant-design/icons';
 import api from '../lib/api';
+import { useAuthStore } from '../store/authStore';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -18,6 +19,8 @@ interface Lesson {
   title: string;
   imageUrl: string;
   masterAudioUrl?: string | null;
+  teacherId?: string;
+  teacher?: { name: string };
   _count: { sentences: number };
   classLessons: { classId: string }[];
   lessonGroupItems?: { groupId: string }[];
@@ -51,6 +54,8 @@ interface SentenceForm {
 }
 
 const LessonsPage: React.FC = () => {
+  const { user } = useAuthStore();
+  const [teachers, setTeachers] = useState<{ id: string; name: string }[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(false);
   const [createModal, setCreateModal] = useState(false);
@@ -105,7 +110,10 @@ const LessonsPage: React.FC = () => {
   useEffect(() => { 
     fetchLessons(); 
     fetchGroups();
-  }, []);
+    if (user?.role === 'superadmin') {
+      api.get('/teachers').then(res => setTeachers(res.data)).catch(console.error);
+    }
+  }, [user?.role]);
 
   const fetchGroups = async () => {
     try {
@@ -193,6 +201,9 @@ const LessonsPage: React.FC = () => {
     setEditingLessonId(null);
     setSentences([{ text: '' }]);
     form.resetFields();
+    if (user?.role === 'superadmin') {
+      form.setFieldsValue({ teacherId: user.id });
+    }
     setCreateModal(true);
   };
 
@@ -224,6 +235,7 @@ const LessonsPage: React.FC = () => {
             thumbUrl: lessonDetail.imageUrl,
           },
         ],
+        teacherId: lessonDetail.teacherId,
       });
       setCreateModal(true);
     } catch {
@@ -310,12 +322,12 @@ const LessonsPage: React.FC = () => {
 
       if (editingLessonId) {
         // Update
-        await api.put(`/lessons/${editingLessonId}`, { title: vals.title, imageUrl, masterAudioUrl });
+        await api.put(`/lessons/${editingLessonId}`, { title: vals.title, imageUrl, masterAudioUrl, teacherId: vals.teacherId });
         await api.post(`/lessons/${editingLessonId}/sentences`, { sentences: sentencesData });
         message.success('课程已更新');
       } else {
         // Create
-        await api.post('/lessons', { title: vals.title, imageUrl, masterAudioUrl, sentences: sentencesData });
+        await api.post('/lessons', { title: vals.title, imageUrl, masterAudioUrl, teacherId: vals.teacherId, sentences: sentencesData });
         message.success('课程已创建并加入课程库');
       }
 
@@ -403,6 +415,7 @@ const LessonsPage: React.FC = () => {
         title={<Text ellipsis={{ tooltip: lesson.title }}>{lesson.title}</Text>}
         description={
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+            {user?.role === 'superadmin' && <Tag color="purple">{lesson.teacher?.name}</Tag>}
             <Tag color="blue">{lesson._count.sentences} 句</Tag>
             {lesson.classLessons.length > 0 && (
               <Tag color="green">已分配 {lesson.classLessons.length} 班级</Tag>
@@ -538,6 +551,11 @@ const LessonsPage: React.FC = () => {
           <Form.Item name="title" label="课程标题" rules={[{ required: true }]}>
             <Input placeholder="如：Lesson 1 - Hello World" />
           </Form.Item>
+          {user?.role === 'superadmin' && (
+            <Form.Item name="teacherId" label="负责教师" rules={[{ required: true }]}>
+              <Select options={teachers.map(t => ({ label: t.name, value: t.id }))} />
+            </Form.Item>
+          )}
           <Form.Item 
             name="imageFile" 
             label="封面图" 

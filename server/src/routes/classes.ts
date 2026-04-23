@@ -8,8 +8,9 @@ router.use(authenticate, requireTeacher);
 // ─── GET /classes ──────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
+    const whereClause = req.user!.role === 'superadmin' ? { deletedAt: null } : { teacherId: req.user!.id, deletedAt: null };
     const classes = await prisma.class.findMany({
-      where: { teacherId: req.user!.id, deletedAt: null },
+      where: whereClause,
       include: {
         // @ts-ignore Prisma client type might be stale in IDE
         _count: { 
@@ -18,6 +19,7 @@ router.get('/', async (req, res) => {
             classLessons: { where: { lesson: { deletedAt: null } } } 
           } 
         },
+        teacher: { select: { name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -37,13 +39,14 @@ router.get('/', async (req, res) => {
 // ─── POST /classes ─────────────────────────────────────────────────────────────
 router.post('/', async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, teacherId } = req.body;
     if (!name) {
       res.status(400).json({ message: '班级名称不能为空' });
       return;
     }
+    const finalTeacherId = (req.user!.role === 'superadmin' && teacherId) ? teacherId : req.user!.id;
     const cls = await prisma.class.create({
-      data: { name, description, teacherId: req.user!.id },
+      data: { name, description, teacherId: finalTeacherId },
     });
     res.status(201).json(cls);
   } catch {
@@ -54,15 +57,24 @@ router.post('/', async (req, res) => {
 // ─── PUT /classes/:id ─────────────────────────────────────────────────────────
 router.put('/:id', async (req, res) => {
   try {
+    const whereClause = req.user!.role === 'superadmin' 
+      ? { id: req.params.id, deletedAt: null } 
+      : { id: req.params.id, teacherId: req.user!.id, deletedAt: null };
+      
     const cls = await prisma.class.findFirst({
-      where: { id: req.params.id, teacherId: req.user!.id, deletedAt: null },
+      where: whereClause,
     });
     if (!cls) { res.status(404).json({ message: '班级不存在' }); return; }
 
-    const { name, description } = req.body;
+    const { name, description, teacherId } = req.body;
+    const dataToUpdate: any = { name, description };
+    if (req.user!.role === 'superadmin' && teacherId) {
+      dataToUpdate.teacherId = teacherId;
+    }
+
     const updated = await prisma.class.update({
       where: { id: req.params.id },
-      data: { name, description },
+      data: dataToUpdate,
     });
     res.json(updated);
   } catch {
@@ -73,8 +85,12 @@ router.put('/:id', async (req, res) => {
 // ─── DELETE /classes/:id ──────────────────────────────────────────────────────
 router.delete('/:id', async (req, res) => {
   try {
+    const whereClause = req.user!.role === 'superadmin' 
+      ? { id: req.params.id, deletedAt: null } 
+      : { id: req.params.id, teacherId: req.user!.id, deletedAt: null };
+
     const cls = await prisma.class.findFirst({
-      where: { id: req.params.id, teacherId: req.user!.id, deletedAt: null },
+      where: whereClause,
     });
     if (!cls) { res.status(404).json({ message: '班级不存在' }); return; }
 

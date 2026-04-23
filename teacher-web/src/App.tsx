@@ -9,6 +9,7 @@ import ClassesPage from './pages/ClassesPage';
 import LessonsPage from './pages/LessonsPage';
 import StudentsPage from './pages/StudentsPage';
 import StudentDetailPage from './pages/StudentDetailPage';
+import TeachersPage from './pages/TeachersPage';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isLoggedIn } = useAuthStore();
@@ -56,6 +57,7 @@ const App: React.FC = () => {
             <Route path="lessons" element={<LessonsPage />} />
             <Route path="students" element={<StudentsPage />} />
             <Route path="students/:id" element={<StudentDetailPage />} />
+            <Route path="teachers" element={<TeachersPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

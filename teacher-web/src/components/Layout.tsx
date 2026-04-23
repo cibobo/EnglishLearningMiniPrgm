@@ -16,6 +16,7 @@ const Layout: React.FC = () => {
     { key: '/classes', icon: <BankOutlined />, label: '班级管理' },
     { key: '/lessons', icon: <FileTextOutlined />, label: '课程管理' },
     { key: '/students', icon: <TeamOutlined />, label: '学生管理' },
+    ...(user?.role === 'superadmin' ? [{ key: '/teachers', icon: <TeamOutlined />, label: '教师管理' }] : []),
   ];
 
   return (

@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 
 export interface AuthPayload {
   id: string;
-  role: 'teacher' | 'student';
+  role: 'teacher' | 'student' | 'superadmin';
 }
 
 declare global {
@@ -32,8 +32,16 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
 };
 
 export const requireTeacher = (req: Request, res: Response, next: NextFunction): void => {
-  if (req.user?.role !== 'teacher') {
+  if (req.user?.role !== 'teacher' && req.user?.role !== 'superadmin') {
     res.status(403).json({ message: '无权限，仅教师可操作' });
+    return;
+  }
+  next();
+};
+
+export const requireSuperAdmin = (req: Request, res: Response, next: NextFunction): void => {
+  if (req.user?.role !== 'superadmin') {
+    res.status(403).json({ message: '无权限，仅超级管理员可操作' });
     return;
   }
   next();

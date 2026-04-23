@@ -45,17 +45,19 @@ router.get('/', async (req, res) => {
       return;
     }
 
-    // 课程库视图：返回教师本人所有课程
-    if (req.user?.role !== 'teacher') {
-      res.status(403).json({ message: '仅教师可查看课程库' });
+    // 课程库视图：返回教师本人所有课程（超级管理员返回所有）
+    if (req.user?.role !== 'teacher' && req.user?.role !== 'superadmin') {
+      res.status(403).json({ message: '无权限查看课程库' });
       return;
     }
+    const whereClause = req.user?.role === 'superadmin' ? { deletedAt: null } : { teacherId: req.user!.id, deletedAt: null };
     const lessons = await prisma.lesson.findMany({
-      where: { teacherId: req.user.id, deletedAt: null },
+      where: whereClause,
       include: {
         _count: { select: { sentences: true } },
         classLessons: { select: { classId: true } },
         lessonGroupItems: { select: { groupId: true } },
+        teacher: { select: { name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -104,15 +106,17 @@ router.get('/:id', async (req, res) => {
 // ─── POST /lessons ────────────────────────────────────────────────────────────
 router.post('/', requireTeacher, async (req, res) => {
   try {
-    const { title, imageUrl, masterAudioUrl, sentences } = req.body;
+    const { title, imageUrl, masterAudioUrl, sentences, teacherId } = req.body;
     if (!title || !imageUrl) {
       res.status(400).json({ message: '缺少必要字段：title、imageUrl' });
       return;
     }
 
+    const finalTeacherId = (req.user!.role === 'superadmin' && teacherId) ? teacherId : req.user!.id;
+
     const lesson = await prisma.lesson.create({
       data: {
-        teacherId: req.user!.id,
+        teacherId: finalTeacherId,
         masterAudioUrl,
         title,
         imageUrl,
@@ -141,10 +145,24 @@ router.post('/', requireTeacher, async (req, res) => {
 // ─── PUT /lessons/:id ─────────────────────────────────────────────────────────
 router.put('/:id', requireTeacher, async (req, res) => {
   try {
-    const { title, imageUrl, masterAudioUrl } = req.body;
+    const { title, imageUrl, masterAudioUrl, teacherId } = req.body;
+    const lessonId = req.params.id as string;
+    
+    // 检查所有权
+    const existing = await prisma.lesson.findUnique({ where: { id: lessonId } });
+    if (!existing || (req.user!.role !== 'superadmin' && existing.teacherId !== req.user!.id)) {
+      res.status(404).json({ message: '课程不存在或无权限修改' });
+      return;
+    }
+
+    const dataToUpdate: any = { title, imageUrl, masterAudioUrl };
+    if (req.user!.role === 'superadmin' && teacherId) {
+      dataToUpdate.teacherId = teacherId;
+    }
+
     const lesson = await prisma.lesson.update({
-      where: { id: req.params.id as string },
-      data: { title, imageUrl, masterAudioUrl },
+      where: { id: lessonId },
+      data: dataToUpdate,
     });
     res.json(lesson);
   } catch {
@@ -156,6 +174,14 @@ router.put('/:id', requireTeacher, async (req, res) => {
 router.delete('/:id', requireTeacher, async (req, res) => {
   try {
     const lessonId = req.params.id as string;
+
+    // 检查所有权
+    const existing = await prisma.lesson.findUnique({ where: { id: lessonId } });
+    if (!existing || (req.user!.role !== 'superadmin' && existing.teacherId !== req.user!.id)) {
+      res.status(404).json({ message: '课程不存在或无权限删除' });
+      return;
+    }
+
     await prisma.$transaction([
       prisma.lesson.update({
         where: { id: lessonId },
@@ -178,8 +204,9 @@ router.post('/:id/groups', requireTeacher, async (req, res) => {
     const lessonId = req.params.id as string;
     const { groupIds } = req.body as { groupIds: string[] };
 
+    const whereClause = req.user!.role === 'superadmin' ? { id: lessonId } : { id: lessonId, teacherId: req.user!.id };
     const lesson = await prisma.lesson.findFirst({
-      where: { id: lessonId, teacherId: req.user!.id }
+      where: whereClause
     });
     if (!lesson) {
        res.status(404).json({ message: '课程不存在' });
@@ -213,6 +240,14 @@ router.post('/:id/sentences', requireTeacher, async (req, res) => {
   try {
     const { sentences } = req.body;
     const lessonId = req.params.id as string;
+
+    // 检查所有权
+    const existing = await prisma.lesson.findUnique({ where: { id: lessonId } });
+    if (!existing || (req.user!.role !== 'superadmin' && existing.teacherId !== req.user!.id)) {
+      res.status(404).json({ message: '课程不存在或无权限修改' });
+      return;
+    }
+
     if (!Array.isArray(sentences) || sentences.length === 0) {
       res.status(400).json({ message: '句子列表不能为空' });
       return;

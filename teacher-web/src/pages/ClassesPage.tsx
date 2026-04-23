@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   Table, Button, Modal, Form, Input, Space, Tag, Tooltip,
-  message, Popconfirm, Typography, Card, List, Image, Divider, Checkbox, Tabs,
+  message, Popconfirm, Typography, Card, List, Image, Divider, Checkbox, Tabs, Select,
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined,
   LinkOutlined, EyeOutlined, SoundOutlined, UserAddOutlined,
 } from '@ant-design/icons';
 import api from '../lib/api';
+import { useAuthStore } from '../store/authStore';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -15,6 +16,8 @@ interface Class {
   id: string;
   name: string;
   description?: string;
+  teacherId?: string;
+  teacher?: { name: string };
   _count: { students: number; lessons: number };
 }
 
@@ -43,6 +46,8 @@ interface Student {
 }
 
 const ClassesPage: React.FC = () => {
+  const { user } = useAuthStore();
+  const [teachers, setTeachers] = useState<{ id: string; name: string }[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
   const [classModal, setClassModal] = useState(false);
@@ -69,7 +74,12 @@ const ClassesPage: React.FC = () => {
 
   const [classForm] = Form.useForm();
 
-  useEffect(() => { fetchClasses(); }, []);
+  useEffect(() => { 
+    fetchClasses(); 
+    if (user?.role === 'superadmin') {
+      api.get('/teachers').then(res => setTeachers(res.data)).catch(console.error);
+    }
+  }, [user?.role]);
 
   const fetchClasses = async () => {
     setLoading(true);
@@ -92,7 +102,7 @@ const ClassesPage: React.FC = () => {
   // ─── Class CRUD ─────────────────────────────────────────────────────────────
   const openClassModal = (cls?: Class) => {
     setEditingClass(cls || null);
-    classForm.setFieldsValue(cls || { name: '', description: '' });
+    classForm.setFieldsValue(cls || { name: '', description: '', teacherId: user?.role === 'superadmin' ? user.id : undefined });
     setClassModal(true);
   };
 
@@ -208,6 +218,7 @@ const ClassesPage: React.FC = () => {
   const columns = [
     { title: '班级名称', dataIndex: 'name', key: 'name', render: (v: string) => <Text strong>{v}</Text> },
     { title: '描述', dataIndex: 'description', key: 'desc', render: (v?: string) => v || '-' },
+    ...(user?.role === 'superadmin' ? [{ title: '负责教师', dataIndex: 'teacher', key: 'teacher', render: (_: any, r: Class) => r.teacher?.name || '未知' }] : []),
     { title: '学生数', key: 'students', render: (_: unknown, r: Class) => <Tag color="blue">{r._count.students} 人</Tag> },
     { title: '课程数', key: 'lessons', render: (_: unknown, r: Class) => <Tag color="green">{r._count.lessons} 课</Tag> },
     {
@@ -335,6 +346,11 @@ const ClassesPage: React.FC = () => {
           <Form.Item name="description" label="描述（可选）">
             <Input.TextArea rows={3} placeholder="班级描述" />
           </Form.Item>
+          {user?.role === 'superadmin' && (
+            <Form.Item name="teacherId" label="分配给教师" rules={[{ required: true }]}>
+              <Select options={teachers.map(t => ({ label: t.name, value: t.id }))} />
+            </Form.Item>
+          )}
         </Form>
       </Modal>
 

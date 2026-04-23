@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import api from '../lib/api';
 
-interface User { id: string; name: string; username: string; }
+interface User { id: string; name: string; username: string; role?: string; }
 interface AuthState {
   user: User | null;
   isLoggedIn: boolean;
