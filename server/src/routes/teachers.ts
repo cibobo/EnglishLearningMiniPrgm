@@ -13,12 +13,7 @@ router.get('/', async (req, res) => {
     const teachers = await prisma.teacher.findMany({
       where: { deletedAt: null },
       orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        role: true,
-        createdAt: true,
+      select: { id: true, username: true, name: true, role: true, createdAt: true,
         _count: {
           select: { classes: { where: { deletedAt: null } }, lessons: { where: { deletedAt: null } } }
         }

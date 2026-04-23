@@ -61,7 +61,7 @@ router.post('/wechat-login', async (req, res) => {
       // 查找学生码对应的学生（未绑定的）
       const unbound = await prisma.student.findUnique({
         where: { studentCode: studentCode.toUpperCase() },
-        include: { class: true },
+        include: { classes: true },
       });
 
       if (!unbound || unbound.openid) {
@@ -73,9 +73,11 @@ router.post('/wechat-login', async (req, res) => {
       student = await prisma.student.update({
         where: { id: unbound.id },
         data: { openid },
-        include: { class: true },
+        include: { classes: true },
       });
     }
+
+    if (!student) return;
 
     if (student.deletedAt) {
       res.status(403).json({ message: '账号已被禁用，请联系老师' });
