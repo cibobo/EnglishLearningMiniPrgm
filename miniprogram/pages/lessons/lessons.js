@@ -16,24 +16,22 @@ Page({
     selectedAvatar: null,
   },
 
-  onLoad(options) {
-    const user = getUserInfo();
-    const classId = options.classId || user?.classId;
-    this.setData({ userInfo: user, classId });
-    if (classId) {
-      this.loadLessons(classId);
-    } else {
-      this.setData({ loading: false });
-      wx.showToast({ title: '未分配班级，请联系老师', icon: 'none', duration: 3000 });
+  onLoad() {
+    const user = wx.getStorageSync('user');
+    if (!user) {
+      wx.reLaunch({ url: '/pages/login/login' });
+      return;
     }
+    
+    this.setData({ userInfo: user });
+    this.loadLessons();
   },
 
   async onShow() {
-    // 每次显示时刷新（跟读完成后返回可更新状态）
-    // 先加载课程（含本地录音统计），再打卡，保证句子数来源一致
-    const { classId } = this.data;
-    if (classId) {
-      await this.loadLessons(classId);
+    // 每次显示页面时，刷新课程列表进度（需用户已登录）
+    const user = wx.getStorageSync('user');
+    if (user) {
+      await this.loadLessons();
       this.checkDailyLogin();
     }
   },
@@ -80,10 +78,10 @@ Page({
     this.setData({ showCheckinModal: false });
   },
 
-  async loadLessons(classId) {
+  async loadLessons() {
     this.setData({ loading: true });
     try {
-      const lessons = await request({ url: `/lessons?class_id=${classId}` });
+      const lessons = await request({ url: '/lessons' });
 
       const themes = ['theme-primary', 'theme-secondary', 'theme-tertiary'];
       const enrichedLessons = lessons.map((l, index) => {

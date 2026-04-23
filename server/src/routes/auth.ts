@@ -44,7 +44,7 @@ router.post('/wechat-login', async (req, res) => {
     // 2. 用 openid 查找学生
     let student = await prisma.student.findUnique({
       where: { openid },
-      include: { class: true },
+      include: { classes: true },
     });
 
     // 3. 如果没有与 openid 绑定的学生，尝试用 studentCode 绑定
@@ -92,8 +92,7 @@ router.post('/wechat-login', async (req, res) => {
       user: {
         id: student.id,
         name: student.name,
-        className: student.class?.name || null,
-        classId: student.classId,
+        classes: student.classes.map(c => ({ id: c.id, name: c.name })),
       },
     });
   } catch (err) {

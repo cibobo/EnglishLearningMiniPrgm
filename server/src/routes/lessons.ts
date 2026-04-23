@@ -10,8 +10,8 @@ router.get('/', async (req, res) => {
   try {
     const { class_id } = req.query;
 
-    if (class_id) {
-      // 小程序/班级视图：按 class_id 筛选，通过关联表获取
+    if (class_id && req.user?.role !== 'student') {
+      // 教师端/普通班级视图：按 class_id 筛选，通过关联表获取
       const classLessons = await prisma.classLesson.findMany({
         where: { classId: class_id as string },
         include: {
@@ -26,11 +26,41 @@ router.get('/', async (req, res) => {
         .filter(cl => cl.lesson && !cl.lesson.deletedAt)
         .map(cl => cl.lesson);
 
-      if (req.user?.role === 'student') {
-        const lessonIds = lessons.map(l => l.id);
-        const scores = await prisma.lessonScore.findMany({
-          where: { studentId: req.user.id, lessonId: { in: lessonIds } },
-        });
+      res.json(lessons);
+      return;
+    }
+
+    if (req.user?.role === 'student') {
+      const student = await prisma.student.findUnique({
+        where: { id: req.user.id },
+        include: { classes: true }
+      });
+      const classIds = student?.classes.map(c => c.id) || [];
+      const classLessons = await prisma.classLesson.findMany({
+        where: { classId: { in: classIds } },
+        include: {
+          lesson: {
+            include: { _count: { select: { sentences: true } } },
+          },
+        },
+        orderBy: { orderIndex: 'asc' },
+      });
+
+      // deduplicate
+      const seenLessons = new Set<string>();
+      const lessons = [];
+      for (const cl of classLessons) {
+        if (!cl.lesson || cl.lesson.deletedAt) continue;
+        if (!seenLessons.has(cl.lessonId)) {
+          seenLessons.add(cl.lessonId);
+          lessons.push(cl.lesson);
+        }
+      }
+
+      const lessonIds = lessons.map(l => l.id);
+      const scores = await prisma.lessonScore.findMany({
+        where: { studentId: req.user.id, lessonId: { in: lessonIds } },
+      });
         const scoreMap = Object.fromEntries(scores.map(s => [s.lessonId, s]));
         res.json(lessons.map(l => ({
           ...l,
@@ -39,10 +69,6 @@ router.get('/', async (req, res) => {
           isLocked: !!scoreMap[l.id],
         })));
         return;
-      }
-
-      res.json(lessons);
-      return;
     }
 
     // 课程库视图：返回教师本人所有课程（超级管理员返回所有）

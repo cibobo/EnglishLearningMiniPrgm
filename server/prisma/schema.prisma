@@ -80,13 +80,12 @@ model Student {
   openid      String?   @unique @db.VarChar(100)
   studentCode String    @unique @map("student_code") @db.VarChar(6)
   name        String    @db.VarChar(100)
-  classId     String?   @map("class_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   deletedAt   DateTime? @map("deleted_at")
   lastLoginAt DateTime? @map("last_login_at")
   loginStreak Int       @default(0) @map("login_streak")
 
-  class                Class?                @relation(fields: [classId], references: [id])
+  classes              Class[]
   recordingSubmissions RecordingSubmission[]
   lessonScores         LessonScore[]
 

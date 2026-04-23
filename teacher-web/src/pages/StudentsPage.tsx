@@ -13,8 +13,7 @@ const { useBreakpoint } = Grid;
 
 interface Student {
   id: string; name: string; studentCode: string;
-  classId?: string;
-  class?: { id: string; name: string; teacher?: { name: string } };
+  classes?: { id: string; name: string; teacher?: { name: string } }[];
   _count: { recordingSubmissions: number };
 }
 interface Class { id: string; name: string; }
@@ -54,7 +53,7 @@ const StudentsPage: React.FC = () => {
 
   const openModal = (student?: Student) => {
     setEditing(student || null);
-    form.setFieldsValue(student ? { name: student.name, classId: student.classId } : { name: '', classId: undefined });
+    form.setFieldsValue(student ? { name: student.name, classIds: student.classes?.map(c => c.id) || [] } : { name: '', classIds: [] });
     setModalOpen(true);
   };
 
@@ -100,10 +99,18 @@ const StudentsPage: React.FC = () => {
       ),
     },
     {
-      title: '班级', dataIndex: ['class', 'name'], key: 'class',
-      render: (v?: string) => v ? <Tag color="blue">{v}</Tag> : <Tag>未分班</Tag>,
+      title: '班级', key: 'classes',
+      render: (_: any, r: Student) => r.classes && r.classes.length > 0
+        ? <Space wrap>{r.classes.map(c => <Tag color="blue" key={c.id}>{c.name}</Tag>)}</Space> 
+        : <Tag>未分班</Tag>,
     },
-    ...(user?.role === 'superadmin' ? [{ title: '所属教师', key: 'teacher', render: (_: any, r: Student) => r.class?.teacher?.name || '未知' }] : []),
+    ...(user?.role === 'superadmin' ? [{ 
+      title: '所属教师', key: 'teacher', 
+      render: (_: any, r: Student) => {
+         const tNames = Array.from(new Set(r.classes?.map(c => c.teacher?.name).filter(Boolean)));
+         return tNames.length > 0 ? tNames.join(', ') : '未知';
+      }
+    }] : []),
     {
       title: '录音提交', key: 'recordings',
       render: (_: any, r: Student) => <Tag color="green">{r._count.recordingSubmissions} 条</Tag>,
@@ -169,9 +176,14 @@ const StudentsPage: React.FC = () => {
 
                 <div style={{ marginTop: 12, marginBottom: 12 }}>
                   <Space split={<Divider type="vertical" />} wrap>
-                    <Text type="secondary" style={{ fontSize: 13 }}>
-                      班级: {r.class?.name ? <Tag color="blue" style={{ margin: 0, marginLeft: 6 }}>{r.class.name}</Tag> : '未分班'}
-                      {user?.role === 'superadmin' && r.class?.teacher?.name && <Tag color="purple" style={{ margin: 0, marginLeft: 6 }}>{r.class.teacher.name}</Tag>}
+                    <Text type="secondary" style={{ fontSize: 13, display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{marginRight: 4}}>班级:</span>
+                      {r.classes && r.classes.length > 0 ? r.classes.map(c => (
+                         <div key={c.id} style={{ display: 'inline-block', marginBottom: 4 }}>
+                            <Tag color="blue" style={{ margin: 0, marginLeft: 6 }}>{c.name}</Tag>
+                            {user?.role === 'superadmin' && c.teacher?.name && <Tag color="purple" style={{ margin: 0, marginLeft: 4 }}>{c.teacher.name}</Tag>}
+                         </div>
+                      )) : '未分班'}
                     </Text>
                     <Text type="secondary" style={{ fontSize: 13 }}>
                       录音: <Tag color="green" style={{ margin: 0, marginLeft: 6 }}>{r._count.recordingSubmissions} 条</Tag>
@@ -203,8 +215,8 @@ const StudentsPage: React.FC = () => {
           <Form.Item name="name" label="学生姓名" rules={[{ required: true, message: '请输入姓名' }]}>
             <Input placeholder="学生真实姓名" />
           </Form.Item>
-          <Form.Item name="classId" label="所属班级">
-            <Select placeholder="选择班级（可后续分配）" allowClear
+          <Form.Item name="classIds" label="所属班级">
+            <Select placeholder="选择班级（可多选）" mode="multiple" allowClear
               options={classes.map(c => ({ label: c.name, value: c.id }))} />
           </Form.Item>
         </Form>

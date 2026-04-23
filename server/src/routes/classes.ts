@@ -108,7 +108,7 @@ router.delete('/:id', async (req, res) => {
 router.get('/:id/students', async (req, res) => {
   try {
     const students = await prisma.student.findMany({
-      where: { classId: req.params.id, deletedAt: null },
+      where: { classes: { some: { id: req.params.id } }, deletedAt: null },
       orderBy: { createdAt: 'asc' },
     });
     res.json(students);

@@ -90,7 +90,8 @@ Page({
       });
     } else {
       // Has avatar, go to lessons
-      wx.reLaunch({ url: `/pages/lessons/lessons?classId=${user.classId}` });
+      wx.setStorageSync('user', user);
+      wx.reLaunch({ url: '/pages/lessons/lessons' });
     }
   },
 
@@ -119,7 +120,11 @@ Page({
     }
 
     // Proceed to app
-    wx.reLaunch({ url: `/pages/lessons/lessons?classId=${currentUser.classId}` });
+    this.onGoLessons();
+  },
+
+  onGoLessons() {
+    wx.reLaunch({ url: '/pages/lessons/lessons' });
   },
 
   async onUnbind() {
