@@ -45,14 +45,13 @@ model Class {
 // 课程库（不绑定班级，属于教师）
 model Lesson {
   id         String    @id @default(uuid())
-  teacherId  String    @map("teacher_id")
   title          String    @db.VarChar(200)
   imageUrl       String    @map("image_url") @db.VarChar(500)
   masterAudioUrl String?   @map("master_audio_url") @db.VarChar(500)
   createdAt  DateTime  @default(now()) @map("created_at")
   deletedAt  DateTime? @map("deleted_at")
 
-  teacher              Teacher              @relation(fields: [teacherId], references: [id])
+  teachers             Teacher[]
   classLessons         ClassLesson[]        // 通过关联表访问班级
   sentences            Sentence[]
   recordingSubmissions RecordingSubmission[]

@@ -24,7 +24,7 @@ router.get('/summary', async (req, res) => {
         // 学生总数
         prisma.student.count({ where: { classId: { in: classIds }, deletedAt: null } }),
         // 课程库总数（属于该教师的所有课程）
-        prisma.lesson.count({ where: { teacherId, deletedAt: null } }),
+        prisma.lesson.count({ where: { teachers: { some: { id: teacherId } }, deletedAt: null } }),
         // 待批录音数（通过 classLessons 关联到该教师班级的课程）
         prisma.recordingSubmission.count({
           where: {

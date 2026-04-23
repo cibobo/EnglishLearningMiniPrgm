@@ -19,8 +19,7 @@ interface Lesson {
   title: string;
   imageUrl: string;
   masterAudioUrl?: string | null;
-  teacherId?: string;
-  teacher?: { name: string };
+  teachers?: { id: string; name: string }[];
   _count: { sentences: number };
   classLessons: { classId: string }[];
   lessonGroupItems?: { groupId: string }[];
@@ -202,7 +201,7 @@ const LessonsPage: React.FC = () => {
     setSentences([{ text: '' }]);
     form.resetFields();
     if (user?.role === 'superadmin') {
-      form.setFieldsValue({ teacherId: user.id });
+      form.setFieldsValue({ teacherIds: [user.id] });
     }
     setCreateModal(true);
   };
@@ -235,7 +234,7 @@ const LessonsPage: React.FC = () => {
             thumbUrl: lessonDetail.imageUrl,
           },
         ],
-        teacherId: lessonDetail.teacherId,
+        teacherIds: lessonDetail.teachers?.map(t => t.id) || [],
       });
       setCreateModal(true);
     } catch {
@@ -322,12 +321,12 @@ const LessonsPage: React.FC = () => {
 
       if (editingLessonId) {
         // Update
-        await api.put(`/lessons/${editingLessonId}`, { title: vals.title, imageUrl, masterAudioUrl, teacherId: vals.teacherId });
+        await api.put(`/lessons/${editingLessonId}`, { title: vals.title, imageUrl, masterAudioUrl, teacherIds: vals.teacherIds });
         await api.post(`/lessons/${editingLessonId}/sentences`, { sentences: sentencesData });
         message.success('课程已更新');
       } else {
         // Create
-        await api.post('/lessons', { title: vals.title, imageUrl, masterAudioUrl, teacherId: vals.teacherId, sentences: sentencesData });
+        await api.post('/lessons', { title: vals.title, imageUrl, masterAudioUrl, teacherIds: vals.teacherIds, sentences: sentencesData });
         message.success('课程已创建并加入课程库');
       }
 
@@ -415,7 +414,9 @@ const LessonsPage: React.FC = () => {
         title={<Text ellipsis={{ tooltip: lesson.title }}>{lesson.title}</Text>}
         description={
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-            {user?.role === 'superadmin' && <Tag color="purple">{lesson.teacher?.name}</Tag>}
+            {user?.role === 'superadmin' && lesson.teachers?.map(t => (
+              <Tag key={t.id} color="purple">{t.name}</Tag>
+            ))}
             <Tag color="blue">{lesson._count.sentences} 句</Tag>
             {lesson.classLessons.length > 0 && (
               <Tag color="green">已分配 {lesson.classLessons.length} 班级</Tag>
@@ -552,8 +553,8 @@ const LessonsPage: React.FC = () => {
             <Input placeholder="如：Lesson 1 - Hello World" />
           </Form.Item>
           {user?.role === 'superadmin' && (
-            <Form.Item name="teacherId" label="负责教师" rules={[{ required: true }]}>
-              <Select options={teachers.map(t => ({ label: t.name, value: t.id }))} />
+            <Form.Item name="teacherIds" label="负责教师" rules={[{ required: true, message: '请至少选择一名带课教师', type: 'array' }]}>
+              <Select mode="multiple" placeholder="请选择一或多名教师" options={teachers.map(t => ({ label: t.name, value: t.id }))} />
             </Form.Item>
           )}
           <Form.Item 
