@@ -205,7 +205,15 @@ Page({
       if (playingIndex === -1) return;
       const targetSentence = sentences[playingIndex];
       if (targetSentence && typeof targetSentence.endTime === 'number') {
-        if (this._audio.currentTime >= targetSentence.endTime && this._audio.currentTime > 0) {
+        let currentAbs = this._audio.currentTime;
+        
+        // 【核心补偿】：微信小程序在部分设备（特别是 iOS）上使用 startTime 播放后，currentTime 会从 0 开始计时（变为相对时间）
+        // 此时如果当前读取的绝对时间比预计的 startTime 还小了许多，说明必然遇到了这个 Bug，我们需要将 startTime 补回来
+        if (typeof targetSentence.startTime === 'number' && targetSentence.startTime > 0 && currentAbs < targetSentence.startTime - 1) {
+          currentAbs += targetSentence.startTime;
+        }
+
+        if (currentAbs >= targetSentence.endTime && currentAbs > 0) {
           this._audio.pause();
           this.setData({ playingIndex: -1 });
         }
@@ -557,23 +565,17 @@ Page({
     this.setData({ playingIndex: targetIdx, currentIndex: targetIdx });
 
     if (lesson.masterAudioUrl && typeof sentence.startTime === 'number') {
-      if (this._audio.src !== lesson.masterAudioUrl) {
+      if (this._audio.src !== lesson.masterAudioUrl || !this._hasPlayedMaster) {
         this._audio.src = lesson.masterAudioUrl;
         this._audio.startTime = sentence.startTime;
         this._hasPlayedMaster = true;
         this._audio.play();
       } else {
-        if (!this._hasPlayedMaster) {
-          this._audio.startTime = sentence.startTime;
-          this._hasPlayedMaster = true;
-          this._audio.play();
-        } else {
-          this.isSeeking = true;
-          if (this.seekTimeout) clearTimeout(this.seekTimeout);
-          this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
-          this._audio.seek(sentence.startTime);
-          this._audio.play();
-        }
+        this.isSeeking = true;
+        if (this.seekTimeout) clearTimeout(this.seekTimeout);
+        this.seekTimeout = setTimeout(() => { this.isSeeking = false; }, 1000);
+        this._audio.seek(sentence.startTime);
+        this._audio.play();
       }
     } else if (sentence.audioUrl) {
       if (this._audio.src !== sentence.audioUrl) {
