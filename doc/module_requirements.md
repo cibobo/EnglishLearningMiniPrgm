@@ -1,6 +1,6 @@
 # 儿童英语跟读系统 — 模块需求文档
 
-> 版本：v1.0 | 日期：2026-03-14
+> 版本：v1.2 | 日期：2026-04-25
 
 ---
 
@@ -17,7 +17,7 @@
 | 页面 | 路由 | 功能描述 | 状态 |
 |------|------|----------|------|
 | 登录页 | `/pages/login/login` | 微信一键登录 | ✅ 已完成 |
-| 课程列表页 | `/pages/lessons/lessons` | 显示班级所有跟读课程 | ✅ 已完成 |
+| 课程列表页 | `/pages/lessons/lessons` | 聚合展示已加入各班级的所有跟读课程 | ✅ 已完成 |
 | 跟读页 | `/pages/reading/reading` | 逐句跟读、录音、提交 | ✅ 已完成 |
 
 ### M1.3 功能需求详述
@@ -53,11 +53,11 @@
 - 每张卡片显示：课程封面图（儿童画）、课程标题、句子数量
 - 卡片有轻微圆角和阴影，颜色明亮活泼
 
-**数据来源**: `GET /api/v1/lessons?class_id={classId}`
+**数据来源**: `GET /api/v1/lessons` （返回学生已加入所有班级的合并课程列表）
 
-**状态标识**（可选 v2 功能）:
-- 已完成提交：卡片右上角绿色"✓"徽标
-- 未完成：无标识
+**状态标识**（v1.2 功能）:
+- 学习完成度：课程卡片根据句子读取情况实时显示进度条
+- 动态奖杯：全部句子完成跟读后，根据录音平均得星比例自动解锁对应奖杯（铜 <50%, 银 50%-80%, 金 >=80%）
 
 **验收标准**:
 - 列表加载时显示骨架屏（Skeleton）
@@ -283,26 +283,55 @@ CREATE TABLE classes (
     deleted_at  DATETIME NULL
 );
 
+-- 班级-课程 关联表 (多对多)
+CREATE TABLE class_lessons (
+    class_id    VARCHAR(36) REFERENCES classes(id),
+    lesson_id   VARCHAR(36) REFERENCES lessons(id),
+    order_index INT DEFAULT 0,
+    assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (class_id, lesson_id)
+);
+
+-- 班级-学生 关联表 (多对多隐式表)
+CREATE TABLE _class_to_student (
+    A VARCHAR(36) REFERENCES classes(id),
+    B VARCHAR(36) REFERENCES students(id),
+    PRIMARY KEY (A, B)
+);
+
 -- 学生表
 CREATE TABLE students (
     id          VARCHAR(36) PRIMARY KEY,
     openid      VARCHAR(100) UNIQUE,     -- 微信 openid（首次绑定后填入）
     student_code VARCHAR(6) UNIQUE NOT NULL,  -- 6位绑定码
     name        VARCHAR(100) NOT NULL,
-    class_id    VARCHAR(36) REFERENCES classes(id),
+    login_streak INT DEFAULT 0,
+    last_login_at DATETIME NULL,
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
     deleted_at  DATETIME NULL
 );
 
--- 课程表
+-- 课程表 (此时作为教师课程库独立存在)
 CREATE TABLE lessons (
     id          VARCHAR(36) PRIMARY KEY,
-    class_id    VARCHAR(36) NOT NULL REFERENCES classes(id),
     title       VARCHAR(200) NOT NULL,
     image_url   VARCHAR(500) NOT NULL,  -- COS URL
-    order_index INT DEFAULT 0,
+    master_audio_url VARCHAR(500) NULL,
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
     deleted_at  DATETIME NULL
+);
+
+-- 成绩表
+CREATE TABLE lesson_scores (
+    id           VARCHAR(36) PRIMARY KEY,
+    student_id   VARCHAR(36) REFERENCES students(id),
+    lesson_id    VARCHAR(36) REFERENCES lessons(id),
+    total_score  INT NOT NULL,
+    max_score    INT NOT NULL,
+    score_percent INT NOT NULL,
+    trophy_level VARCHAR(20) NOT NULL,
+    calculated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(student_id, lesson_id)
 );
 
 -- 句子表

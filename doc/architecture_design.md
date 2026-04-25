@@ -1,8 +1,8 @@
 # 儿童英语跟读系统 — 整体架构设计
 
 > 项目代号：**rebalance.report**  
-> 设计日期：2026-03-14  
-> 版本：v1.0
+> 设计日期：2026-04-25  
+> 版本：v1.2
 
 ---
 
@@ -142,17 +142,24 @@ erDiagram
     Student {
         string id PK
         string openid UK "微信 openid"
+        string student_code UK "绑定码"
         string name
-        string class_id FK
+        int login_streak
         datetime created_at
     }
     Lesson {
         string id PK
-        string class_id FK
         string title
         string image_url "儿童画 COS URL"
-        int    order_index
+        string master_audio_url
         datetime created_at
+    }
+    LessonScore {
+        string id PK
+        string student_id FK
+        string lesson_id FK
+        int score_percent
+        string trophy_level
     }
     Sentence {
         string id PK
@@ -165,17 +172,21 @@ erDiagram
         string id PK
         string student_id FK
         string lesson_id FK
+        string sentence_id FK
         string audio_url "学生录音 COS URL"
         string status "pending|reviewed"
         datetime submitted_at
     }
 
     Teacher ||--o{ Class : "管理"
-    Class ||--o{ Student : "包含"
-    Class ||--o{ Lesson : "拥有"
+    Teacher ||--o{ Lesson : "创建(课程库)"
+    Class }o--o{ Student : "加入(多对多)"
+    Class }o--o{ Lesson : "分配(多对多)"
     Lesson ||--o{ Sentence : "包含"
     Student ||--o{ RecordingSubmission : "提交"
-    Lesson ||--o{ RecordingSubmission : "对应"
+    Sentence ||--o{ RecordingSubmission : "对应"
+    Student ||--o{ LessonScore : "获得"
+    Lesson ||--o{ LessonScore : "记录"
 ```
 
 ---
