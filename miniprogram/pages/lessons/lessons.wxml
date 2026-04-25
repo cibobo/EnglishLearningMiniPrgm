@@ -50,6 +50,11 @@
         <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill" class="deco-bg-img" lazy-load />
       </view>
 
+      <!-- 老师验收标识 -->
+      <view wx:if="{{item.requiresTeacherReview}}" class="teacher-review-badge">
+        <text class="teacher-review-icon">👩‍🏫</text>
+      </view>
+
       <!-- 完成标记 -->
       <view wx:if="{{item.isLocked}}" class="completed-badge">
         <text>COMPLETED</text>

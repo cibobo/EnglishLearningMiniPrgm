@@ -39,6 +39,9 @@ Page({
     submitting: false,
     allDone: false,
 
+    // Lesson type
+    requiresTeacherReview: false,
+
     // Animation
     flyingStars: [],
 
@@ -140,7 +143,8 @@ Page({
         allDone: recordedCount >= sentences.length,
         sentenceEvals,
         evalResult: sentenceEvals[startIndex] || null,
-        totalStars
+        totalStars,
+        requiresTeacherReview: lesson.requiresTeacherReview || false,
       });
 
       if (startIndex > 0) {
@@ -430,6 +434,43 @@ Page({
 
   // ─── Record Button (Long Press) ────────────────────────────────────────────
   onRecordStart() {
+    // 老师验收模式：跳过 SOE，直接录音
+    if (this.data.requiresTeacherReview) {
+      this._wantToRecord = true;
+      this._startCalled = false;
+
+      if (this.data.playingIndex !== -1) {
+        this._audio.pause();
+        this.setData({ playingIndex: -1 });
+      }
+      if (this.data.playingUserAudio) {
+        if (this._userAudio) this._userAudio.pause();
+        this.setData({ playingUserAudio: false });
+      }
+      this.setData({ recordingUI: true, evalResult: null });
+
+      wx.getSetting({
+        success: (res) => {
+          if (!this._wantToRecord) { this.setData({ recordingUI: false }); return; }
+          if (res.authSetting['scope.record'] === false) {
+            this.setData({ recordingUI: false });
+            wx.openSetting();
+            return;
+          }
+          this._startCalled = true;
+          recorderManager.start({
+            format: 'wav',
+            sampleRate: 16000,
+            numberOfChannels: 1,
+            frameSize: 0.32,
+            duration: 60000,
+          });
+        },
+      });
+      return;
+    }
+
+    // 机器检测模式（原有逻辑保持不变）
     if (!evaluationManager) {
       wx.showToast({ title: '评测插件未就绪', icon: 'none' });
       return;
@@ -516,16 +557,20 @@ Page({
     if (this.data.isRecording || this._startCalled) {
       this._startCalled = false;
       recorderManager.stop();
-      // 告知评测引擎音频发送完毕
-      if (evaluationManager && this._evalReady) {
-        evaluationManager.stop();
+      if (!this.data.requiresTeacherReview) {
+        // 告知评测引擎音频发送完毕
+        if (evaluationManager && this._evalReady) {
+          evaluationManager.stop();
+        }
+        // 进入"检测中"等待状态
+        this.setData({ isEvaluating: true });
       }
-      // 进入"检测中"等待状态
-      this.setData({ isEvaluating: true });
+      // 老师验收模式：无评测，不设置 isEvaluating
     } else {
       this.setData({ recordingUI: false });
     }
   },
+
 
   preventBubbling() {},
 

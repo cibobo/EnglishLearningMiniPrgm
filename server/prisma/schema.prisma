@@ -47,7 +47,8 @@ model Lesson {
   id         String    @id @default(uuid())
   title          String    @db.VarChar(200)
   imageUrl       String    @map("image_url") @db.VarChar(500)
-  masterAudioUrl String?   @map("master_audio_url") @db.VarChar(500)
+  masterAudioUrl        String?  @map("master_audio_url") @db.VarChar(500)
+  requiresTeacherReview Boolean  @default(false) @map("requires_teacher_review")
   createdAt  DateTime  @default(now()) @map("created_at")
   deletedAt  DateTime? @map("deleted_at")
 

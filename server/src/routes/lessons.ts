@@ -133,7 +133,7 @@ router.get('/:id', async (req, res) => {
 // ─── POST /lessons ────────────────────────────────────────────────────────────
 router.post('/', requireTeacher, async (req, res) => {
   try {
-    const { title, imageUrl, masterAudioUrl, sentences, teacherIds } = req.body;
+    const { title, imageUrl, masterAudioUrl, sentences, teacherIds, requiresTeacherReview } = req.body;
     if (!title || !imageUrl) {
       res.status(400).json({ message: '缺少必要字段：title、imageUrl' });
       return;
@@ -147,6 +147,7 @@ router.post('/', requireTeacher, async (req, res) => {
         masterAudioUrl,
         title,
         imageUrl,
+        requiresTeacherReview: !!requiresTeacherReview,
         sentences: sentences
           ? {
               create: sentences.map((s: { text: string; audioUrl?: string; startTime?: number; endTime?: number; imageUrl?: string; }, i: number) => ({
@@ -172,7 +173,7 @@ router.post('/', requireTeacher, async (req, res) => {
 // ─── PUT /lessons/:id ─────────────────────────────────────────────────────────
 router.put('/:id', requireTeacher, async (req, res) => {
   try {
-    const { title, imageUrl, masterAudioUrl, teacherIds } = req.body;
+    const { title, imageUrl, masterAudioUrl, teacherIds, requiresTeacherReview } = req.body;
     const lessonId = req.params.id as string;
     
     // 检查所有权
@@ -182,7 +183,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
       return;
     }
 
-    const dataToUpdate: any = { title, imageUrl, masterAudioUrl };
+    const dataToUpdate: any = { title, imageUrl, masterAudioUrl, requiresTeacherReview: !!requiresTeacherReview };
     if (req.user!.role === 'superadmin' && Array.isArray(teacherIds)) {
       dataToUpdate.teachers = { set: teacherIds.map(id => ({ id })) };
     }

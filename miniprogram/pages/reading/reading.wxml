@@ -32,14 +32,20 @@
            <image wx:if="{{lesson.imageUrl}}" class="header-thumb" src="{{lesson.imageUrl}}" mode="aspectFill"/>
            <text class="header-title">{{lesson.title}}</text>
          </view>
-         <view class="header-progress">
+         <!-- 机器检测模式：星星评分 -->
+         <view class="header-progress" wx:if="{{!requiresTeacherReview}}">
            <text class="progress-text">{{totalStars}} / {{sentences.length * 3}}</text>
            <text class="star-icon">⭐</text>
+         </view>
+         <!-- 老师验收模式：句子进度 -->
+         <view class="header-progress" wx:else>
+           <text class="progress-text">{{recordedCount}} / {{sentences.length}}</text>
+           <text class="star-icon">💬</text>
          </view>
       </view>
       <!-- 进度条胶囊 -->
       <view class="header-progress-track">
-         <view class="header-progress-fill" style="width: {{sentences.length ? (totalStars / (sentences.length * 3) * 100) : 0}}%;"></view>
+         <view class="header-progress-fill" style="width: {{sentences.length ? (requiresTeacherReview ? (recordedCount / sentences.length * 100) : (totalStars / (sentences.length * 3) * 100)) : 0}}%;"></view>
       </view>
     </view>
 
@@ -83,20 +89,25 @@
               <!-- 当前激活状态 UI -->
               <view class="active-content-layout" wx:else>
 
-                 <!-- ① 句子文字区：无结果时整句，有结果时逐词着色 -->
-                 <view class="active-text-wrap">
+                 <!-- ① 句子文字区 -->
+                 <!-- 老师验收模式：只显示原文，无 SOE 评分 -->
+                 <view class="active-text-wrap" wx:if="{{requiresTeacherReview}}">
+                   <text class="s-text-active">"{{sentence.text}}"</text>
+                 </view>
+                 <!-- 机器检测模式：无结果时整句，有结果时逐词着色 -->
+                 <view class="active-text-wrap" wx:else>
                    <!-- 无评测结果：整句显示 -->
                    <text wx:if="{{!evalResult}}" class="s-text-active">"{{sentence.text}}"</text>
                    <!-- 有评测结果：逐词着色 + 总分徽章 -->
                    <view wx:else class="eval-words-wrap">
                      <view class="eval-words-row">
-                       <text class="eval-punctuation">“</text>
+                       <text class="eval-punctuation">"</text>
                        <text
                          wx:for="{{evalResult.tokens}}"
                          wx:key="index"
                          class="{{item.isWord ? 'eval-word ' + (item.isError ? 'word-error' : (item.isWarning ? 'word-warning' : 'word-ok')) : 'eval-punctuation'}}"
                        >{{item.text}}</text>
-                       <text class="eval-punctuation">”</text>
+                       <text class="eval-punctuation">"</text>
                      </view>
                      <view class="score-stars-row">
                        <view class="star {{evalResult.stars >= 1 ? 'star-active' : ''}}"></view>
@@ -155,8 +166,8 @@
                       <view class="mic-hint-badge" wx:if="{{!isEvaluating}}">
                         <text wx:if="{{recordingUI}}">RELEASE TO FINISH</text>
                         <text wx:elif="{{playingIndex === currentIndex}}">NOW PLAYING</text>
-                        <text wx:elif="{{evalResult}}">TAP & HOLD TO RECORD</text>
-                        <text wx:else>TAP & HOLD TO RECORD</text>
+                        <text wx:elif="{{evalResult}}">TAP &amp; HOLD TO RECORD</text>
+                        <text wx:else>TAP &amp; HOLD TO RECORD</text>
                       </view>
 
                     </view>
@@ -172,8 +183,8 @@
       <view class="bottom-spacer"></view>
     </scroll-view>
 
-    <!-- 底部 Change Adventure / Submit Action Area -->
-    <view class="bottom-action-bar" wx:if="{{recordedCount > 0 && !isLocked}}">
+    <!-- 底部上传区域：仅老师验收课程显示 -->
+    <view class="bottom-action-bar" wx:if="{{requiresTeacherReview && recordedCount > 0 && !isLocked}}">
       <view 
         class="submit-adventure-btn {{submitting ? 'submitting' : ''}}"
         bindtap="onSubmit"

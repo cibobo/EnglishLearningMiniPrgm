@@ -94,9 +94,9 @@ Page({
 
         const progressPercent = totalSentences > 0 ? Math.round((completed / totalSentences) * 100) : 0;
         
-        // 本地计算奖杯级别（全部跟读完才显示）
+        // 本地计算奖杯级别（全部跟读完才显示；老师验收类课程不在本地计算）
         let trophyLevel = null;
-        if (totalSentences > 0 && completed >= totalSentences) {
+        if (!l.requiresTeacherReview && totalSentences > 0 && completed >= totalSentences) {
           const evals = wx.getStorageSync(`lesson_evals_${l.id}`) || {};
           let earnedStars = 0;
           for (let k in evals) { earnedStars += (evals[k].stars || 0); }
@@ -115,6 +115,7 @@ Page({
           colorTheme: themes[index % themes.length],
           trophyLevel,
           isLocked: l.isLocked || false,
+          requiresTeacherReview: l.requiresTeacherReview || false,
         };
       });
 

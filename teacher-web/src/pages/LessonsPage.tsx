@@ -19,6 +19,7 @@ interface Lesson {
   title: string;
   imageUrl: string;
   masterAudioUrl?: string | null;
+  requiresTeacherReview?: boolean;
   teachers?: { id: string; name: string }[];
   _count: { sentences: number };
   classLessons: { classId: string }[];
@@ -225,6 +226,7 @@ const LessonsPage: React.FC = () => {
       form.setFieldsValue({
         title: lessonDetail.title,
         masterAudioUrl: lessonDetail.masterAudioUrl,
+        requiresTeacherReview: lessonDetail.requiresTeacherReview ?? false,
         imageFile: [
           {
             uid: '-1',
@@ -321,12 +323,12 @@ const LessonsPage: React.FC = () => {
 
       if (editingLessonId) {
         // Update
-        await api.put(`/lessons/${editingLessonId}`, { title: vals.title, imageUrl, masterAudioUrl, teacherIds: vals.teacherIds });
+        await api.put(`/lessons/${editingLessonId}`, { title: vals.title, imageUrl, masterAudioUrl, teacherIds: vals.teacherIds, requiresTeacherReview: vals.requiresTeacherReview ?? false });
         await api.post(`/lessons/${editingLessonId}/sentences`, { sentences: sentencesData });
         message.success('课程已更新');
       } else {
         // Create
-        await api.post('/lessons', { title: vals.title, imageUrl, masterAudioUrl, teacherIds: vals.teacherIds, sentences: sentencesData });
+        await api.post('/lessons', { title: vals.title, imageUrl, masterAudioUrl, teacherIds: vals.teacherIds, requiresTeacherReview: vals.requiresTeacherReview ?? false, sentences: sentencesData });
         message.success('课程已创建并加入课程库');
       }
 
@@ -551,6 +553,9 @@ const LessonsPage: React.FC = () => {
           </Form.Item>
           <Form.Item name="title" label="课程标题" rules={[{ required: true }]}>
             <Input placeholder="如：Lesson 1 - Hello World" />
+          </Form.Item>
+          <Form.Item name="requiresTeacherReview" valuePropName="checked">
+            <Checkbox>需要老师验收（学生需上传录音，老师打分后才展示成绩）</Checkbox>
           </Form.Item>
           {user?.role === 'superadmin' && (
             <Form.Item name="teacherIds" label="负责教师" rules={[{ required: true, message: '请至少选择一名带课教师', type: 'array' }]}>
