@@ -327,8 +327,8 @@ Page({
 
     // 将原始句子拆分为 单词 和 非单词（标点/空格）
     const tokens = [];
-    // 匹配单词（包括带有撇号的单词，如 don't）和非单词序列
-    const regex = /([a-zA-Z0-9']+)|([^a-zA-Z0-9']+)/g;
+    // 支持多语言混合：中文单字为一个评估单位，英文/数字为一组。匹配不在[a-zA-Z0-9']及中文字符之内的作为占位符空白/标点
+    const regex = /([\u4e00-\u9fa5]|[a-zA-Z0-9']+)|([^\u4e00-\u9fa5a-zA-Z0-9']+)/g;
     let match;
     let wordIndex = 0;
 
@@ -521,6 +521,8 @@ Page({
           return;
         }
 
+        const isChinese = /[\u4e00-\u9fa5]/.test(refText);
+
         evaluationManager.start({
           secretid: cred.tmpSecretId,
           secretkey: cred.tmpSecretKey,
@@ -528,7 +530,7 @@ Page({
           appid: '1411543302',
           duration: 60000,
           frameSize: 0.32,
-          server_engine_type: '16k_en',  // 英语
+          server_engine_type: isChinese ? '16k_zh' : '16k_en',
           ref_text: refText,
           eval_mode: 1,          // 1 = 句子模式
           score_coeff: 1.0,
