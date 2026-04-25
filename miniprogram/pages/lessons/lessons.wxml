@@ -50,10 +50,6 @@
         <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill" class="deco-bg-img" lazy-load />
       </view>
 
-      <!-- 老师验收标识 -->
-      <view wx:if="{{item.requiresTeacherReview}}" class="teacher-review-badge">
-        <text class="teacher-review-icon">👩‍🏫</text>
-      </view>
 
       <!-- 完成标记 -->
       <view wx:if="{{item.isLocked}}" class="completed-badge">
@@ -68,6 +64,7 @@
       <view class="card-content">
         <view class="card-header">
            <text class="status-badge">Lesson {{index + 1}}</text>
+           <image wx:if="{{item.requiresTeacherReview}}" src="/images/teacher_avatar.png" class="teacher-review-inline" mode="aspectFit" />
         </view>
         <text class="card-title">{{item.title}}</text>
         <text class="card-desc">📝 {{item.totalSentences}} sentences</text>

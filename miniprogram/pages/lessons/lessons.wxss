@@ -280,26 +280,14 @@
   animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* 需要老师验收的课程标记 */
-.teacher-review-badge {
-  position: absolute;
-  top: 28rpx;
-  right: 28rpx;
-  z-index: 22;
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 999rpx;
-  width: 72rpx;
-  height: 72rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.10);
+/* 需要老师验收：inline avatar 跟在 Lesson N 标签旁 */
+.teacher-review-inline {
+  width: 50rpx;
+  height: 50rpx;
+  margin-left: 10rpx;
+  vertical-align: middle;
+  border-radius: 50%;
 }
-.teacher-review-icon {
-  font-size: 38rpx;
-  line-height: 1;
-}
-
 
 .trophy-center {
   position: absolute;
