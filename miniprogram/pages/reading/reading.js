@@ -210,7 +210,7 @@ Page({
       const targetSentence = sentences[playingIndex];
       if (targetSentence && typeof targetSentence.endTime === 'number') {
         let currentAbs = this._audio.currentTime;
-        
+
         // 【核心补偿】：微信小程序在部分设备（特别是 iOS）上使用 startTime 播放后，currentTime 会从 0 开始计时（变为相对时间）
         // 此时如果当前读取的绝对时间比预计的 startTime 还小了许多，说明必然遇到了这个 Bug，我们需要将 startTime 补回来
         if (typeof targetSentence.startTime === 'number' && targetSentence.startTime > 0 && currentAbs < targetSentence.startTime - 1) {
@@ -382,10 +382,10 @@ Page({
       newTotalStars += (updatedEvals[k].stars || 0);
     }
 
-    this.setData({ 
-      evalResult, 
+    this.setData({
+      evalResult,
       sentenceEvals: updatedEvals,
-      totalStars: newTotalStars 
+      totalStars: newTotalStars
     });
 
     if (isNewBest) {
@@ -574,7 +574,7 @@ Page({
   },
 
 
-  preventBubbling() {},
+  preventBubbling() { },
 
   // ─── Interactions ──────────────────────────────────────────────────────────
   onGroupTap(e) {
@@ -636,7 +636,7 @@ Page({
       }
       this._audio.play();
     } else {
-      wx.showToast({ title: '无法播放：该句子暂无音频信息', icon: 'none' });
+      // wx.showToast({ title: '无法播放：该句子暂无音频信息', icon: 'none' });
       this.setData({ playingIndex: -1 });
     }
   },
