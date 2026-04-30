@@ -204,4 +204,46 @@
   >
     ⭐
   </view>
+
+  <!-- ===== 庆典动画 Overlay ===== -->
+  <view 
+    wx:if="{{showCelebration}}" 
+    class="celebration-overlay {{celebrationPhase}}"
+    catchtap="preventBubbling"
+  >
+    <!-- 礼花粒子层 -->
+    <view class="confetti-container">
+      <view
+        wx:for="{{confettiPieces}}"
+        wx:key="id"
+        class="confetti-piece shape-{{item.shape}}"
+        style="left: {{item.x}}%; width: {{item.size}}rpx; height: {{item.size}}rpx; background: {{item.color}}; animation-delay: {{item.delay}}ms; animation-duration: {{item.duration}}ms;"
+      ></view>
+    </view>
+
+    <!-- 中央奖杯 -->
+    <view class="celebration-trophy-wrap {{celebrationTrophyClass}}">
+      <image 
+        wx:if="{{celebrationTrophyLevel}}" 
+        class="celebration-trophy-img" 
+        src="/images/{{celebrationTrophyLevel}}.png" 
+        mode="aspectFit"
+      />
+      <view wx:else class="celebration-trophy-placeholder">🏆</view>
+    </view>
+
+    <!-- 庆典提示文字 -->
+    <view class="celebration-text-wrap {{celebrationPhase === 'phase-trophy' ? 'text-visible' : ''}}">
+      <text class="celebration-congrats">太棒了！</text>
+      <text class="celebration-sub">课程完成！</text>
+    </view>
+
+    <!-- 继续按钮：奖杯显示后出现 -->
+    <view 
+      class="celebration-continue-btn {{celebrationPhase === 'phase-trophy' ? 'btn-visible' : ''}}"
+      bindtap="onCelebrationContinue"
+    >
+      <text class="celebration-continue-text">继续 →</text>
+    </view>
+  </view>
 </view>

@@ -45,6 +45,13 @@ Page({
     // Animation
     flyingStars: [],
 
+    // Celebration
+    showCelebration: false,
+    celebrationPhase: '',       // 'phase-blur' | 'phase-confetti' | 'phase-trophy'
+    celebrationTrophyLevel: null,
+    celebrationTrophyClass: '', // 'trophy-pop' | 'trophy-fly-away'
+    confettiPieces: [],
+
     scrollToView: '',
     totalStars: 0
   },
@@ -81,6 +88,11 @@ Page({
     }
     if (this.data.isRecording) recorderManager.stop();
     evaluationManager = null;
+    // 清理庆典定时器
+    if (this._celebrationTimers) {
+      this._celebrationTimers.forEach(t => clearTimeout(t));
+      this._celebrationTimers = [];
+    }
   },
 
   async loadLesson(lessonId) {
@@ -397,6 +409,96 @@ Page({
     if (isFirstEval || stars > oldStars) {
       this._triggerStarAnimation();
     }
+
+    // ── 庆典动画：最后一句首次完成时触发 ──
+    // 非老师验收模式、所有句子已录音、本次是首次评测（即刚完成最后一句）
+    if (!this.data.requiresTeacherReview && !this._celebrationTriggered) {
+      const { recordedCount, sentences } = this.data;
+      if (recordedCount >= sentences.length) {
+        this._celebrationTriggered = true;
+        // 计算最终奖杯等级
+        let earnedStars = 0;
+        for (let k in updatedEvals) { earnedStars += (updatedEvals[k].stars || 0); }
+        const maxStars = sentences.length * 3;
+        const ratio = earnedStars / maxStars;
+        let trophyLevel = 'bronze';
+        if (ratio >= 0.8) trophyLevel = 'gold';
+        else if (ratio >= 0.5) trophyLevel = 'silver';
+        this._triggerCelebration(trophyLevel);
+      }
+    }
+  },
+
+  // ─── 庆典动画 ────────────────────────────────────────────────────────────
+  _generateConfetti() {
+    const COLORS = [
+      '#ffba38', '#ff6b8b', '#75d1ff', '#a8e6cf', '#ffd700',
+      '#ff9ff3', '#54a0ff', '#5f27cd', '#ff6348', '#2ed573',
+      '#ffa502', '#eccc68', '#ff4757', '#1e90ff', '#7bed9f'
+    ];
+    const SHAPES = ['circle', 'square', 'ribbon'];
+    const pieces = [];
+    for (let i = 0; i < 48; i++) {
+      pieces.push({
+        id: i,
+        x: Math.random() * 100,                        // 水平位置 0~100%
+        size: 16 + Math.floor(Math.random() * 24),     // 16~40rpx
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        shape: SHAPES[Math.floor(Math.random() * SHAPES.length)],
+        delay: Math.floor(Math.random() * 1200),       // 0~1200ms 随机延迟
+        duration: 2200 + Math.floor(Math.random() * 1600) // 2200~3800ms
+      });
+    }
+    return pieces;
+  },
+
+  _triggerCelebration(trophyLevel) {
+    this._celebrationTimers = this._celebrationTimers || [];
+    this._celebrationTrophyLevel = trophyLevel; // 保存给 onCelebrationContinue 使用
+    const confettiPieces = this._generateConfetti();
+
+    // t=0: 显示遮罩，开始虚化
+    this.setData({
+      showCelebration: true,
+      celebrationPhase: 'phase-blur',
+      celebrationTrophyLevel: trophyLevel,
+      celebrationTrophyClass: '',
+      confettiPieces: []
+    });
+
+    // t=150ms: 礼花粒子出现
+    this._celebrationTimers.push(setTimeout(() => {
+      this.setData({
+        celebrationPhase: 'phase-confetti',
+        confettiPieces
+      });
+    }, 150));
+
+    // t=600ms: 奖杯弹出 + 文字 + 继续按钮（统一切换到 phase-trophy）
+    this._celebrationTimers.push(setTimeout(() => {
+      this.setData({
+        celebrationPhase: 'phase-trophy',
+        celebrationTrophyClass: 'trophy-pop'
+      });
+    }, 600));
+
+    // ── 之后等待用户点击"继续"按钮，由 onCelebrationContinue 接管 ──
+  },
+
+  // 用户点击"继续"按钮后执行
+  onCelebrationContinue() {
+    const trophyLevel = this._celebrationTrophyLevel;
+
+    // 立刻把庆典信息写入 globalData，确保返回时课程页能读到
+    const app = getApp();
+    app.globalData = app.globalData || {};
+    app.globalData.celebration = {
+      lessonId: this.data.lessonId,
+      trophyLevel
+    };
+
+    // 直接返回课程列表
+    wx.navigateBack();
   },
 
   // ─── 飞星动画 ─────────────────────────────────────────────────────────────

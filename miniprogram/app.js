@@ -5,6 +5,7 @@ App({
   globalData: {
     userInfo: null,
     classId: null,
+    celebration: null,  // 跨页庆典数据 { lessonId, trophyLevel }
   },
 
   onLaunch() {

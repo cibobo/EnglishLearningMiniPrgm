@@ -36,11 +36,15 @@
   </view>
 
   <!-- 课程列表 (Bouncy Cards) -->
-  <scroll-view wx:else scroll-y class="lesson-list" enhanced show-scrollbar="{{false}}">
+  <scroll-view wx:else scroll-y class="lesson-list" enhanced show-scrollbar="{{false}}"
+    scroll-into-view="{{scrollIntoCardId}}"
+    scroll-with-animation="{{true}}"
+  >
     <view
       wx:for="{{lessons}}"
       wx:key="id"
-      class="bouncy-card {{item.colorTheme}}"
+      id="lesson-card-{{item.id}}"
+      class="bouncy-card {{item.colorTheme}} {{item.id === stampingLessonId ? 'card-stamp-shake' : ''}}"
       bindtap="onLessonTap"
       data-id="{{item.id}}"
       data-theme="{{item.colorTheme}}"
@@ -57,7 +61,7 @@
       </view>
 
       <!-- 居中的奖杯图片 -->
-      <view wx:if="{{item.trophyLevel}}" class="trophy-center">
+      <view wx:if="{{item.trophyLevel}}" class="trophy-center {{item.id === stampedLessonId ? 'trophy-stamped' : ''}}">
         <image class="trophy-img" src="/images/{{item.trophyLevel}}.png" mode="aspectFit" />
       </view>
 
@@ -131,3 +135,18 @@
   </view>
 
 </view>
+
+<!-- ===== 奖杯印章飞入 Overlay（跨页动画第二阶段） ===== -->
+<view 
+  wx:if="{{showTrophyStamp}}" 
+  class="stamp-overlay"
+  catchtap="preventBubble"
+>
+  <image 
+    class="stamp-trophy-img {{stampAnimClass}}"
+    src="/images/{{stampTrophyLevel}}.png" 
+    mode="aspectFit"
+    style="transform: translate({{stampTargetX}}px, {{stampTargetY}}px) scale({{stampScale}}) rotate({{stampRotate}}deg);"
+  />
+</view>
+

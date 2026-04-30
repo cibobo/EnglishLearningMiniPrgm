@@ -315,8 +315,15 @@
 }
 
 @keyframes trophy-bounce {
-  0%   { transform: translate(-50%, -20%) scale(0.5) rotate(-10deg); opacity: 0; }
+  0%   { transform: translate(-50%, -20%) scale(0.5) rotate(-15deg); opacity: 0; }
   100% { transform: translate(-50%, -50%) scale(1) rotate(15deg); opacity: 1; }
+}
+
+/* 印章落地后的卡片奖杯：跳过 bounce，直接以最终角度静止出现，与 overlay 无缝衔接 */
+.trophy-center.trophy-stamped {
+  animation: none;
+  transform: translate(-50%, -50%) scale(1) rotate(15deg);
+  opacity: 1;
 }
 
 @keyframes pop-in {
@@ -480,4 +487,66 @@
   color: #604100;
   letter-spacing: 4rpx;
 }
+
+/* =============================================
+   奖杯印章飞入 Overlay（跨页庆典动画第二阶段）
+   ============================================= */
+
+/* 全屏容器：从屏幕中央开始，无背景 */
+.stamp-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 8000;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 飞行中的奖杯图片 */
+.stamp-trophy-img {
+  position: absolute;
+  width: 320rpx;
+  height: 320rpx;
+  /* 默认无 transition，立即定位到起始点 */
+  transition: none;
+  filter: drop-shadow(0 16rpx 48rpx rgba(0, 0, 0, 0.3));
+  transform-origin: center center;
+  opacity: 1;
+}
+
+/* 阶段1：立即出现在中心，无动画 */
+.stamp-trophy-img.stamp-phase-start {
+  transition: none;
+}
+
+/* 阶段2：加速飞向目标卡片，同时旋转到 15deg */
+.stamp-trophy-img.stamp-phase-flying {
+  transition: transform 0.6s cubic-bezier(0.55, 0, 1, 0.45);
+}
+
+/* 阶段3：印章弹性效果，旋转过冲到 22deg 再回弹到 15deg */
+.stamp-trophy-img.stamp-phase-stamp {
+  transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: drop-shadow(0 8rpx 24rpx rgba(0, 0, 0, 0.2));
+}
+
+
+/* 卡片接收印章时的震动效果 */
+@keyframes card-stamp-shake {
+  0%   { transform: scale(1) rotate(0deg); }
+  20%  { transform: scale(1.06) rotate(-2deg); }
+  40%  { transform: scale(0.97) rotate(1deg); }
+  60%  { transform: scale(1.03) rotate(-1deg); }
+  80%  { transform: scale(0.99) rotate(0.5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.card-stamp-shake {
+  animation: card-stamp-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
 
