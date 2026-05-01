@@ -3,11 +3,21 @@
   <!-- 顶部沉浸式 Header -->
   <view class="header">
     <view class="header-left">
-      <view class="icon-bubble">
+      <view class="icon-bubble {{achievements.avatarFrameClass}}">
         <image wx:if="{{userInfo.avatarUrl}}" src="{{userInfo.avatarUrl}}" class="header-avatar" mode="aspectFill" bindtap="onChangeAvatar" />
         <text wx:else class="emoji-icon" bindtap="onChangeAvatar">👋</text>
       </view>
-      <text class="greeting">Hi, {{userInfo.name}}</text>
+      <view class="user-info-col">
+        <text class="greeting">Hi, {{userInfo.name}}</text>
+        <view class="achievements-row" wx:if="{{achievements}}">
+          <text class="level-badge">Lv.{{achievements.level}} {{achievements.title}}</text>
+          <view class="trophy-counts" wx:if="{{achievements.trophies.gold > 0 || achievements.trophies.silver > 0 || achievements.trophies.bronze > 0}}">
+            <text wx:if="{{achievements.trophies.gold > 0}}">🥇{{achievements.trophies.gold}}</text>
+            <text wx:if="{{achievements.trophies.silver > 0}}">🥈{{achievements.trophies.silver}}</text>
+            <text wx:if="{{achievements.trophies.bronze > 0}}">🥉{{achievements.trophies.bronze}}</text>
+          </view>
+        </view>
+      </view>
       <view class="checkin-trigger" bindtap="onShowCheckin" hover-class="checkin-trigger-hover">
         <text>🏅 打卡</text>
       </view>

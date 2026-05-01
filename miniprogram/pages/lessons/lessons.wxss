@@ -40,10 +40,72 @@
   display: block;
 }
 
+/* Avatar Frames (CSS Only) */
+.avatar-frame-bronze {
+  box-shadow: 0 0 0 6rpx #cd7f32;
+  background: linear-gradient(135deg, #cd7f32, #a0522d);
+}
+
+.avatar-frame-silver {
+  box-shadow: 0 0 0 6rpx #c0c0c0;
+  background: linear-gradient(135deg, #e0e0e0, #9e9e9e);
+}
+
+.avatar-frame-gold {
+  box-shadow: 0 0 0 6rpx #ffd700, 0 0 16rpx rgba(255,215,0,0.6);
+  background: linear-gradient(135deg, #fff3b0, #ffba38);
+}
+
+.avatar-frame-diamond {
+  box-shadow: 0 0 0 6rpx #00ffff, 0 0 20rpx rgba(0,255,255,0.8);
+  background: linear-gradient(135deg, #b9f2ff, #00d4ff);
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 6rpx #00ffff, 0 0 10rpx rgba(0,255,255,0.5); }
+  50% { box-shadow: 0 0 0 6rpx #00ffff, 0 0 25rpx rgba(0,255,255,1); }
+  100% { box-shadow: 0 0 0 6rpx #00ffff, 0 0 10rpx rgba(0,255,255,0.5); }
+}
+
+.user-info-col {
+  display: flex;
+  flex-direction: column;
+}
+
 .greeting {
   font-size: 40rpx;
   font-weight: 800;
   color: #7e5700;
+}
+
+.achievements-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 4rpx;
+}
+
+.level-badge {
+  font-size: 20rpx;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(90deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  text-shadow: 0 2rpx 4rpx rgba(0,0,0,0.1);
+  box-shadow: 0 4rpx 8rpx rgba(255,154,158,0.3);
+}
+
+.trophy-counts {
+  display: flex;
+  gap: 8rpx;
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #7e5700;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
 }
 
 .checkin-trigger {

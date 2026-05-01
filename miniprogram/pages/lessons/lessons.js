@@ -44,12 +44,12 @@ Page({
     const app = getApp();
     let pendingCelebration = null;
 
-    console.log('[DBG][onShow] app.globalData =', JSON.stringify(app.globalData));
+
 
     if (app.globalData && app.globalData.celebration) {
       pendingCelebration = { ...app.globalData.celebration };
       app.globalData.celebration = null;
-      console.log('[DBG][onShow] 庆典数据:', JSON.stringify(pendingCelebration));
+
       this.setData({
         showTrophyStamp: true,
         stampTrophyLevel: pendingCelebration.trophyLevel,
@@ -60,9 +60,9 @@ Page({
         stampRotate: 0,
         stampingLessonId: null,
       });
-      console.log('[DBG][onShow] setData showTrophyStamp=true 完成');
+
     } else {
-      console.log('[DBG][onShow] 无庆典数据，普通刷新');
+
     }
 
     // 刷新课程列表
@@ -74,7 +74,7 @@ Page({
 
     // 课程列表已渲染完成，开始印章动画
     if (pendingCelebration) {
-      console.log('[DBG][onShow] loadLessons 完成，100ms 后启动印章动画');
+
       setTimeout(() => {
         this._runTrophyStampAnimation(
           pendingCelebration.lessonId,
@@ -106,6 +106,8 @@ Page({
       this.setData({
         streak: res.streak,
         totalSentences: localTotal
+      }, () => {
+        this.calculateAchievements();
       });
       if (res.isFirstLoginToday) {
         this.setData({ showCheckinModal: true });
@@ -164,11 +166,67 @@ Page({
       });
 
       const localTotal = enrichedLessons.reduce((sum, l) => sum + (l.completedSentences || 0), 0);
-      this.setData({ lessons: enrichedLessons, loading: false, totalSentences: localTotal });
+      this.setData({ lessons: enrichedLessons, loading: false, totalSentences: localTotal }, () => {
+        this.calculateAchievements();
+      });
     } catch (err) {
       this.setData({ loading: false });
       wx.showToast({ title: err.message || '加载失败，请重试', icon: 'none' });
     }
+  },
+
+  calculateAchievements() {
+    const { lessons, streak } = this.data;
+    if (!lessons) return;
+
+    let totalStars = 0;
+    const trophies = { gold: 0, silver: 0, bronze: 0 };
+
+    lessons.forEach(l => {
+      // 统计奖杯
+      if (l.trophyLevel && trophies[l.trophyLevel] !== undefined) {
+        trophies[l.trophyLevel]++;
+      }
+
+      // 统计星星
+      const maxLessonStars = l.totalSentences * 3;
+      if (l.requiresTeacherReview) {
+        if (l.scorePercent !== null && l.scorePercent !== undefined) {
+          totalStars += Math.floor(maxLessonStars * (l.scorePercent / 100));
+        }
+      } else {
+        const evals = wx.getStorageSync(`lesson_evals_${l.id}`) || {};
+        for (let k in evals) {
+          totalStars += (evals[k].stars || 0);
+        }
+      }
+    });
+
+    // 计算等级 (每 50 颗星升 1 级)
+    const level = Math.floor(totalStars / 50) + 1;
+
+    // 计算称号
+    let title = '探索者';
+    if (level >= 10) title = '英语大师';
+    else if (level >= 7) title = '演说家';
+    else if (level >= 5) title = '达人';
+    else if (level >= 3) title = '小学者';
+
+    // 头像框 className (基于打卡天数)
+    let avatarFrameClass = '';
+    if (streak >= 30) avatarFrameClass = 'avatar-frame-diamond';
+    else if (streak >= 14) avatarFrameClass = 'avatar-frame-gold';
+    else if (streak >= 7) avatarFrameClass = 'avatar-frame-silver';
+    else if (streak >= 3) avatarFrameClass = 'avatar-frame-bronze';
+
+    this.setData({
+      achievements: {
+        level,
+        title,
+        trophies,
+        avatarFrameClass
+      }
+    });
   },
 
   onLessonTap(e) {
@@ -229,7 +287,7 @@ Page({
   // showTrophyStamp 已是 true（奖杯在屏幕中心可见）
   // 流程：① 隐藏卡片奖杯 → ② scroll-into-view → ③ 飞落 → ④ 印章 → ⑤ 恢复卡片奖杯 → ⑥ 隐藏 overlay
   _runTrophyStampAnimation(lessonId, trophyLevel) {
-    console.log('[DBG][Stamp] 启动, lessonId=', lessonId, 'trophyLevel=', trophyLevel);
+
 
     const screenW = wx.getWindowInfo().screenWidth;
     const screenH = wx.getWindowInfo().screenHeight;
@@ -237,29 +295,29 @@ Page({
     // overlay 内奖杯为 320rpx，卡片内为 250rpx
     const targetScale = (250 * pxPerRpx) / (320 * pxPerRpx);
 
-    console.log('[DBG][Stamp] screen:', screenW, 'x', screenH, '| targetScale:', targetScale.toFixed(3));
+
 
     // ① 暂时清除目标卡片上的奖杯，使其在印章落定前不可见
     const lessons = this.data.lessons;
     const idx = lessons.findIndex(l => String(l.id) === String(lessonId));
     if (idx !== -1 && lessons[idx].trophyLevel) {
       this.setData({ [`lessons[${idx}].trophyLevel`]: null });
-      console.log('[DBG][Stamp] 隐藏卡片奖杯，idx=', idx);
+
     }
 
     // ② scroll-into-view 触发 scroll-view 滚动到目标卡片
     const scrollId = `lesson-card-${lessonId}`;
-    console.log('[DBG][Stamp] setData scrollIntoCardId =', scrollId);
+
     this.setData({ scrollIntoCardId: scrollId });
 
     // ③ 等滚动完成（700ms），测量卡片坐标，执行飞落
     setTimeout(() => {
-      console.log('[DBG][Stamp] 700ms 后，查询 #' + scrollId);
+
       const query = wx.createSelectorQuery().in(this);
       query.select(`#${scrollId}`).boundingClientRect();
       query.exec((res) => {
         const cardRect = res[0];
-        console.log('[DBG][Stamp] boundingClientRect:', JSON.stringify(cardRect));
+
 
         const screenCenterX = screenW / 2;
         const screenCenterY = screenH / 2;
@@ -275,7 +333,7 @@ Page({
         const cardTrophyY = (cardRect ? cardRect.top + cardRect.height * 0.52 : screenCenterY) + OFFSET_Y;
         const deltaX = cardTrophyX - screenCenterX;
         const deltaY = cardTrophyY - screenCenterY;
-        console.log('[DBG][Stamp] delta X/Y:', deltaX.toFixed(1), '/', deltaY.toFixed(1));
+
 
         // 阶段 A：奖杯飞向卡片，同步旋转到 15deg（匹配卡片最终角度）
         this.setData({
@@ -300,13 +358,13 @@ Page({
               [`lessons[${idx}].trophyLevel`]: trophyLevel,
               stampedLessonId: String(lessonId),
             });
-            console.log('[DBG][Stamp] 恢复卡片奖杯（无 bounce）:', trophyLevel);
+
           }
         }, 1400);
 
         // 阶段 C2（+1500ms）：overlay 消失
         setTimeout(() => {
-          console.log('[DBG][Stamp] 隐藏 overlay');
+
           this.setData({
             showTrophyStamp: false,
             stampingLessonId: null,
