@@ -4,8 +4,8 @@
   <view class="header">
     <view class="header-left">
       <view class="icon-bubble {{achievements.avatarFrameClass}}">
-        <image wx:if="{{userInfo.avatarUrl}}" src="{{userInfo.avatarUrl}}" class="header-avatar" mode="aspectFill" bindtap="onChangeAvatar" />
-        <text wx:else class="emoji-icon" bindtap="onChangeAvatar">👋</text>
+        <image wx:if="{{userInfo.avatarUrl}}" src="{{userInfo.avatarUrl}}" class="header-avatar" mode="aspectFill" bindtap="onOpenProfile" />
+        <text wx:else class="emoji-icon" bindtap="onOpenProfile">👋</text>
       </view>
       <view class="user-info-col">
         <text class="greeting">Hi, {{userInfo.name}}</text>
@@ -115,6 +115,58 @@
     bind:close="onCloseCheckin" 
     bind:start="onCloseCheckin"
   />
+
+  <!-- Profile Overlay -->
+  <view class="overlay" wx:if="{{showProfileModal}}">
+    <view class="profile-card">
+      <view class="card-close" bindtap="onCloseProfile">✕</view>
+      
+      <view class="profile-avatar-wrapper {{achievements.avatarFrameClass}}" bindtap="onChangeAvatar">
+        <image wx:if="{{userInfo.avatarUrl}}" src="{{userInfo.avatarUrl}}" class="profile-big-avatar" mode="aspectFill" />
+        <text wx:else class="profile-emoji-avatar">👋</text>
+        <view class="edit-icon">✎</view>
+      </view>
+
+      <view class="profile-header-info">
+        <text class="profile-name">{{userInfo.name}}</text>
+        <text class="profile-classes">{{achievements.classesText}}</text>
+      </view>
+      
+      <view class="profile-level-badge">
+        <text>Lv.{{achievements.level}} {{achievements.title}}</text>
+      </view>
+
+      <view class="stats-grid">
+        <view class="stat-box streak-box">
+          <view class="icon-box primary-box"><text class="icon">✔️</text></view>
+          <text class="stat-val">{{streak}}</text>
+          <text class="stat-lbl">连续打卡(天)</text>
+        </view>
+        <view class="stat-box lessons-box">
+          <view class="icon-box secondary-box"><text class="icon">🎯</text></view>
+          <text class="stat-val">{{achievements.completedLessonsCount}}</text>
+          <text class="stat-lbl">完成课程</text>
+        </view>
+        <view class="stat-box sentences-box">
+          <view class="icon-box tertiary-box"><text class="icon">⭐</text></view>
+          <text class="stat-val">{{totalSentences}}</text>
+          <text class="stat-lbl">已读句子</text>
+        </view>
+        <view class="stat-box trophy-stat-box">
+          <view class="icon-box gold-box"><text class="icon">🏆</text></view>
+          <view class="trophy-content-wrapper">
+            <view class="trophy-row-val">
+              <text wx:if="{{achievements.trophies.gold > 0}}">🥇{{achievements.trophies.gold}}</text>
+              <text wx:if="{{achievements.trophies.silver > 0}}">🥈{{achievements.trophies.silver}}</text>
+              <text wx:if="{{achievements.trophies.bronze > 0}}">🥉{{achievements.trophies.bronze}}</text>
+              <text wx:if="{{achievements.trophies.gold === 0 && achievements.trophies.silver === 0 && achievements.trophies.bronze === 0}}">-</text>
+            </view>
+            <text class="stat-lbl">获得奖杯</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
 
   <!-- Avatar Picker Overlay -->
   <view class="overlay" wx:if="{{showAvatarPicker}}">

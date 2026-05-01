@@ -451,6 +451,208 @@
 }
 
 /* =============================================
+   Profile Overlay
+   ============================================= */
+.profile-card {
+  background: #ffffff;
+  width: 620rpx;
+  border-radius: 48rpx;
+  padding: 60rpx 40rpx;
+  box-shadow: 0 16rpx 60rpx rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  margin-bottom: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-big-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 4rpx solid #fff;
+  display: block;
+  box-sizing: border-box;
+}
+
+.profile-emoji-avatar {
+  font-size: 80rpx;
+}
+
+.edit-icon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #ffba38;
+  color: #604100;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  border: 4rpx solid #fff;
+  box-shadow: 0 4rpx 8rpx rgba(0,0,0,0.1);
+  z-index: 10;
+}
+
+.profile-header-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.profile-name {
+  font-size: 48rpx;
+  font-weight: 800;
+  color: #474747;
+  line-height: 1.2;
+}
+
+.profile-classes {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #888;
+  margin-top: 8rpx;
+  text-align: center;
+}
+
+.profile-level-badge {
+  margin-bottom: 40rpx;
+}
+
+.profile-level-badge text {
+  font-size: 24rpx;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(90deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+  padding: 8rpx 24rpx;
+  border-radius: 999rpx;
+  text-shadow: 0 2rpx 4rpx rgba(0,0,0,0.1);
+  box-shadow: 0 8rpx 16rpx rgba(255,154,158,0.3);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24rpx;
+  width: 100%;
+}
+
+.stat-box {
+  border-radius: 32rpx;
+  padding: 32rpx 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 16rpx rgba(0,0,0,0.02);
+}
+
+.streak-box {
+  background-color: #e8f7ec;
+  border: 4rpx solid #d7e6dc;
+  transform: rotate(0deg);
+}
+
+.lessons-box {
+  background-color: #e6f4ff;
+  border: 4rpx solid #cce5ff;
+  transform: rotate(0deg);
+}
+
+.sentences-box {
+  background-color: #ffd9df;
+  border: 4rpx solid #ffb1c0;
+  transform: rotate(0deg);
+}
+
+.icon-box {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16rpx;
+  box-shadow: inset 0 4rpx 8rpx rgba(255,255,255,0.6), 0 4rpx 8rpx rgba(0,0,0,0.05);
+}
+.icon { font-size: 36rpx; }
+
+.primary-box { background-color: #ffdeac; }
+.secondary-box { background-color: #c2e8ff; }
+.tertiary-box { background-color: #ffb1c0; }
+.gold-box { background-color: #ffdeac; }
+
+.stat-val {
+  font-size: 44rpx;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 8rpx;
+}
+
+.stat-lbl {
+  font-size: 20rpx;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.streak-box .stat-val { color: #2c7a4b; }
+.streak-box .stat-lbl { color: #4b9e6c; }
+
+.lessons-box .stat-val { color: #004d67; }
+.lessons-box .stat-lbl { color: #006688; }
+
+.sentences-box .stat-val { color: #a03b56; }
+.sentences-box .stat-lbl { color: #cc5473; }
+
+
+.trophy-row-val {
+  display: flex;
+  gap: 12rpx;
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #7e5700;
+  margin-bottom: 8rpx;
+}
+
+.trophy-stat-box {
+  grid-column: span 2;
+  background-color: #fff8eb;
+  border: 4rpx solid #ffeac7;
+  flex-direction: row;
+  justify-content: center;
+  gap: 32rpx;
+  padding: 24rpx;
+}
+
+.trophy-stat-box .icon-box {
+  margin-bottom: 0;
+}
+
+.trophy-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.trophy-stat-box .stat-lbl {
+  color: #7e5700;
+}
+
+/* =============================================
    Avatar Picker Overlay
    ============================================= */
 .overlay {
