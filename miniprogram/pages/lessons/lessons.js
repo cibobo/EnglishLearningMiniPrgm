@@ -218,7 +218,7 @@ Page({
     if (streak >= 30) avatarFrameClass = 'avatar-frame-diamond';
     else if (streak >= 14) avatarFrameClass = 'avatar-frame-gold';
     else if (streak >= 7) avatarFrameClass = 'avatar-frame-silver';
-    else if (streak >= 1) avatarFrameClass = 'avatar-frame-bronze';
+    else if (streak >= 3) avatarFrameClass = 'avatar-frame-bronze';
 
     // 计算完成课程数
     const completedLessonsCount = lessons.filter(l => l.progressPercent >= 100 || l.isLocked || l.trophyLevel).length;

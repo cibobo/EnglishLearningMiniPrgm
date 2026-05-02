@@ -467,22 +467,40 @@
 
 .profile-avatar-wrapper {
   position: relative;
-  width: 160rpx;
-  height: 160rpx;
   border-radius: 50%;
   margin-bottom: 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 12rpx;
+}
+
+.profile-avatar-wrapper.avatar-frame-bronze {
+  box-shadow: 0 0 0 8rpx #cd7f32;
+}
+.profile-avatar-wrapper.avatar-frame-silver {
+  box-shadow: 0 0 0 8rpx #c0c0c0;
+}
+.profile-avatar-wrapper.avatar-frame-gold {
+  box-shadow: 0 0 0 8rpx #ffd700, 0 0 24rpx rgba(255,215,0,0.6);
+}
+.profile-avatar-wrapper.avatar-frame-diamond {
+  box-shadow: 0 0 0 8rpx #00ffff, 0 0 32rpx rgba(0,255,255,0.8);
+  animation: profile-pulse-glow 2s infinite;
+}
+
+@keyframes profile-pulse-glow {
+  0% { box-shadow: 0 0 0 8rpx #00ffff, 0 0 16rpx rgba(0,255,255,0.5); }
+  50% { box-shadow: 0 0 0 8rpx #00ffff, 0 0 40rpx rgba(0,255,255,1); }
+  100% { box-shadow: 0 0 0 8rpx #00ffff, 0 0 16rpx rgba(0,255,255,0.5); }
 }
 
 .profile-big-avatar {
-  width: 100%;
-  height: 100%;
+  width: 160rpx;
+  height: 160rpx;
   border-radius: 50%;
   border: 4rpx solid #fff;
   display: block;
-  box-sizing: border-box;
 }
 
 .profile-emoji-avatar {
@@ -544,21 +562,28 @@
   box-shadow: 0 8rpx 16rpx rgba(255,154,158,0.3);
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24rpx;
+.stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
   width: 100%;
 }
 
-.stat-box {
+.stat-row {
   border-radius: 32rpx;
-  padding: 32rpx 16rpx;
+  padding: 16rpx 32rpx;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   box-shadow: 0 8rpx 16rpx rgba(0,0,0,0.02);
+}
+
+.stat-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 24rpx;
 }
 
 .streak-box {
@@ -580,16 +605,15 @@
 }
 
 .icon-box {
-  width: 80rpx;
-  height: 80rpx;
+  width: 64rpx;
+  height: 64rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16rpx;
   box-shadow: inset 0 4rpx 8rpx rgba(255,255,255,0.6), 0 4rpx 8rpx rgba(0,0,0,0.05);
 }
-.icon { font-size: 36rpx; }
+.icon { font-size: 32rpx; }
 
 .primary-box { background-color: #ffdeac; }
 .secondary-box { background-color: #c2e8ff; }
@@ -597,16 +621,14 @@
 .gold-box { background-color: #ffdeac; }
 
 .stat-val {
-  font-size: 44rpx;
+  font-size: 40rpx;
   font-weight: 900;
   line-height: 1;
-  margin-bottom: 8rpx;
 }
 
 .stat-lbl {
-  font-size: 20rpx;
+  font-size: 26rpx;
   font-weight: 800;
-  text-transform: uppercase;
 }
 
 .streak-box .stat-val { color: #2c7a4b; }
@@ -625,27 +647,11 @@
   font-size: 32rpx;
   font-weight: 800;
   color: #7e5700;
-  margin-bottom: 8rpx;
 }
 
 .trophy-stat-box {
-  grid-column: span 2;
   background-color: #fff8eb;
   border: 4rpx solid #ffeac7;
-  flex-direction: row;
-  justify-content: center;
-  gap: 32rpx;
-  padding: 24rpx;
-}
-
-.trophy-stat-box .icon-box {
-  margin-bottom: 0;
-}
-
-.trophy-content-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
 .trophy-stat-box .stat-lbl {

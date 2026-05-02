@@ -136,32 +136,41 @@
         <text>Lv.{{achievements.level}} {{achievements.title}}</text>
       </view>
 
-      <view class="stats-grid">
-        <view class="stat-box streak-box">
-          <view class="icon-box primary-box"><text class="icon">✔️</text></view>
+      <view class="stats-list">
+        <view class="stat-row streak-box">
+          <view class="stat-left">
+            <view class="icon-box primary-box"><text class="icon">✔️</text></view>
+            <text class="stat-lbl">连续打卡(天)</text>
+          </view>
           <text class="stat-val">{{streak}}</text>
-          <text class="stat-lbl">连续打卡(天)</text>
         </view>
-        <view class="stat-box lessons-box">
-          <view class="icon-box secondary-box"><text class="icon">🎯</text></view>
+        
+        <view class="stat-row lessons-box">
+          <view class="stat-left">
+            <view class="icon-box secondary-box"><text class="icon">🎯</text></view>
+            <text class="stat-lbl">完成课程</text>
+          </view>
           <text class="stat-val">{{achievements.completedLessonsCount}}</text>
-          <text class="stat-lbl">完成课程</text>
         </view>
-        <view class="stat-box sentences-box">
-          <view class="icon-box tertiary-box"><text class="icon">⭐</text></view>
+        
+        <view class="stat-row sentences-box">
+          <view class="stat-left">
+            <view class="icon-box tertiary-box"><text class="icon">⭐</text></view>
+            <text class="stat-lbl">已读句子</text>
+          </view>
           <text class="stat-val">{{totalSentences}}</text>
-          <text class="stat-lbl">已读句子</text>
         </view>
-        <view class="stat-box trophy-stat-box">
-          <view class="icon-box gold-box"><text class="icon">🏆</text></view>
-          <view class="trophy-content-wrapper">
-            <view class="trophy-row-val">
-              <text wx:if="{{achievements.trophies.gold > 0}}">🥇{{achievements.trophies.gold}}</text>
-              <text wx:if="{{achievements.trophies.silver > 0}}">🥈{{achievements.trophies.silver}}</text>
-              <text wx:if="{{achievements.trophies.bronze > 0}}">🥉{{achievements.trophies.bronze}}</text>
-              <text wx:if="{{achievements.trophies.gold === 0 && achievements.trophies.silver === 0 && achievements.trophies.bronze === 0}}">-</text>
-            </view>
+        
+        <view class="stat-row trophy-stat-box">
+          <view class="stat-left">
+            <view class="icon-box gold-box"><text class="icon">🏆</text></view>
             <text class="stat-lbl">获得奖杯</text>
+          </view>
+          <view class="trophy-row-val">
+            <text wx:if="{{achievements.trophies.gold > 0}}">🥇{{achievements.trophies.gold}}</text>
+            <text wx:if="{{achievements.trophies.silver > 0}}">🥈{{achievements.trophies.silver}}</text>
+            <text wx:if="{{achievements.trophies.bronze > 0}}">🥉{{achievements.trophies.bronze}}</text>
+            <text wx:if="{{achievements.trophies.gold === 0 && achievements.trophies.silver === 0 && achievements.trophies.bronze === 0}}">-</text>
           </view>
         </view>
       </view>
