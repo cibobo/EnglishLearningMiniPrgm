@@ -39,8 +39,8 @@
 
 .avatar-frame-overlay {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 46%;
+  left: 49%;
   width: 140%;
   height: 140%;
   transform: translate(-50%, -50%);
@@ -56,14 +56,26 @@
   display: block;
 }
 
-.frame_diamond {
-  animation: float-glow 3s infinite ease-in-out;
-}
+.frame_bronze { animation: float-glow-bronze 3s infinite ease-in-out; }
+.frame_silver { animation: float-glow-silver 3s infinite ease-in-out; }
+.frame_gold { animation: float-glow-gold 3s infinite ease-in-out; }
+.frame_diamond { animation: float-glow-diamond 3s infinite ease-in-out; }
 
-@keyframes float-glow {
-  0% { transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 0 4rpx rgba(0,255,255,0.4)); }
-  50% { transform: translate(-50%, -50%) scale(1.05); filter: drop-shadow(0 0 12rpx rgba(0,255,255,0.8)); }
-  100% { transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 0 4rpx rgba(0,255,255,0.4)); }
+@keyframes float-glow-bronze {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 0 4rpx rgba(205, 127, 50, 0.4)); }
+  50% { transform: translate(-50%, -50%) scale(1.05); filter: drop-shadow(0 0 12rpx rgba(205, 127, 50, 0.8)); }
+}
+@keyframes float-glow-silver {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 0 4rpx rgba(192, 192, 192, 0.4)); }
+  50% { transform: translate(-50%, -50%) scale(1.05); filter: drop-shadow(0 0 12rpx rgba(192, 192, 192, 0.8)); }
+}
+@keyframes float-glow-gold {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 0 4rpx rgba(255, 215, 0, 0.4)); }
+  50% { transform: translate(-50%, -50%) scale(1.05); filter: drop-shadow(0 0 12rpx rgba(255, 215, 0, 0.8)); }
+}
+@keyframes float-glow-diamond {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 0 4rpx rgba(0, 255, 255, 0.4)); }
+  50% { transform: translate(-50%, -50%) scale(1.05); filter: drop-shadow(0 0 12rpx rgba(0, 255, 255, 0.8)); }
 }
 
 .user-info-col {
@@ -596,7 +608,7 @@
 .gold-box { background-color: #ffdeac; }
 
 .stat-val {
-  font-size: 40rpx;
+  font-size: 50rpx;
   font-weight: 900;
   line-height: 1;
 }
