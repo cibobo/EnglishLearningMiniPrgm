@@ -3,9 +3,10 @@
   <!-- 顶部沉浸式 Header -->
   <view class="header">
     <view class="header-left">
-      <view class="icon-bubble {{achievements.avatarFrameClass}}">
+      <view class="icon-bubble">
         <image wx:if="{{userInfo.avatarUrl}}" src="{{userInfo.avatarUrl}}" class="header-avatar" mode="aspectFill" bindtap="onOpenProfile" />
         <text wx:else class="emoji-icon" bindtap="onOpenProfile">👋</text>
+        <image wx:if="{{achievements.avatarFrameClass}}" class="avatar-frame-overlay {{achievements.avatarFrameClass}}" src="/images/frames/{{achievements.avatarFrameClass}}.png" mode="aspectFit" />
       </view>
       <view class="user-info-col">
         <text class="greeting">Hi, {{userInfo.name}}</text>
@@ -121,10 +122,11 @@
     <view class="profile-card">
       <view class="card-close" bindtap="onCloseProfile">✕</view>
       
-      <view class="profile-avatar-wrapper {{achievements.avatarFrameClass}}" bindtap="onChangeAvatar">
+      <view class="profile-avatar-wrapper" bindtap="onChangeAvatar">
         <image wx:if="{{userInfo.avatarUrl}}" src="{{userInfo.avatarUrl}}" class="profile-big-avatar" mode="aspectFill" />
         <text wx:else class="profile-emoji-avatar">👋</text>
         <view class="edit-icon">✎</view>
+        <image wx:if="{{achievements.avatarFrameClass}}" class="avatar-frame-overlay {{achievements.avatarFrameClass}}" src="/images/frames/{{achievements.avatarFrameClass}}.png" mode="aspectFit" />
       </view>
 
       <view class="profile-header-info">
